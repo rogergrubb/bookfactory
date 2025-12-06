@@ -39,7 +39,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.2.6"
+    "eslint-config-next": "15.2.6",
+    "class-variance-authority": "^0.7.0"
   },
   "devDependencies": {
     "@types/uuid": "^10.0.0",
