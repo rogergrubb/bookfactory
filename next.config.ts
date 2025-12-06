@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Explicitly use webpack instead of Turbopack for production build
-  bundler: 'webpack',
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
