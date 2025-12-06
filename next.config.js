@@ -9,12 +9,14 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: '**.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
       },
     ],
   },
-  // Enable Turbopack with empty config for Next.js 16
-  turbopack: {},
 };
 
 module.exports = nextConfig;
