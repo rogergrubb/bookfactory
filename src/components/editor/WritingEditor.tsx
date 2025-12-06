@@ -196,8 +196,7 @@ export function WritingEditor({
       const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
       const cursorPosition = textarea.selectionStart;
       const textBeforeCursor = textarea.value.substring(0, cursorPosition);
-      const lines = textBeforeCursor.split('
-').length;
+      const lines = textBeforeCursor.split('\n').length;
       const scrollPosition = (lines * lineHeight) - (textarea.clientHeight / 2);
       textarea.scrollTop = Math.max(0, scrollPosition);
     }
