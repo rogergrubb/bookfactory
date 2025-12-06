@@ -1,0 +1,461 @@
+// BookFactory AI - Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id                    String    @id @default(cuid())
+  clerkId               String    @unique
+  email                 String    @unique
+  name                  String?
+  avatar                String?
+  bio                   String?
+  website               String?
+  twitter               String?
+  
+  plan                  Plan      @default(FREE)
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?   @unique
+  subscriptionStatus    String?
+  aiCreditsUsed         Int       @default(0)
+  
+  theme                 String    @default("system")
+  autoSave              Boolean   @default(true)
+  autoSaveInterval      Int       @default(30)
+  wordCountGoal         Int       @default(1000)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastActiveAt          DateTime  @default(now())
+  
+  books                 Book[]
+  series                Series[]
+  collaborations        Collaborator[]
+  aiUsage               AIUsage[]
+  royalties             Royalty[]
+  expenses              Expense[]
+  campaigns             Campaign[]
+  
+  @@map("users")
+}
+
+enum Plan {
+  FREE
+  CREATOR
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model Book {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title           String
+  subtitle        String?
+  description     String?
+  genre           String
+  template        String?
+  coverUrl        String?
+  
+  status          BookStatus  @default(DRAFT)
+  wordCount       Int         @default(0)
+  targetWordCount Int         @default(80000)
+  targetChapters  Int         @default(20)
+  
+  seriesId        String?
+  series          Series?     @relation(fields: [seriesId], references: [id])
+  seriesOrder     Int?
+  
+  isbn            String?
+  asin            String?
+  publishedAt     DateTime?
+  price           Float?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  chapters        Chapter[]
+  characters      Character[]
+  collaborators   Collaborator[]
+  sales           Sale[]
+  versions        BookVersion[]
+  feedback        Feedback[]
+  campaigns       Campaign[]
+  
+  @@index([userId])
+  @@index([seriesId])
+  @@map("books")
+}
+
+enum BookStatus {
+  DRAFT
+  WRITING
+  EDITING
+  PUBLISHED
+  ARCHIVED
+}
+
+model Chapter {
+  id          String        @id @default(cuid())
+  bookId      String
+  book        Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String        @db.Text
+  wordCount   Int           @default(0)
+  order       Int
+  status      ChapterStatus @default(DRAFT)
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  scenes      Scene[]
+  feedback    Feedback[]
+  
+  @@index([bookId])
+  @@map("chapters")
+}
+
+enum ChapterStatus {
+  DRAFT
+  COMPLETE
+  REVISION
+}
+
+model Scene {
+  id          String    @id @default(cuid())
+  chapterId   String
+  chapter     Chapter   @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  
+  title       String?
+  content     String    @db.Text
+  wordCount   Int       @default(0)
+  order       Int
+  pov         String?
+  location    String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([chapterId])
+  @@map("scenes")
+}
+
+model Series {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  genre       String
+  status      SeriesStatus @default(ONGOING)
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  books       Book[]
+  characters  SeriesCharacter[]
+  settings    SeriesSetting[]
+  timeline    TimelineEvent[]
+  
+  @@index([userId])
+  @@map("series")
+}
+
+enum SeriesStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+}
+
+model Character {
+  id          String    @id @default(cuid())
+  bookId      String
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  name        String
+  role        String
+  description String?
+  traits      String[]
+  backstory   String?   @db.Text
+  imageUrl    String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([bookId])
+  @@map("characters")
+}
+
+model SeriesCharacter {
+  id          String    @id @default(cuid())
+  seriesId    String
+  series      Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  name        String
+  role        String
+  description String?
+  traits      String[]
+  appearsIn   String[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([seriesId])
+  @@map("series_characters")
+}
+
+model SeriesSetting {
+  id          String    @id @default(cuid())
+  seriesId    String
+  series      Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  name        String
+  type        String
+  description String?
+  usedIn      String[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([seriesId])
+  @@map("series_settings")
+}
+
+model TimelineEvent {
+  id          String    @id @default(cuid())
+  seriesId    String
+  series      Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  title       String
+  date        String
+  description String?
+  type        String
+  bookId      String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([seriesId])
+  @@map("timeline_events")
+}
+
+model Collaborator {
+  id          String            @id @default(cuid())
+  bookId      String
+  book        Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?             @relation(fields: [userId], references: [id])
+  
+  email       String
+  role        CollaboratorRole
+  status      CollaboratorStatus @default(PENDING)
+  permissions String[]
+  
+  invitedAt   DateTime          @default(now())
+  acceptedAt  DateTime?
+  
+  feedback    Feedback[]
+  
+  @@unique([bookId, email])
+  @@index([bookId])
+  @@map("collaborators")
+}
+
+enum CollaboratorRole {
+  BETA_READER
+  EDITOR
+  CO_AUTHOR
+}
+
+enum CollaboratorStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DECLINED
+}
+
+model Feedback {
+  id              String        @id @default(cuid())
+  bookId          String
+  book            Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId       String?
+  chapter         Chapter?      @relation(fields: [chapterId], references: [id])
+  collaboratorId  String
+  collaborator    Collaborator  @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  
+  type            FeedbackType
+  content         String        @db.Text
+  selection       String?
+  status          FeedbackStatus @default(NEW)
+  
+  createdAt       DateTime      @default(now())
+  resolvedAt      DateTime?
+  
+  @@index([bookId])
+  @@index([chapterId])
+  @@map("feedback")
+}
+
+enum FeedbackType {
+  COMMENT
+  SUGGESTION
+  ISSUE
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  RESOLVED
+  REJECTED
+}
+
+model BookVersion {
+  id          String    @id @default(cuid())
+  bookId      String
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  version     Int
+  changes     String
+  wordCount   Int
+  snapshot    Json
+  
+  createdAt   DateTime  @default(now())
+  createdBy   String
+  
+  @@index([bookId])
+  @@map("book_versions")
+}
+
+model Sale {
+  id          String    @id @default(cuid())
+  bookId      String
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  date        DateTime
+  platform    String
+  quantity    Int
+  revenue     Float
+  royalty     Float
+  currency    String    @default("USD")
+  country     String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([bookId])
+  @@index([date])
+  @@map("sales")
+}
+
+model Royalty {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  platform    String
+  period      String
+  amount      Float
+  currency    String    @default("USD")
+  status      PaymentStatus @default(PENDING)
+  date        DateTime
+  
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+  
+  @@index([userId])
+  @@map("royalties")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  category    String
+  description String
+  amount      Float
+  currency    String    @default("USD")
+  date        DateTime
+  bookId      String?
+  receipt     String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@map("expenses")
+}
+
+model Campaign {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId      String?
+  book        Book?           @relation(fields: [bookId], references: [id])
+  
+  name        String
+  type        CampaignType
+  content     String          @db.Text
+  platforms   String[]
+  status      CampaignStatus  @default(DRAFT)
+  
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  
+  reach       Int             @default(0)
+  clicks      Int             @default(0)
+  conversions Int             @default(0)
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  @@index([userId])
+  @@map("campaigns")
+}
+
+enum CampaignType {
+  EMAIL
+  SOCIAL
+  ADS
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+model AIUsage {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String
+  inputTokens Int
+  outputTokens Int
+  bookId      String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_usage")
+}

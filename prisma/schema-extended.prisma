@@ -1,0 +1,1060 @@
+// Additional schema for advanced features - append to main schema.prisma
+
+// ============================================
+// SERIES MANAGEMENT
+// ============================================
+
+model Series {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  description     String?  @db.Text
+  genre           Genre
+  status          SeriesStatus @default(ONGOING)
+  
+  // Series metadata
+  totalBooks      Int      @default(0)
+  publishedBooks  Int      @default(0)
+  totalWordCount  Int      @default(0)
+  
+  // Timeline tracking
+  timelineStart   String?  // In-world start date
+  timelineEnd     String?  // In-world end date
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seriesBooks     SeriesBook[]
+  seriesCharacters SeriesCharacter[]
+  worldElements   SeriesWorldElement[]
+  timelineEvents  TimelineEvent[]
+  seriesBible     SeriesBible?
+  
+  @@index([userId])
+}
+
+enum SeriesStatus {
+  PLANNING
+  ONGOING
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+model SeriesBook {
+  id            String   @id @default(cuid())
+  seriesId      String
+  bookId        String
+  orderNumber   Int
+  subtitle      String?
+  releaseStatus ReleaseStatus @default(NOT_STARTED)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  @@unique([seriesId, bookId])
+  @@unique([seriesId, orderNumber])
+  @@index([seriesId])
+}
+
+enum ReleaseStatus {
+  NOT_STARTED
+  WRITING
+  EDITING
+  SCHEDULED
+  PUBLISHED
+}
+
+model SeriesCharacter {
+  id              String   @id @default(cuid())
+  seriesId        String
+  name            String
+  role            CharacterRole
+  description     String?  @db.Text
+  
+  // Cross-book tracking
+  firstAppearance String?  // Book ID
+  appearances     Json?    // Array of {bookId, chapter, role}
+  
+  // Character details for consistency
+  physicalTraits  Json?    // {height, hair, eyes, distinguishing marks, etc.}
+  personality     Json?    // {traits, quirks, fears, desires}
+  relationships   Json?    // {characterId, type, description}
+  backstory       String?  @db.Text
+  arc             String?  @db.Text
+  
+  // Consistency tracking
+  aliases         String[] // Other names used
+  age             Json?    // {startAge, ageProgression per book}
+  status          CharacterStatus @default(ALIVE)
+  
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  series          Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  @@index([seriesId])
+}
+
+enum CharacterStatus {
+  ALIVE
+  DECEASED
+  UNKNOWN
+  TRANSFORMED
+}
+
+model SeriesWorldElement {
+  id            String   @id @default(cuid())
+  seriesId      String
+  type          WorldElementType
+  name          String
+  description   String?  @db.Text
+  
+  // Detailed world-building
+  details       Json?    // Flexible key-value
+  rules         Json?    // For magic systems, technology, etc.
+  history       String?  @db.Text
+  connections   Json?    // Links to other elements
+  
+  // Book appearances
+  appearances   Json?    // {bookId, chapter, context}
+  
+  imageUrl      String?
+  mapUrl        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  @@index([seriesId])
+}
+
+model TimelineEvent {
+  id            String   @id @default(cuid())
+  seriesId      String
+  bookId        String?
+  
+  title         String
+  description   String?  @db.Text
+  date          String?  // In-world date (flexible format)
+  dateNumeric   Int?     // For sorting (days from series start)
+  
+  type          TimelineEventType
+  importance    EventImportance @default(NORMAL)
+  
+  // Related elements
+  characters    String[] // Character IDs involved
+  locations     String[] // Location IDs involved
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  @@index([seriesId])
+  @@index([dateNumeric])
+}
+
+enum TimelineEventType {
+  PLOT_EVENT
+  CHARACTER_BIRTH
+  CHARACTER_DEATH
+  WORLD_EVENT
+  BACKSTORY
+  FLASHBACK
+  FUTURE_EVENT
+  CUSTOM
+}
+
+enum EventImportance {
+  MINOR
+  NORMAL
+  MAJOR
+  CRITICAL
+}
+
+model SeriesBible {
+  id            String   @id @default(cuid())
+  seriesId      String   @unique
+  
+  // Organized documentation
+  overview      String?  @db.Text
+  themes        Json?    // Array of theme descriptions
+  plotArcs      Json?    // Series-wide plot threads
+  styleGuide    Json?    // Writing style rules
+  terminology   Json?    // Glossary of terms
+  rules         Json?    // World rules to maintain
+  
+  // Quick reference
+  characterList Json?
+  locationList  Json?
+  timeline      Json?
+  
+  generatedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  series        Series   @relation(fields: [seriesId], references: [id])
+}
+
+// ============================================
+// COLLABORATION & BETA READERS
+// ============================================
+
+model BetaReaderGroup {
+  id            String   @id @default(cuid())
+  userId        String   // Owner
+  name          String
+  description   String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  members       BetaReader[]
+  projects      BetaReaderProject[]
+  
+  @@index([userId])
+}
+
+model BetaReader {
+  id            String   @id @default(cuid())
+  groupId       String
+  email         String
+  name          String
+  
+  // Reader profile
+  genres        String[]
+  readingSpeed  ReadingSpeed @default(AVERAGE)
+  feedbackStyle FeedbackStyle @default(BALANCED)
+  
+  // Stats
+  projectsCompleted Int @default(0)
+  averageRating Float?
+  
+  status        BetaReaderStatus @default(ACTIVE)
+  notes         String?  @db.Text
+  
+  invitedAt     DateTime @default(now())
+  joinedAt      DateTime?
+  lastActiveAt  DateTime?
+
+  group         BetaReaderGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignments   BetaReaderAssignment[]
+  feedback      BetaReaderFeedback[]
+  
+  @@unique([groupId, email])
+  @@index([groupId])
+}
+
+enum ReadingSpeed {
+  SLOW
+  AVERAGE
+  FAST
+}
+
+enum FeedbackStyle {
+  DETAILED
+  BALANCED
+  HIGH_LEVEL
+}
+
+enum BetaReaderStatus {
+  INVITED
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+model BetaReaderProject {
+  id            String   @id @default(cuid())
+  groupId       String
+  bookId        String
+  
+  title         String
+  description   String?  @db.Text
+  
+  // Project settings
+  versionNumber Int      @default(1)
+  deadline      DateTime?
+  questions     Json?    // Specific questions for readers
+  
+  // Access control
+  chaptersAvailable Json? // Which chapters are accessible
+  
+  status        BetaProjectStatus @default(DRAFT)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  group         BetaReaderGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignments   BetaReaderAssignment[]
+  
+  @@index([groupId])
+  @@index([bookId])
+}
+
+enum BetaProjectStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+model BetaReaderAssignment {
+  id            String   @id @default(cuid())
+  projectId     String
+  readerId      String
+  
+  status        AssignmentStatus @default(PENDING)
+  progress      Int      @default(0) // Percentage
+  currentChapter Int?
+  
+  startedAt     DateTime?
+  completedAt   DateTime?
+  deadline      DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project       BetaReaderProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reader        BetaReader @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, readerId])
+  @@index([projectId])
+  @@index([readerId])
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+}
+
+model BetaReaderFeedback {
+  id            String   @id @default(cuid())
+  readerId      String
+  bookId        String
+  chapterId     String?
+  sceneId       String?
+  
+  type          FeedbackType
+  content       String   @db.Text
+  
+  // Inline feedback
+  startPosition Int?
+  endPosition   Int?
+  quotedText    String?  @db.Text
+  
+  // Structured feedback
+  rating        Int?     // 1-5 scale
+  emotion       String?  // Reader's emotional reaction
+  
+  status        FeedbackStatus @default(NEW)
+  authorResponse String? @db.Text
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  reader        BetaReader @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  
+  @@index([readerId])
+  @@index([bookId])
+  @@index([chapterId])
+}
+
+enum FeedbackType {
+  GENERAL
+  PLOT
+  CHARACTER
+  PACING
+  DIALOGUE
+  WORLDBUILDING
+  CONFUSION
+  SUGGESTION
+  PRAISE
+  TYPO
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  ADDRESSED
+  DISMISSED
+}
+
+// ============================================
+// FINANCIAL & ROYALTY TRACKING
+// ============================================
+
+model RoyaltyReport {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String?
+  platform      PublishingPlatform
+  
+  // Report period
+  periodStart   DateTime
+  periodEnd     DateTime
+  
+  // Financial data
+  unitsSold     Int      @default(0)
+  unitsReturned Int      @default(0)
+  pagesRead     Int?     // For KU
+  
+  grossRevenue  Decimal  @db.Decimal(10, 2)
+  fees          Decimal  @db.Decimal(10, 2) @default(0)
+  netRoyalty    Decimal  @db.Decimal(10, 2)
+  
+  currency      String   @default("USD")
+  exchangeRate  Float?   // If converted
+  
+  // Breakdown by format/market
+  breakdown     Json?    // {format, market, units, revenue}
+  
+  importedAt    DateTime @default(now())
+  source        String?  // File name or API
+  
+  @@index([userId])
+  @@index([bookId])
+  @@index([platform])
+  @@index([periodStart])
+}
+
+model Expense {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String?
+  seriesId      String?
+  
+  category      ExpenseCategory
+  description   String
+  vendor        String?
+  
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @default("USD")
+  
+  date          DateTime
+  invoiceNumber String?
+  receiptUrl    String?
+  
+  // Tax categorization
+  taxDeductible Boolean  @default(true)
+  taxCategory   String?
+  
+  status        ExpenseStatus @default(PENDING)
+  paidAt        DateTime?
+  
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([category])
+  @@index([date])
+}
+
+enum ExpenseCategory {
+  EDITING
+  COVER_DESIGN
+  FORMATTING
+  MARKETING_ADS
+  MARKETING_OTHER
+  PROMO_COPIES
+  ISBN
+  COPYRIGHT
+  WEBSITE
+  SOFTWARE
+  COURSES
+  TRAVEL
+  PROFESSIONAL_SERVICES
+  EQUIPMENT
+  OTHER
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+model FinancialGoal {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String?
+  seriesId      String?
+  
+  type          GoalType
+  name          String
+  targetAmount  Decimal  @db.Decimal(10, 2)
+  currentAmount Decimal  @db.Decimal(10, 2) @default(0)
+  
+  startDate     DateTime
+  endDate       DateTime?
+  
+  status        GoalStatus @default(ACTIVE)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum GoalType {
+  MONTHLY_INCOME
+  BOOK_REVENUE
+  SERIES_REVENUE
+  EXPENSE_BUDGET
+  SAVINGS_TARGET
+  AD_BUDGET
+  CUSTOM
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  MISSED
+  CANCELLED
+}
+
+model TaxDocument {
+  id            String   @id @default(cuid())
+  userId        String
+  year          Int
+  type          TaxDocType
+  
+  platform      String?
+  documentUrl   String?
+  
+  // Summary data
+  totalIncome   Decimal? @db.Decimal(10, 2)
+  totalExpenses Decimal? @db.Decimal(10, 2)
+  
+  receivedAt    DateTime?
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([year])
+}
+
+enum TaxDocType {
+  W9
+  TEN_NINETY_NINE
+  ROYALTY_STATEMENT
+  EXPENSE_SUMMARY
+  ANNUAL_SUMMARY
+  CUSTOM
+}
+
+// ============================================
+// ADVANCED MARKETING
+// ============================================
+
+model ARCCampaign {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String
+  
+  name          String
+  description   String?  @db.Text
+  
+  // Campaign settings
+  totalCopies   Int      @default(50)
+  claimedCopies Int      @default(0)
+  
+  startDate     DateTime
+  reviewDeadline DateTime?
+  
+  // Requirements
+  requirements  Json?    // {platforms, minReviewLength, etc.}
+  
+  // Lead magnet
+  fileUrl       String?
+  fileFormat    String?  // EPUB, PDF, MOBI
+  
+  status        ARCStatus @default(DRAFT)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  signups       ARCSignup[]
+  
+  @@index([userId])
+  @@index([bookId])
+}
+
+enum ARCStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  COMPLETED
+}
+
+model ARCSignup {
+  id            String   @id @default(cuid())
+  campaignId    String
+  
+  email         String
+  name          String
+  
+  // Reviewer profile
+  preferredFormat String?
+  reviewPlatforms String[] // Amazon, Goodreads, BookBub, etc.
+  socialFollowing Int?
+  
+  status        ARCSignupStatus @default(PENDING)
+  
+  downloadedAt  DateTime?
+  reviewUrl     String?
+  reviewedAt    DateTime?
+  
+  createdAt     DateTime @default(now())
+
+  campaign      ARCCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@unique([campaignId, email])
+  @@index([campaignId])
+}
+
+enum ARCSignupStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DOWNLOADED
+  REVIEWED
+  NO_RESPONSE
+}
+
+model AdCampaign {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String?
+  seriesId      String?
+  
+  platform      AdPlatform
+  name          String
+  
+  // Campaign details
+  externalId    String?  // Platform's campaign ID
+  adType        String?  // Sponsored Products, Display, etc.
+  targetingType String?  // Keyword, interest, etc.
+  
+  // Budget & spend
+  dailyBudget   Decimal? @db.Decimal(10, 2)
+  totalBudget   Decimal? @db.Decimal(10, 2)
+  totalSpend    Decimal  @db.Decimal(10, 2) @default(0)
+  
+  // Performance
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  orders        Int      @default(0)
+  kenp          Int      @default(0) // Kindle Edition Normalized Pages
+  
+  // Calculated metrics (updated periodically)
+  ctr           Float?   // Click-through rate
+  acos          Float?   // Advertising Cost of Sale
+  roas          Float?   // Return on Ad Spend
+  
+  startDate     DateTime
+  endDate       DateTime?
+  status        AdCampaignStatus @default(ACTIVE)
+  
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  adGroups      AdGroup[]
+  dailyStats    AdDailyStat[]
+  
+  @@index([userId])
+  @@index([bookId])
+  @@index([platform])
+}
+
+enum AdPlatform {
+  AMAZON_ADS
+  FACEBOOK
+  BOOKBUB
+  GOOGLE_ADS
+  TIKTOK
+  OTHER
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+  ARCHIVED
+}
+
+model AdGroup {
+  id            String   @id @default(cuid())
+  campaignId    String
+  name          String
+  
+  // Targeting
+  keywords      Json?    // Array of {keyword, matchType, bid}
+  interests     Json?    // For social ads
+  audiences     Json?    // Custom audiences
+  
+  status        AdGroupStatus @default(ACTIVE)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campaign      AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@index([campaignId])
+}
+
+enum AdGroupStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model AdDailyStat {
+  id            String   @id @default(cuid())
+  campaignId    String
+  date          DateTime
+  
+  spend         Decimal  @db.Decimal(10, 2)
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  orders        Int      @default(0)
+  revenue       Decimal  @db.Decimal(10, 2) @default(0)
+  
+  createdAt     DateTime @default(now())
+
+  campaign      AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@unique([campaignId, date])
+  @@index([campaignId])
+  @@index([date])
+}
+
+model PromoSubmission {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String
+  
+  site          PromoSite
+  submissionUrl String?
+  
+  // Submission details
+  requestedDate DateTime?
+  price         Decimal? @db.Decimal(10, 2)
+  category      String?
+  
+  status        PromoSubmissionStatus @default(DRAFT)
+  
+  submittedAt   DateTime?
+  responseAt    DateTime?
+  featuredAt    DateTime?
+  
+  result        PromoResult?
+  notes         String?
+  
+  // Results tracking
+  clicksBefore  Int?
+  clicksAfter   Int?
+  salesBefore   Int?
+  salesAfter    Int?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([site])
+}
+
+enum PromoSite {
+  BOOKBUB
+  FREEBOOKSY
+  BARGAIN_BOOKSY
+  ROBIN_READS
+  BOOK_BARBARIAN
+  FUSSY_LIBRARIAN
+  BOOK_GORILLA
+  ENT
+  BOOK_CAVE
+  BOOK_DOGGY
+  BOOK_REBEL
+  HELLO_BOOKS
+  WRITTEN_WORD_MEDIA
+  BOOK_SENDS
+  CHOICE_READS
+  KINDLE_NATION
+  PRETTY_HOT
+  CUSTOM
+}
+
+enum PromoSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  SCHEDULED
+  FEATURED
+  COMPLETED
+}
+
+enum PromoResult {
+  SUCCESS
+  MODERATE
+  POOR
+  UNKNOWN
+}
+
+model NewsletterSequence {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  
+  triggerType   SequenceTrigger
+  status        SequenceStatus @default(DRAFT)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  emails        SequenceEmail[]
+  
+  @@index([userId])
+}
+
+enum SequenceTrigger {
+  SIGNUP
+  TAG_ADDED
+  PURCHASE
+  MANUAL
+  DATE
+}
+
+enum SequenceStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model SequenceEmail {
+  id            String   @id @default(cuid())
+  sequenceId    String
+  
+  order         Int
+  delayDays     Int      @default(0)
+  
+  subject       String
+  preheader     String?
+  body          String   @db.Text
+  
+  // A/B testing
+  subjectB      String?
+  bodyB         String?  @db.Text
+  
+  // Stats
+  sent          Int      @default(0)
+  opened        Int      @default(0)
+  clicked       Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sequence      NewsletterSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  
+  @@index([sequenceId])
+}
+
+// ============================================
+// PLATFORM INTEGRATIONS
+// ============================================
+
+model PlatformConnection {
+  id            String   @id @default(cuid())
+  userId        String
+  platform      PublishingPlatform
+  
+  // OAuth tokens (encrypted in production)
+  accessToken   String?  @db.Text
+  refreshToken  String?  @db.Text
+  expiresAt     DateTime?
+  
+  // API credentials
+  accountId     String?
+  apiKey        String?  @db.Text
+  apiSecret     String?  @db.Text
+  
+  // Connection status
+  status        ConnectionStatus @default(DISCONNECTED)
+  lastSyncAt    DateTime?
+  lastError     String?
+  
+  // Settings
+  autoSync      Boolean  @default(false)
+  syncFrequency String?  // cron expression
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, platform])
+  @@index([userId])
+}
+
+enum ConnectionStatus {
+  DISCONNECTED
+  PENDING
+  CONNECTED
+  ERROR
+  EXPIRED
+}
+
+model SyncLog {
+  id            String   @id @default(cuid())
+  userId        String
+  platform      PublishingPlatform
+  
+  type          SyncType
+  status        SyncStatus
+  
+  recordsProcessed Int    @default(0)
+  recordsFailed Int       @default(0)
+  
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  
+  details       Json?
+  error         String?  @db.Text
+
+  @@index([userId])
+  @@index([platform])
+  @@index([startedAt])
+}
+
+enum SyncType {
+  BOOKS
+  SALES
+  REVIEWS
+  RANKINGS
+  FULL
+}
+
+enum SyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// ANALYTICS & TRACKING
+// ============================================
+
+model RankingHistory {
+  id            String   @id @default(cuid())
+  bookId        String
+  platform      PublishingPlatform
+  marketplace   String   // US, UK, DE, etc.
+  
+  // Overall rank
+  salesRank     Int?
+  
+  // Category ranks
+  categoryRanks Json?    // {categoryId, categoryName, rank}
+  
+  recordedAt    DateTime @default(now())
+
+  @@index([bookId])
+  @@index([platform])
+  @@index([recordedAt])
+}
+
+model ReviewTracker {
+  id            String   @id @default(cuid())
+  bookId        String
+  platform      String   // Amazon, Goodreads, BookBub, etc.
+  marketplace   String?
+  
+  // Stats
+  totalReviews  Int      @default(0)
+  averageRating Float?
+  
+  // Rating breakdown
+  fiveStars     Int      @default(0)
+  fourStars     Int      @default(0)
+  threeStars    Int      @default(0)
+  twoStars      Int      @default(0)
+  oneStar       Int      @default(0)
+  
+  // Most recent reviews
+  recentReviews Json?    // Array of review summaries
+  
+  lastChecked   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([bookId, platform, marketplace])
+  @@index([bookId])
+}
+
+model WritingSession {
+  id            String   @id @default(cuid())
+  userId        String
+  bookId        String?
+  
+  startTime     DateTime
+  endTime       DateTime?
+  duration      Int      @default(0) // seconds
+  
+  wordsWritten  Int      @default(0)
+  wordsDeleted  Int      @default(0)
+  netWords      Int      @default(0)
+  
+  // Productivity metrics
+  wordsPerHour  Float?
+  focusScore    Float?   // Based on breaks, distractions
+  
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([startTime])
+}
+
+model ProductivityInsight {
+  id            String   @id @default(cuid())
+  userId        String
+  
+  type          InsightType
+  period        String   // "2024-W01", "2024-01", etc.
+  
+  data          Json     // Insight-specific data
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, type, period])
+  @@index([userId])
+}
+
+enum InsightType {
+  BEST_WRITING_TIME
+  PRODUCTIVITY_TREND
+  WORD_COUNT_GOAL
+  STREAK_DATA
+  GENRE_COMPARISON
+  WEEKLY_SUMMARY
+  MONTHLY_SUMMARY
+}
