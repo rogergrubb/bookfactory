@@ -111,7 +111,7 @@ export function WritingEditor({
   
   const { isGenerating, setIsGenerating } = useAIAssistantStore();
 
-  const themeStyles = THEMES[theme];
+  const themeStyles = THEMES[theme as keyof typeof THEMES];
   const wordCount = countWords(content);
   const goalProgress = Math.min(100, (wordCount / wordCountGoal) * 100);
 
@@ -196,7 +196,8 @@ export function WritingEditor({
       const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
       const cursorPosition = textarea.selectionStart;
       const textBeforeCursor = textarea.value.substring(0, cursorPosition);
-      const lines = textBeforeCursor.split('\n').length;
+      const lines = textBeforeCursor.split('
+').length;
       const scrollPosition = (lines * lineHeight) - (textarea.clientHeight / 2);
       textarea.scrollTop = Math.max(0, scrollPosition);
     }
