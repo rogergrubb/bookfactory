@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+import { prisma, logActivity, recordWritingSession } from '@/lib/db';
 
 const createChapterSchema = z.object({
   bookId: z.string(),
   title: z.string().min(1).max(200),
   content: z.string().optional(),
-  order: z.number().int().min(1).optional(),
-});
-
-const updateChapterSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  content: z.string().optional(),
-  status: z.enum(['DRAFT', 'COMPLETE', 'REVISION']).optional(),
   order: z.number().int().min(1).optional(),
 });
 
@@ -32,11 +25,15 @@ export async function GET(req: NextRequest) {
 
     const chapters = await prisma.chapter.findMany({
       where: { bookId },
+      include: {
+        scenes: { orderBy: { order: 'asc' } },
+      },
       orderBy: { order: 'asc' },
     });
 
     return NextResponse.json({ chapters });
   } catch (error) {
+    console.error('GET /api/chapters error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -55,28 +52,65 @@ export async function POST(req: NextRequest) {
     if (!book) return NextResponse.json({ error: 'Book not found' }, { status: 404 });
 
     // Get the next order number if not specified
-    if (!data.order) {
+    let order = data.order;
+    if (!order) {
       const lastChapter = await prisma.chapter.findFirst({
         where: { bookId: data.bookId },
         orderBy: { order: 'desc' },
       });
-      data.order = (lastChapter?.order || 0) + 1;
+      order = (lastChapter?.order || 0) + 1;
     }
+
+    const wordCount = data.content ? data.content.split(/\s+/).filter(w => w.length > 0).length : 0;
 
     const chapter = await prisma.chapter.create({
       data: {
         bookId: data.bookId,
         title: data.title,
         content: data.content || '',
-        wordCount: data.content ? data.content.split(/\s+/).length : 0,
-        order: data.order,
+        wordCount,
+        order,
         status: 'DRAFT',
       },
     });
 
+    // Update book word count
+    await updateBookWordCount(data.bookId);
+
+    // Log activity
+    await logActivity({
+      userId,
+      type: 'CHAPTER_CREATED',
+      message: `Created chapter "${chapter.title}" in "${book.title}"`,
+      bookId: data.bookId,
+      chapterId: chapter.id,
+    });
+
+    // Record writing session if there's content
+    if (wordCount > 0) {
+      await recordWritingSession({
+        userId,
+        wordsWritten: wordCount,
+        bookId: data.bookId,
+        chapterId: chapter.id,
+      });
+    }
+
     return NextResponse.json({ chapter }, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
+    }
+    console.error('POST /api/chapters error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function updateBookWordCount(bookId: string) {
+  const chapters = await prisma.chapter.findMany({
+    where: { bookId },
+    select: { wordCount: true },
+  });
+  const totalWords = chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+  await prisma.book.update({ where: { id: bookId }, data: { wordCount: totalWords } });
 }
