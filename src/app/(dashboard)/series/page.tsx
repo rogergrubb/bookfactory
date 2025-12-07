@@ -279,7 +279,7 @@ export default function SeriesPage() {
                 )}
               </div>
             ) : (
-              <EmptyState icon={BookOpen} title="No series selected" description="Select a series from the list or create a new one" />
+              <EmptyState icon={<BookOpen className="h-8 w-8 text-stone-400" />} title="No series selected" description="Select a series from the list or create a new one" />
             )}
           </div>
         </div>
