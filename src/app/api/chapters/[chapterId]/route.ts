@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
-import { getChapterById, updateChapter, deleteChapter } from '@/lib/db';
+import { prisma, getChapterById, updateChapter, deleteChapter, logActivity, recordWritingSession } from '@/lib/db';
 
 type RouteParams = { params: Promise<{ chapterId: string }> };
 
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(chapter);
   } catch (error) {
+    console.error('GET /api/chapters/[chapterId] error:', error);
     return NextResponse.json({ error: 'Failed to fetch chapter' }, { status: 500 });
   }
 }
@@ -36,14 +37,46 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const body = await req.json();
     const data = updateChapterSchema.parse(body);
 
+    // Get existing chapter for word count comparison
+    const existingChapter = await getChapterById(chapterId, userId);
+    if (!existingChapter) return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+
     const chapter = await updateChapter(chapterId, userId, data);
-    if (!chapter) return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+    if (!chapter) return NextResponse.json({ error: 'Failed to update chapter' }, { status: 500 });
+
+    // Track writing session if content changed
+    if (data.content !== undefined) {
+      const oldWordCount = existingChapter.wordCount;
+      const newWordCount = chapter.wordCount;
+      const wordsDiff = newWordCount - oldWordCount;
+
+      if (wordsDiff > 0) {
+        await recordWritingSession({
+          userId,
+          wordsWritten: wordsDiff,
+          bookId: existingChapter.bookId,
+          chapterId: chapter.id,
+        });
+      }
+    }
+
+    // Log activity if status changed to COMPLETE
+    if (data.status === 'COMPLETE' && existingChapter.status !== 'COMPLETE') {
+      await logActivity({
+        userId,
+        type: 'CHAPTER_COMPLETED',
+        message: `Completed chapter "${chapter.title}"`,
+        bookId: existingChapter.bookId,
+        chapterId: chapter.id,
+      });
+    }
 
     return NextResponse.json(chapter);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
     }
+    console.error('PATCH /api/chapters/[chapterId] error:', error);
     return NextResponse.json({ error: 'Failed to update chapter' }, { status: 500 });
   }
 }
@@ -59,6 +92,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('DELETE /api/chapters/[chapterId] error:', error);
     return NextResponse.json({ error: 'Failed to delete chapter' }, { status: 500 });
   }
 }
