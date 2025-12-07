@@ -494,11 +494,20 @@ export async function logActivity(data: {
         'CHAPTER_COMPLETED' | 'WORDS_WRITTEN' | 'STREAK_ACHIEVED' | 'AI_USED' | 
         'EXPORT_COMPLETED' | 'COLLABORATOR_INVITED' | 'FEEDBACK_RECEIVED';
   message: string;
-  metadata?: Prisma.InputJsonValue;
+  metadata?: object;
   bookId?: string;
   chapterId?: string;
 }) {
-  return prisma.activity.create({ data });
+  return prisma.activity.create({ 
+    data: {
+      userId: data.userId,
+      type: data.type,
+      message: data.message,
+      metadata: data.metadata as Prisma.InputJsonValue,
+      bookId: data.bookId,
+      chapterId: data.chapterId,
+    }
+  });
 }
 
 export async function getActivities(userId: string, options?: {
