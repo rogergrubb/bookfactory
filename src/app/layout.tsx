@@ -23,18 +23,27 @@ export const metadata: Metadata = {
   },
 };
 
+// Check if Clerk is configured
+const clerkConfigured = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
+                         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== 'pk_test_placeholder';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <ClerkProvider>
-      <html lang="en" className={dmSans.className} suppressHydrationWarning>
-        <body className="min-h-screen bg-stone-50 antialiased dark:bg-stone-950">
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+  const content = (
+    <html lang="en" className={dmSans.className} suppressHydrationWarning>
+      <body className="min-h-screen bg-stone-50 antialiased dark:bg-stone-950">
+        {children}
+      </body>
+    </html>
   );
+
+  // Only wrap with ClerkProvider if properly configured
+  if (clerkConfigured) {
+    return <ClerkProvider>{content}</ClerkProvider>;
+  }
+  
+  return content;
 }
