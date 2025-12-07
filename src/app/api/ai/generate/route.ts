@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { generateContent } from '@/lib/ai';
-import { prisma } from '@/lib/db';
+import { prisma, logActivity, logAIUsage } from '@/lib/db';
 
 const generateSchema = z.object({
   type: z.enum(['continue', 'improve', 'dialogue', 'description', 'brainstorm', 'outline']),
@@ -19,6 +19,15 @@ const generateSchema = z.object({
   length: z.enum(['short', 'medium', 'long']).optional(),
 });
 
+const typeLabels: Record<string, string> = {
+  continue: 'Continue Writing',
+  improve: 'Improve Text',
+  dialogue: 'Generate Dialogue',
+  description: 'Write Description',
+  brainstorm: 'Brainstorm Ideas',
+  outline: 'Create Outline',
+};
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -27,7 +36,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = generateSchema.parse(body);
 
-    // Check user's AI credits (if implementing usage limits)
+    // Check user exists
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
@@ -40,15 +49,25 @@ export async function POST(req: NextRequest) {
       length: data.length,
     });
 
-    // Log AI usage for billing/analytics
-    await prisma.aIUsage.create({
-      data: {
-        userId,
-        type: data.type,
-        inputTokens: Math.ceil(data.content.length / 4),
-        outputTokens: Math.ceil(result.length / 4),
-        bookId: data.context?.bookId,
-      },
+    const inputTokens = Math.ceil(data.content.length / 4);
+    const outputTokens = Math.ceil(result.length / 4);
+
+    // Log AI usage
+    await logAIUsage({
+      userId,
+      type: data.type,
+      inputTokens,
+      outputTokens,
+      bookId: data.context?.bookId,
+    });
+
+    // Log activity
+    await logActivity({
+      userId,
+      type: 'AI_USED',
+      message: `Used AI: ${typeLabels[data.type] || data.type}`,
+      bookId: data.context?.bookId,
+      metadata: { type: data.type, inputTokens, outputTokens },
     });
 
     return NextResponse.json({ result });
