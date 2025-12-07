@@ -45,6 +45,9 @@ model User {
   expenses              Expense[]
   campaigns             Campaign[]
   
+  writingSessions       WritingSession[]
+  activities            Activity[]
+  
   @@map("users")
 }
 
@@ -458,4 +461,60 @@ model AIUsage {
   @@index([userId])
   @@index([createdAt])
   @@map("ai_usage")
+}
+
+// ============================================
+// WRITING SESSIONS & ACTIVITY
+// ============================================
+
+model WritingSession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date        DateTime  @db.Date
+  wordsWritten Int      @default(0)
+  duration    Int       @default(0)  // in seconds
+  bookId      String?
+  chapterId   String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("writing_sessions")
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        ActivityType
+  message     String
+  metadata    Json?
+  bookId      String?
+  chapterId   String?
+  
+  createdAt   DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+enum ActivityType {
+  BOOK_CREATED
+  BOOK_UPDATED
+  BOOK_PUBLISHED
+  CHAPTER_CREATED
+  CHAPTER_COMPLETED
+  WORDS_WRITTEN
+  STREAK_ACHIEVED
+  AI_USED
+  EXPORT_COMPLETED
+  COLLABORATOR_INVITED
+  FEEDBACK_RECEIVED
 }
