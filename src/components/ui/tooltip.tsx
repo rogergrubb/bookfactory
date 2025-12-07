@@ -25,7 +25,7 @@ export function Tooltip({
   disabled = false,
 }: TooltipProps) {
   const [open, setOpen] = React.useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const timeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleMouseEnter = () => {
     if (disabled) return;
