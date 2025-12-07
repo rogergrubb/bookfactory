@@ -3,27 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-// Conditionally import UserButton
+// Simple avatar for preview mode
 const UserButtonWrapper = () => {
-  try {
-    const { UserButton } = require('@clerk/nextjs');
-    return (
-      <UserButton 
-        afterSignOutUrl="/" 
-        appearance={{ 
-          elements: { 
-            avatarBox: 'h-8 w-8 ring-2 ring-stone-100 dark:ring-stone-800' 
-          } 
-        }} 
-      />
-    );
-  } catch {
-    return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-200 text-sm font-medium text-stone-600 dark:bg-stone-700 dark:text-stone-300">
-        A
-      </div>
-    );
-  }
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-medium text-white ring-2 ring-stone-100 dark:ring-stone-800">
+      A
+    </div>
+  );
 };
 import {
   BookOpen, BarChart3, Users, Megaphone, DollarSign,
