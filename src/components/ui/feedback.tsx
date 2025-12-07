@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { Button } from './button';
 
+// Re-export Badge from badge component for backward compatibility
+export { Badge, StatusBadge, CounterBadge, type BadgeProps } from './badge';
+
 // =============================================================================
 // ALERT COMPONENT
 // =============================================================================
