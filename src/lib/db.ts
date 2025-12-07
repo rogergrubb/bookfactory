@@ -494,7 +494,7 @@ export async function logActivity(data: {
         'CHAPTER_COMPLETED' | 'WORDS_WRITTEN' | 'STREAK_ACHIEVED' | 'AI_USED' | 
         'EXPORT_COMPLETED' | 'COLLABORATOR_INVITED' | 'FEEDBACK_RECEIVED';
   message: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
   bookId?: string;
   chapterId?: string;
 }) {
