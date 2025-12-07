@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       type: 'AI_USED',
       message: `Used AI: ${typeLabels[data.type] || data.type}`,
       bookId: data.context?.bookId,
-      metadata: { type: data.type, inputTokens, outputTokens },
+      metadata: { type: data.type, inputTokens, outputTokens } as Record<string, string | number>,
     });
 
     return NextResponse.json({ result });
