@@ -339,3 +339,214 @@ export async function getAIUsage(userId: string, options?: { startDate?: Date; e
 }
 
 export default prisma;
+
+// ============================================
+// WRITING SESSION FUNCTIONS
+// ============================================
+
+export async function recordWritingSession(data: {
+  userId: string;
+  wordsWritten: number;
+  duration?: number;
+  bookId?: string;
+  chapterId?: string;
+}) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const session = await prisma.writingSession.upsert({
+    where: { userId_date: { userId: data.userId, date: today } },
+    update: {
+      wordsWritten: { increment: data.wordsWritten },
+      duration: data.duration ? { increment: data.duration } : undefined,
+      bookId: data.bookId,
+      chapterId: data.chapterId,
+    },
+    create: {
+      userId: data.userId,
+      date: today,
+      wordsWritten: data.wordsWritten,
+      duration: data.duration || 0,
+      bookId: data.bookId,
+      chapterId: data.chapterId,
+    },
+  });
+
+  // Log activity for significant word counts
+  if (data.wordsWritten >= 100) {
+    await logActivity({
+      userId: data.userId,
+      type: 'WORDS_WRITTEN',
+      message: `Wrote ${data.wordsWritten} words`,
+      bookId: data.bookId,
+      chapterId: data.chapterId,
+    });
+  }
+
+  return session;
+}
+
+export async function getWritingStreak(userId: string): Promise<{
+  currentStreak: number;
+  longestStreak: number;
+  todayWords: number;
+  weeklyWords: number;
+  totalWords: number;
+}> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const sessions = await prisma.writingSession.findMany({
+    where: { userId },
+    orderBy: { date: 'desc' },
+  });
+
+  if (sessions.length === 0) {
+    return { currentStreak: 0, longestStreak: 0, todayWords: 0, weeklyWords: 0, totalWords: 0 };
+  }
+
+  // Calculate current streak
+  let currentStreak = 0;
+  let checkDate = new Date(today);
+  
+  for (const session of sessions) {
+    const sessionDate = new Date(session.date);
+    sessionDate.setHours(0, 0, 0, 0);
+    
+    const diffDays = Math.floor((checkDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0 || diffDays === 1) {
+      if (session.wordsWritten > 0) {
+        currentStreak++;
+        checkDate = new Date(sessionDate);
+        checkDate.setDate(checkDate.getDate() - 1);
+      }
+    } else {
+      break;
+    }
+  }
+
+  // Calculate longest streak
+  let longestStreak = 0;
+  let tempStreak = 0;
+  let lastDate: Date | null = null;
+
+  for (const session of sessions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
+    const sessionDate = new Date(session.date);
+    sessionDate.setHours(0, 0, 0, 0);
+    
+    if (session.wordsWritten === 0) continue;
+
+    if (lastDate === null) {
+      tempStreak = 1;
+    } else {
+      const diffDays = Math.floor((sessionDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays === 1) {
+        tempStreak++;
+      } else {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+    lastDate = sessionDate;
+  }
+  longestStreak = Math.max(longestStreak, tempStreak);
+
+  // Today's words
+  const todaySession = sessions.find(s => {
+    const d = new Date(s.date);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+  const todayWords = todaySession?.wordsWritten || 0;
+
+  // Weekly words
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weeklyWords = sessions
+    .filter(s => new Date(s.date) >= weekAgo)
+    .reduce((sum, s) => sum + s.wordsWritten, 0);
+
+  // Total words
+  const totalWords = sessions.reduce((sum, s) => sum + s.wordsWritten, 0);
+
+  return { currentStreak, longestStreak, todayWords, weeklyWords, totalWords };
+}
+
+export async function getWritingHistory(userId: string, days: number = 30) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  startDate.setHours(0, 0, 0, 0);
+
+  return prisma.writingSession.findMany({
+    where: { userId, date: { gte: startDate } },
+    orderBy: { date: 'asc' },
+  });
+}
+
+// ============================================
+// ACTIVITY FUNCTIONS
+// ============================================
+
+export async function logActivity(data: {
+  userId: string;
+  type: 'BOOK_CREATED' | 'BOOK_UPDATED' | 'BOOK_PUBLISHED' | 'CHAPTER_CREATED' | 
+        'CHAPTER_COMPLETED' | 'WORDS_WRITTEN' | 'STREAK_ACHIEVED' | 'AI_USED' | 
+        'EXPORT_COMPLETED' | 'COLLABORATOR_INVITED' | 'FEEDBACK_RECEIVED';
+  message: string;
+  metadata?: Record<string, unknown>;
+  bookId?: string;
+  chapterId?: string;
+}) {
+  return prisma.activity.create({ data });
+}
+
+export async function getActivities(userId: string, options?: {
+  limit?: number;
+  offset?: number;
+  type?: string;
+  bookId?: string;
+}) {
+  const where: Prisma.ActivityWhereInput = { userId };
+  if (options?.type) where.type = options.type as any;
+  if (options?.bookId) where.bookId = options.bookId;
+
+  return prisma.activity.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: options?.limit || 20,
+    skip: options?.offset || 0,
+  });
+}
+
+// ============================================
+// DASHBOARD STATS
+// ============================================
+
+export async function getDashboardStats(userId: string) {
+  const [user, books, streak, recentActivities] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId } }),
+    prisma.book.findMany({
+      where: { userId },
+      select: { id: true, title: true, status: true, wordCount: true, targetWordCount: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+    }),
+    getWritingStreak(userId),
+    getActivities(userId, { limit: 10 }),
+  ]);
+
+  const totalBooks = await prisma.book.count({ where: { userId } });
+  const totalWords = await prisma.book.aggregate({ where: { userId }, _sum: { wordCount: true } });
+
+  return {
+    user,
+    stats: {
+      totalBooks,
+      totalWords: totalWords._sum.wordCount || 0,
+      ...streak,
+    },
+    recentBooks: books,
+    recentActivities,
+  };
+}
