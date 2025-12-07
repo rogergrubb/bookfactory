@@ -48,7 +48,7 @@ export { Select, NativeSelect } from './select';
 export { ToastProvider, useToast, ToastContainer } from './toast';
 
 // Tooltip
-export { Tooltip } from './tooltip';
+export { Tooltip, InfoTooltip } from './tooltip';
 
 // Skeleton/Loading
 export { 
