@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx prisma generate"
+    "postinstall": "npx prisma@5.22.0 generate"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
