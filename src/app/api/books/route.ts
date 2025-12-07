@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
-import { prisma, getUserBooks, createBook } from '@/lib/db';
+import { prisma, getUserBooks, createBook, logActivity, getOrCreateUser } from '@/lib/db';
 
 // Validation schemas
 const createBookSchema = z.object({
@@ -113,6 +113,14 @@ export async function POST(req: NextRequest) {
         })),
       });
     }
+
+    // Log activity
+    await logActivity({
+      userId,
+      type: 'BOOK_CREATED',
+      message: `Created new book "${book.title}"`,
+      bookId: book.id,
+    });
 
     return NextResponse.json({ book }, { status: 201 });
   } catch (error) {
