@@ -97,20 +97,32 @@ export function Tooltip({
 
 // InfoTooltip - Icon with tooltip for help text
 interface InfoTooltipProps {
-  content: React.ReactNode;
+  content?: React.ReactNode;
+  title?: string;
+  description?: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
   iconClassName?: string;
 }
 
 export function InfoTooltip({ 
-  content, 
+  content,
+  title,
+  description,
   side = 'top', 
   className,
   iconClassName 
 }: InfoTooltipProps) {
+  // Support both content prop and title/description props
+  const tooltipContent = content || (
+    <div className="max-w-xs">
+      {title && <p className="font-medium">{title}</p>}
+      {description && <p className="mt-0.5 text-stone-300">{description}</p>}
+    </div>
+  );
+
   return (
-    <Tooltip content={content} side={side} className={className}>
+    <Tooltip content={tooltipContent} side={side} className={className}>
       <button 
         type="button" 
         className={cn(
