@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Books', href: '/books', icon: BookOpen },
   { name: 'Series', href: '/series', icon: Layers },
   { name: 'Covers', href: '/covers', icon: Palette },
@@ -71,7 +72,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           'flex h-14 items-center border-b border-stone-100 dark:border-stone-800',
           sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'
         )}>
-          <Link href="/books" className="flex items-center gap-2.5">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-900 dark:bg-white">
               <BookOpen className="h-4 w-4 text-white dark:text-stone-900" />
             </div>
