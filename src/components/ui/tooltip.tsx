@@ -12,6 +12,7 @@ interface TooltipProps {
   align?: 'start' | 'center' | 'end';
   delay?: number;
   className?: string;
+  disabled?: boolean;
 }
 
 export function Tooltip({
@@ -21,11 +22,13 @@ export function Tooltip({
   align = 'center',
   delay = 200,
   className,
+  disabled = false,
 }: TooltipProps) {
   const [open, setOpen] = React.useState(false);
   const timeoutRef = React.useRef<NodeJS.Timeout>();
 
   const handleMouseEnter = () => {
+    if (disabled) return;
     timeoutRef.current = setTimeout(() => setOpen(true), delay);
   };
 
@@ -70,7 +73,7 @@ export function Tooltip({
     >
       {children}
       <AnimatePresence>
-        {open && (
+        {open && !disabled && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -103,6 +106,7 @@ interface InfoTooltipProps {
   side?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
   iconClassName?: string;
+  disabled?: boolean;
 }
 
 export function InfoTooltip({ 
@@ -111,7 +115,8 @@ export function InfoTooltip({
   description,
   side = 'top', 
   className,
-  iconClassName 
+  iconClassName,
+  disabled = false,
 }: InfoTooltipProps) {
   // Support both content prop and title/description props
   const tooltipContent = content || (
@@ -122,7 +127,7 @@ export function InfoTooltip({
   );
 
   return (
-    <Tooltip content={tooltipContent} side={side} className={className}>
+    <Tooltip content={tooltipContent} side={side} className={className} disabled={disabled}>
       <button 
         type="button" 
         className={cn(
