@@ -1,5 +1,7 @@
 'use client';
 
+import { UserButton } from '@clerk/nextjs';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -236,9 +238,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             
             {/* User */}
             <div className="ml-1 border-l border-stone-200 pl-3 dark:border-stone-700">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-bold text-white">
-                A
-              </div>
+              <UserButton 
+                afterSignOutUrl="/" 
+                appearance={{ 
+                  elements: { 
+                    avatarBox: 'h-8 w-8 ring-2 ring-stone-100 dark:ring-stone-800' 
+                  } 
+                }} 
+              />
             </div>
           </div>
         </header>
