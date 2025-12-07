@@ -223,6 +223,8 @@ interface ProgressBarProps {
   className?: string;
   variant?: 'default' | 'primary' | 'accent' | 'success';
   color?: string;
+  showLabel?: boolean;
+  label?: string;
 }
 
 export function ProgressBar({ 
@@ -230,7 +232,9 @@ export function ProgressBar({
   value,
   className, 
   variant = 'primary',
-  color 
+  color,
+  showLabel,
+  label
 }: ProgressBarProps) {
   // Support both 'value' (old) and 'progress' (new) props
   const progressValue = value ?? progress ?? 0;
@@ -253,11 +257,19 @@ export function ProgressBar({
     : colorVariants[variant];
 
   return (
-    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800', className)}>
-      <div
-        className={cn('h-full rounded-full transition-all duration-300', barColor)}
-        style={{ width: `${Math.min(100, Math.max(0, progressValue))}%` }}
-      />
+    <div className={cn('w-full', className)}>
+      {showLabel && (
+        <div className="mb-1 flex justify-between text-sm">
+          {label && <span className="text-stone-600 dark:text-stone-400">{label}</span>}
+          <span className="text-stone-500 dark:text-stone-400">{Math.round(progressValue)}%</span>
+        </div>
+      )}
+      <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800">
+        <div
+          className={cn('h-full rounded-full transition-all duration-300', barColor)}
+          style={{ width: `${Math.min(100, Math.max(0, progressValue))}%` }}
+        />
+      </div>
     </div>
   );
 }
