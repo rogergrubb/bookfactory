@@ -228,28 +228,35 @@ export async function sleep(ms: number): Promise<void> {
 // ============================================
 
 export function getStatusColor(status: string): string {
+  // Using design system colors: primary (teal), accent (amber), stone (neutral)
   const colors: Record<string, string> = {
-    DRAFT: 'bg-slate-100 text-slate-700',
-    WRITING: 'bg-violet-100 text-violet-700',
-    EDITING: 'bg-amber-100 text-amber-700',
-    PUBLISHED: 'bg-emerald-100 text-emerald-700',
-    ARCHIVED: 'bg-red-100 text-red-700',
-    COMPLETE: 'bg-emerald-100 text-emerald-700',
-    REVISION: 'bg-orange-100 text-orange-700',
+    DRAFT: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
+    WRITING: 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
+    EDITING: 'bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-400',
+    PUBLISHED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    ARCHIVED: 'bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-400',
+    COMPLETE: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    REVISION: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   };
-  return colors[status] || 'bg-slate-100 text-slate-700';
+  return colors[status] || 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300';
 }
 
 export function getGenreColor(genre: string): string {
+  // Distinctive gradients for each genre
   const colors: Record<string, string> = {
-    'Science Fiction': 'from-blue-500 to-cyan-600',
+    'Science Fiction': 'from-cyan-500 to-blue-600',
     'Fantasy': 'from-purple-500 to-indigo-600',
     'Romance': 'from-pink-500 to-rose-600',
-    'Mystery': 'from-slate-600 to-slate-800',
+    'Mystery': 'from-stone-600 to-stone-800',
     'Thriller': 'from-red-600 to-orange-600',
     'Horror': 'from-red-800 to-red-950',
     'Literary Fiction': 'from-amber-500 to-orange-600',
-    'Non-Fiction': 'from-emerald-500 to-teal-600',
+    'Non-Fiction': 'from-primary-500 to-primary-700',
+    'Memoir': 'from-amber-400 to-accent-600',
+    'Self-Help': 'from-emerald-500 to-teal-600',
+    'Biography': 'from-stone-500 to-stone-700',
+    'Historical': 'from-amber-600 to-amber-800',
+    "Children's": 'from-yellow-400 to-orange-500',
   };
-  return colors[genre] || 'from-violet-500 to-indigo-600';
+  return colors[genre] || 'from-primary-500 to-primary-700';
 }
