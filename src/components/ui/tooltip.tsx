@@ -1,124 +1,95 @@
 'use client';
 
 import * as React from 'react';
-import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const TooltipProvider = TooltipPrimitive.Provider;
-
-const TooltipRoot = TooltipPrimitive.Root;
-
-const TooltipTrigger = TooltipPrimitive.Trigger;
-
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Content
-    ref={ref}
-    sideOffset={sideOffset}
-    className={cn(
-      'z-50 overflow-hidden rounded-lg bg-slate-900 px-3 py-2 text-sm text-white shadow-xl animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:bg-slate-800',
-      className
-    )}
-    {...props}
-  />
-));
-TooltipContent.displayName = TooltipPrimitive.Content.displayName;
-
-// Simple Tooltip wrapper for ease of use
 interface TooltipProps {
-  children: React.ReactNode;
   content: React.ReactNode;
-  side?: 'top' | 'right' | 'bottom' | 'left';
+  children: React.ReactElement;
+  side?: 'top' | 'bottom' | 'left' | 'right';
   align?: 'start' | 'center' | 'end';
-  delayDuration?: number;
-  disabled?: boolean;
-}
-
-export function Tooltip({
-  children,
-  content,
-  side = 'top',
-  align = 'center',
-  delayDuration = 200,
-  disabled = false,
-}: TooltipProps) {
-  if (disabled) {
-    return <>{children}</>;
-  }
-
-  return (
-    <TooltipProvider>
-      <TooltipRoot delayDuration={delayDuration}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} align={align}>
-          {content}
-        </TooltipContent>
-      </TooltipRoot>
-    </TooltipProvider>
-  );
-}
-
-// Help Tooltip - specifically for contextual help
-interface HelpTooltipProps {
-  children: React.ReactNode;
-  title: string;
-  description: string;
-  learnMoreUrl?: string;
-}
-
-export function HelpTooltip({ children, title, description, learnMoreUrl }: HelpTooltipProps) {
-  return (
-    <TooltipProvider>
-      <TooltipRoot delayDuration={100}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent className="max-w-xs" side="top">
-          <div className="space-y-1">
-            <p className="font-medium">{title}</p>
-            <p className="text-xs text-slate-300">{description}</p>
-            {learnMoreUrl && (
-              <a
-                href={learnMoreUrl}
-                className="mt-2 inline-block text-xs text-violet-400 hover:text-violet-300"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Learn more →
-              </a>
-            )}
-          </div>
-        </TooltipContent>
-      </TooltipRoot>
-    </TooltipProvider>
-  );
-}
-
-// Info Icon Tooltip - "?" icon with tooltip
-import { HelpCircle } from 'lucide-react';
-
-interface InfoTooltipProps {
-  title: string;
-  description: string;
-  learnMoreUrl?: string;
+  delay?: number;
   className?: string;
 }
 
-export function InfoTooltip({ title, description, learnMoreUrl, className }: InfoTooltipProps) {
+export function Tooltip({
+  content,
+  children,
+  side = 'top',
+  align = 'center',
+  delay = 200,
+  className,
+}: TooltipProps) {
+  const [open, setOpen] = React.useState(false);
+  const timeoutRef = React.useRef<NodeJS.Timeout>();
+
+  const handleMouseEnter = () => {
+    timeoutRef.current = setTimeout(() => setOpen(true), delay);
+  };
+
+  const handleMouseLeave = () => {
+    clearTimeout(timeoutRef.current);
+    setOpen(false);
+  };
+
+  React.useEffect(() => {
+    return () => clearTimeout(timeoutRef.current);
+  }, []);
+
+  const positions = {
+    top: 'bottom-full mb-2',
+    bottom: 'top-full mt-2',
+    left: 'right-full mr-2',
+    right: 'left-full ml-2',
+  };
+
+  const alignments = {
+    start: side === 'top' || side === 'bottom' ? 'left-0' : 'top-0',
+    center: side === 'top' || side === 'bottom' 
+      ? 'left-1/2 -translate-x-1/2' 
+      : 'top-1/2 -translate-y-1/2',
+    end: side === 'top' || side === 'bottom' ? 'right-0' : 'bottom-0',
+  };
+
+  const origins = {
+    top: 'origin-bottom',
+    bottom: 'origin-top',
+    left: 'origin-right',
+    right: 'origin-left',
+  };
+
   return (
-    <HelpTooltip title={title} description={description} learnMoreUrl={learnMoreUrl}>
-      <button
-        type="button"
-        className={cn(
-          'inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400 transition-colors hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2',
-          className
+    <div
+      className="relative inline-flex"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleMouseEnter}
+      onBlur={handleMouseLeave}
+    >
+      {children}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            className={cn(
+              'absolute z-tooltip whitespace-nowrap rounded-lg',
+              'bg-stone-900 px-2.5 py-1.5 text-xs text-white shadow-lg',
+              'dark:bg-stone-100 dark:text-stone-900',
+              positions[side],
+              alignments[align],
+              origins[side],
+              className
+            )}
+            role="tooltip"
+          >
+            {content}
+          </motion.div>
         )}
-      >
-        <HelpCircle className="h-4 w-4" />
-        <span className="sr-only">Help</span>
-      </button>
-    </HelpTooltip>
+      </AnimatePresence>
+    </div>
   );
 }
-
-export { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent };
