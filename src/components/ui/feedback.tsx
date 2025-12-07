@@ -218,24 +218,45 @@ export function InlineMessage({ variant = 'info', children, className }: InlineM
 // =============================================================================
 
 interface ProgressBarProps {
-  progress: number;
+  progress?: number;
+  value?: number;
   className?: string;
   variant?: 'default' | 'primary' | 'accent' | 'success';
+  color?: string;
 }
 
-export function ProgressBar({ progress, className, variant = 'primary' }: ProgressBarProps) {
-  const variants = {
+export function ProgressBar({ 
+  progress, 
+  value,
+  className, 
+  variant = 'primary',
+  color 
+}: ProgressBarProps) {
+  // Support both 'value' (old) and 'progress' (new) props
+  const progressValue = value ?? progress ?? 0;
+
+  // Map color prop to variant or use as custom color
+  const colorVariants: Record<string, string> = {
     default: 'bg-stone-600',
     primary: 'bg-primary-600',
     accent: 'bg-accent-500',
     success: 'bg-emerald-500',
+    violet: 'bg-violet-500',
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    amber: 'bg-amber-500',
   };
+
+  const barColor = color 
+    ? (colorVariants[color] || `bg-${color}-500`)
+    : colorVariants[variant];
 
   return (
     <div className={cn('h-2 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800', className)}>
       <div
-        className={cn('h-full rounded-full transition-all duration-300', variants[variant])}
-        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+        className={cn('h-full rounded-full transition-all duration-300', barColor)}
+        style={{ width: `${Math.min(100, Math.max(0, progressValue))}%` }}
       />
     </div>
   );
