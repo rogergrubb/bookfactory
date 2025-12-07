@@ -209,3 +209,31 @@ export function InlineMessage({ variant = 'info', children, className }: InlineM
     </p>
   );
 }
+
+// =============================================================================
+// PROGRESS BAR COMPONENT (alias for compatibility)
+// =============================================================================
+
+interface ProgressBarProps {
+  progress: number;
+  className?: string;
+  variant?: 'default' | 'primary' | 'accent' | 'success';
+}
+
+export function ProgressBar({ progress, className, variant = 'primary' }: ProgressBarProps) {
+  const variants = {
+    default: 'bg-stone-600',
+    primary: 'bg-primary-600',
+    accent: 'bg-accent-500',
+    success: 'bg-emerald-500',
+  };
+
+  return (
+    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800', className)}>
+      <div
+        className={cn('h-full rounded-full transition-all duration-300', variants[variant])}
+        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+      />
+    </div>
+  );
+}
