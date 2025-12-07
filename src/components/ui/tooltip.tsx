@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TooltipProps {
@@ -91,5 +92,37 @@ export function Tooltip({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// InfoTooltip - Icon with tooltip for help text
+interface InfoTooltipProps {
+  content: React.ReactNode;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+  className?: string;
+  iconClassName?: string;
+}
+
+export function InfoTooltip({ 
+  content, 
+  side = 'top', 
+  className,
+  iconClassName 
+}: InfoTooltipProps) {
+  return (
+    <Tooltip content={content} side={side} className={className}>
+      <button 
+        type="button" 
+        className={cn(
+          'inline-flex items-center justify-center rounded-full p-0.5',
+          'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300',
+          'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1',
+          iconClassName
+        )}
+      >
+        <Info className="h-4 w-4" />
+        <span className="sr-only">More information</span>
+      </button>
+    </Tooltip>
   );
 }
