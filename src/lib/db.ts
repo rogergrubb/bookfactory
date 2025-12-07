@@ -552,8 +552,8 @@ export async function getDashboardStats(userId: string) {
     user,
     stats: {
       totalBooks,
-      totalWords: totalWords._sum.wordCount || 0,
       ...streak,
+      totalWords: totalWords._sum.wordCount || 0,
     },
     recentBooks: books,
     recentActivities,
