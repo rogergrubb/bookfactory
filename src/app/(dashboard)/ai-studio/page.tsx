@@ -1,6 +1,5 @@
-'use client';
+import { AIStudioWorkspace } from '@/components/ai-studio/AIStudioWorkspace';
 
-// AI Studio Page - Entry point for /ai-studio route
-import AIStudioPage from '@/components/ai-studio/AIStudioPage';
-
-export default AIStudioPage;
+export default function AIStudioPage() {
+  return <AIStudioWorkspace />;
+}
