@@ -326,14 +326,8 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
           suggestions: ['The ending could use more emotional payoff'],
           highlights: [],
           metrics: {
-            arc: [
-              { label: 'Open', value: 0.2, emotion: 'Curious' },
-              { label: 'Rising', value: 0.6, emotion: 'Hopeful' },
-              { label: 'Mid', value: -0.3, emotion: 'Anxious' },
-              { label: 'Crisis', value: -0.8, emotion: 'Despair' },
-              { label: 'Turn', value: 0.1, emotion: 'Uncertain' },
-              { label: 'Close', value: 0.7, emotion: 'Relieved' }
-            ]
+            open: 0.2, rising: 0.6, mid: -0.3, 
+            crisis: -0.8, turn: 0.1, close: 0.7
           }
         },
         'plot-holes': {
