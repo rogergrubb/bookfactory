@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
-import { prisma, getUserBooks, createBook, logActivity, getOrCreateUser } from '@/lib/db';
+import { prisma, createBook, logActivity } from '@/lib/db';
 
 // Validation schemas
 const createBookSchema = z.object({
@@ -15,14 +15,34 @@ const createBookSchema = z.object({
   seriesId: z.string().optional(),
 });
 
+// Helper to get or create user from Clerk ID
+async function getOrCreateUserFromClerk(clerkId: string) {
+  let user = await prisma.user.findUnique({ where: { clerkId } });
+  
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        clerkId,
+        email: `${clerkId}@placeholder.local`,
+        plan: 'FREE',
+      },
+    });
+  }
+  
+  return user;
+}
+
 // GET /api/books - List all books for user
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkId } = await auth();
     
-    if (!userId) {
+    if (!clerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get or create user from Clerk ID
+    const user = await getOrCreateUserFromClerk(clerkId);
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -31,7 +51,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const where: any = { userId };
+    const where: any = { userId: user.id }; // Use the actual User ID
     
     if (status && status !== 'all') {
       where.status = status.toUpperCase();
@@ -84,17 +104,18 @@ export async function GET(req: NextRequest) {
 // POST /api/books - Create a new book
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkId } = await auth();
     
-    if (!userId) {
+    if (!clerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const validatedData = createBookSchema.parse(body);
 
+    // createBook now handles user lookup internally
     const book = await createBook({
-      userId,
+      userId: clerkId, // Pass Clerk ID, createBook will look up user
       ...validatedData,
     });
 
@@ -114,13 +135,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Log activity
-    await logActivity({
-      userId,
-      type: 'BOOK_CREATED',
-      message: `Created new book "${book.title}"`,
-      bookId: book.id,
-    });
+    // Log activity - need to get user ID for logging
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (user) {
+      await logActivity({
+        userId: user.id,
+        type: 'BOOK_CREATED',
+        message: `Created new book "${book.title}"`,
+        bookId: book.id,
+      });
+    }
 
     return NextResponse.json({ book }, { status: 201 });
   } catch (error) {
