@@ -234,7 +234,7 @@ Return JSON with comprehensive world-building:
       await prisma.book.update({
         where: { id: bookId },
         data: {
-          metadata: { ...currentMetadata, storyBible } as Prisma.InputJsonValue
+          metadata: { ...currentMetadata, storyBible } as unknown as Prisma.InputJsonValue
         }
       });
 
@@ -386,7 +386,7 @@ Return JSON with the expanded entry in the same format but with richer, more det
       await prisma.book.update({
         where: { id: bookId },
         data: {
-          metadata: { ...currentMetadata, storyBible } as Prisma.InputJsonValue
+          metadata: { ...currentMetadata, storyBible } as unknown as Prisma.InputJsonValue
         }
       });
 
@@ -399,7 +399,7 @@ Return JSON with the expanded entry in the same format but with richer, more det
       await prisma.book.update({
         where: { id: bookId },
         data: {
-          metadata: { ...currentMetadata, storyBible } as Prisma.InputJsonValue
+          metadata: { ...currentMetadata, storyBible } as unknown as Prisma.InputJsonValue
         }
       });
 
