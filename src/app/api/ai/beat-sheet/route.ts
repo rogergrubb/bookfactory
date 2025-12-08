@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -12,16 +13,16 @@ const STRUCTURES = {
   'save-the-cat': {
     name: 'Save the Cat',
     beats: [
-      { name: 'Opening Image', percentage: 0, description: 'A visual that represents the struggle & tone of the story' },
+      { name: 'Opening Image', percentage: 0, description: 'A visual that represents the struggle and tone of the story' },
       { name: 'Theme Stated', percentage: 5, description: 'Someone poses a question or makes a statement that is the thematic premise' },
       { name: 'Setup', percentage: 1, description: 'Explore the status quo, introduce characters, show what needs fixing' },
       { name: 'Catalyst', percentage: 10, description: 'The moment that sets the story in motion' },
-      { name: 'Debate', percentage: 10, description: 'Hero doubts the journey, asks "should I go?"' },
+      { name: 'Debate', percentage: 10, description: 'Hero doubts the journey, asks should I go?' },
       { name: 'Break into Two', percentage: 20, description: 'Hero decides to accept the call to adventure' },
       { name: 'B Story', percentage: 22, description: 'Introduction of love interest or mentor (often carries theme)' },
-      { name: 'Fun and Games', percentage: 20, description: 'The promise of the premise-the fun part' },
+      { name: 'Fun and Games', percentage: 20, description: 'The promise of the premise - the fun part' },
       { name: 'Midpoint', percentage: 50, description: 'Stakes are raised, false victory or false defeat' },
-      { name: 'Bad Guys Close In', percentage: 50, description: 'Pressure mounts, team frays, hero\'s flaws emerge' },
+      { name: 'Bad Guys Close In', percentage: 50, description: 'Pressure mounts, team frays, hero flaws emerge' },
       { name: 'All Is Lost', percentage: 75, description: 'The opposite of the Midpoint, a whiff of death' },
       { name: 'Dark Night of the Soul', percentage: 75, description: 'Hero mourns, wallows, but then finds a solution' },
       { name: 'Break into Three', percentage: 80, description: 'Solution is found, hero rallies' },
@@ -44,9 +45,9 @@ const STRUCTURES = {
     ]
   },
   'heros-journey': {
-    name: "Hero's Journey",
+    name: 'Hero Journey',
     beats: [
-      { name: 'Ordinary World', percentage: 0, description: "Hero's normal life before the adventure" },
+      { name: 'Ordinary World', percentage: 0, description: 'Hero normal life before the adventure' },
       { name: 'Call to Adventure', percentage: 8, description: 'Hero is presented with a problem or challenge' },
       { name: 'Refusal of the Call', percentage: 12, description: 'Hero hesitates or refuses' },
       { name: 'Meeting the Mentor', percentage: 15, description: 'Hero meets someone who gives guidance' },
@@ -105,6 +106,12 @@ const STRUCTURES = {
     ]
   },
 };
+
+interface BeatSheetMetadata {
+  beatSheet?: unknown;
+  beatSheetUpdatedAt?: string;
+  [key: string]: unknown;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -182,7 +189,7 @@ For each beat, return JSON:
           "notes": "Any important details"
         }
       ],
-      "emotionalState": "Character's emotional state at this point",
+      "emotionalState": "Character emotional state at this point",
       "plotThreads": ["Plot threads active/resolved here"],
       "foreshadowing": "Any setup/payoff elements"
     }
@@ -217,12 +224,12 @@ For each beat, return JSON:
         if (jsonMatch) {
           beatSheet = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: beatSheetText });
       }
 
       // Save to book metadata
-      const currentMetadata = (book.metadata || {}) as Record<string, unknown>;
+      const currentMetadata = (book.metadata || {}) as BeatSheetMetadata;
       await prisma.book.update({
         where: { id: bookId },
         data: {
@@ -230,7 +237,7 @@ For each beat, return JSON:
             ...currentMetadata, 
             beatSheet,
             beatSheetUpdatedAt: new Date().toISOString()
-          }
+          } as Prisma.InputJsonValue
         }
       });
 
@@ -296,7 +303,7 @@ Return JSON with expanded scene breakdown:
         if (jsonMatch) {
           expandedBeat = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: expandedText });
       }
 
@@ -325,9 +332,9 @@ Return JSON with expanded scene breakdown:
 
 ${JSON.stringify(scene, null, 2)}
 
-Write immersive, publishable-quality prose. Include dialogue, action, description, and interiority. Show, don't tell. Aim for approximately ${scene.wordCountEstimate || 1500} words.
+Write immersive, publishable-quality prose. Include dialogue, action, description, and interiority. Show, do not tell. Aim for approximately ${scene.wordCountEstimate || 1500} words.
 
-Write only the scene-no preamble or explanation.`
+Write only the scene - no preamble or explanation.`
         }],
       });
 
@@ -337,7 +344,7 @@ Write only the scene-no preamble or explanation.`
       return NextResponse.json({ 
         prose,
         wordCount: prose.split(/\s+/).length,
-        tokensUsed: response.usage?.input_tokens + response.usage?.output_tokens || 0
+        tokensUsed: (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0)
       });
     }
 
@@ -381,11 +388,11 @@ Return JSON:
     {
       "type": "sagging-middle/rushed-opening/delayed-inciting-incident/etc",
       "location": "Where in the story",
-      "description": "What's wrong",
+      "description": "What is wrong",
       "suggestion": "How to fix"
     }
   ],
-  "strengths": ["What's working well"],
+  "strengths": ["What is working well"],
   "recommendations": ["Top 3 pacing improvements"]
 }`
         }],
@@ -400,7 +407,7 @@ Return JSON:
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: analysisText });
       }
 
@@ -448,7 +455,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ structures, beatSheet: null });
     }
 
-    const metadata = (book.metadata || {}) as { beatSheet?: unknown; beatSheetUpdatedAt?: string };
+    const metadata = (book.metadata || {}) as BeatSheetMetadata;
     
     return NextResponse.json({ 
       structures,
