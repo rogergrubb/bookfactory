@@ -45,7 +45,7 @@ export function useToolExecution() {
   ): Promise<ToolResult> => {
     const tool = getToolById(toolId);
     if (!tool) {
-      throw new Error(\`Unknown tool: \${toolId}\`);
+      throw new Error('Unknown tool: ' + toolId);
     }
 
     // Cancel any pending request
@@ -81,7 +81,7 @@ export function useToolExecution() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || \`Request failed: \${response.status}\`);
+        throw new Error(errorData.error || 'Request failed: ' + response.status);
       }
 
       const data = await response.json();
@@ -107,7 +107,7 @@ export function useToolExecution() {
 
       // Add to history
       const historyItem: ToolHistoryItem = {
-        id: \`\${Date.now()}-\${Math.random().toString(36).slice(2)}\`,
+        id: Date.now() + '-' + Math.random().toString(36).slice(2),
         toolId,
         input,
         output: result.content,
@@ -228,7 +228,7 @@ export function useWorkspace() {
 
   const pinOutput = useCallback((toolId: ToolId, content: string) => {
     const pinned: PinnedOutput = {
-      id: \`pin-\${Date.now()}\`,
+      id: 'pin-' + Date.now(),
       toolId,
       content,
       timestamp: new Date()
