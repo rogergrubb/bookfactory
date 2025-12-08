@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 const anthropic = new Anthropic({
@@ -23,6 +24,12 @@ const characterSchema = z.object({
   voiceNotes: z.string().optional(),
   customFields: z.record(z.string()).optional(),
 });
+
+interface CharacterData {
+  id?: string;
+  name: string;
+  [key: string]: unknown;
+}
 
 // Create or update character
 export async function POST(req: NextRequest) {
@@ -91,7 +98,7 @@ Return a JSON object with:
   },
   "voice": {
     "speechPattern": "How they talk",
-    "vocabulary": "Word choices they'd make",
+    "vocabulary": "Word choices they would make",
     "catchphrases": ["Any distinctive phrases"],
     "internalVoice": "How their thoughts sound"
   },
@@ -117,7 +124,7 @@ Return a JSON object with:
         if (jsonMatch) {
           character = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ 
           error: 'Failed to parse character data',
           raw: analysisText 
@@ -168,7 +175,7 @@ Return JSON:
         if (jsonMatch) {
           voiceProfile = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: analysisText });
       }
 
@@ -260,7 +267,7 @@ Analyze this text for character consistency. Return JSON:
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: analysisText });
       }
 
@@ -270,13 +277,13 @@ Analyze this text for character consistency. Return JSON:
     // Default: Create/update character in database
     const validated = characterSchema.parse(data);
     
-    // Store in book metadata (or create Character model)
-    const currentMetadata = (book.metadata || {}) as { characters?: Record<string, unknown>[] };
-    const characters = currentMetadata.characters || [];
+    // Store in book metadata
+    const currentMetadata = (book.metadata || {}) as Record<string, unknown>;
+    const characters = (currentMetadata.characters || []) as CharacterData[];
     
     if (characterId) {
       // Update existing
-      const index = characters.findIndex((c: { id?: string }) => c.id === characterId);
+      const index = characters.findIndex((c) => c.id === characterId);
       if (index >= 0) {
         characters[index] = { ...characters[index], ...validated, updatedAt: new Date().toISOString() };
       }
@@ -293,7 +300,7 @@ Analyze this text for character consistency. Return JSON:
     await prisma.book.update({
       where: { id: bookId },
       data: {
-        metadata: { ...currentMetadata, characters }
+        metadata: { ...currentMetadata, characters } as Prisma.InputJsonValue
       }
     });
 
