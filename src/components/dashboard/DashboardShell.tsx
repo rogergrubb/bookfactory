@@ -9,13 +9,15 @@ import { usePathname } from 'next/navigation';
 import {
   BookOpen, BarChart3, Users, Megaphone, DollarSign,
   Settings, HelpCircle, Layers, Upload, Palette, Menu, X,
-  ChevronLeft, Sparkles, Bell, Search, Moon, Sun, Plus, Command
+  ChevronLeft, Sparkles, Bell, Search, Moon, Sun, Plus, Command,
+  Wand2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Books', href: '/books', icon: BookOpen },
+  { name: 'AI Studio', href: '/ai-studio', icon: Wand2, highlight: true },
   { name: 'Series', href: '/series', icon: Layers },
   { name: 'Covers', href: '/covers', icon: Palette },
   { name: 'Publish', href: '/publish', icon: Upload },
@@ -127,6 +129,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           <ul className="space-y-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/books' && pathname.startsWith(item.href));
+              const isHighlight = 'highlight' in item && item.highlight;
               return (
                 <li key={item.name}>
                   <Link
@@ -135,13 +138,28 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-white'
+                        : isHighlight
+                        ? 'bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-700 hover:from-violet-500/20 hover:to-purple-500/20 dark:text-violet-400'
                         : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800/50 dark:hover:text-white',
                       sidebarCollapsed && 'justify-center px-2'
                     )}
                     title={sidebarCollapsed ? item.name : undefined}
                   >
-                    <item.icon className={cn('h-[18px] w-[18px] shrink-0', isActive && 'text-stone-900 dark:text-white')} />
-                    {!sidebarCollapsed && <span>{item.name}</span>}
+                    <item.icon className={cn(
+                      'h-[18px] w-[18px] shrink-0', 
+                      isActive && 'text-stone-900 dark:text-white',
+                      isHighlight && !isActive && 'text-violet-600 dark:text-violet-400'
+                    )} />
+                    {!sidebarCollapsed && (
+                      <span className="flex items-center gap-2">
+                        {item.name}
+                        {isHighlight && !isActive && (
+                          <span className="flex h-4 items-center rounded-full bg-violet-500 px-1.5 text-[10px] font-semibold text-white">
+                            NEW
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -179,13 +197,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         {/* AI Credits */}
         {!sidebarCollapsed && (
           <div className="border-t border-stone-100 p-3 dark:border-stone-800">
-            <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
-              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+            <Link 
+              href="/ai-studio"
+              className="block rounded-lg bg-gradient-to-br from-violet-50 to-purple-50 p-3 transition hover:from-violet-100 hover:to-purple-100 dark:from-violet-950/30 dark:to-purple-950/30"
+            >
+              <div className="flex items-center gap-2 text-violet-700 dark:text-violet-400">
                 <Sparkles className="h-4 w-4" />
                 <span className="text-sm font-medium">450 AI credits</span>
               </div>
-              <p className="mt-1 text-xs text-amber-600/80 dark:text-amber-500/80">Resets in 12 days</p>
-            </div>
+              <p className="mt-1 text-xs text-violet-600/80 dark:text-violet-500/80">Open AI Studio →</p>
+            </Link>
           </div>
         )}
       </aside>
@@ -222,6 +243,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           </div>
 
           <div className="flex items-center gap-2">
+            {/* AI Studio Quick Access */}
+            <Link
+              href="/ai-studio"
+              className="hidden items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 px-3 py-1.5 text-sm font-medium text-white transition hover:from-violet-600 hover:to-purple-700 sm:flex"
+            >
+              <Wand2 className="h-4 w-4" />
+              AI Studio
+            </Link>
+
             {/* Notifications */}
             <button className="relative rounded-lg p-2 text-stone-500 transition hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-300">
               <Bell className="h-5 w-5" />
