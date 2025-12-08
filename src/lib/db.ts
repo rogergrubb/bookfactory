@@ -82,22 +82,43 @@ export async function getBookById(bookId: string, userId: string) {
 }
 
 export async function createBook(data: {
-  userId: string;
+  userId: string; // This is actually the Clerk ID
   title: string;
   genre: string;
+  subtitle?: string;
   description?: string;
   template?: string;
   targetWordCount?: number;
+  targetChapters?: number;
+  seriesId?: string;
 }) {
+  // Find user by Clerk ID, or create if doesn't exist
+  let user = await prisma.user.findUnique({ where: { clerkId: data.userId } });
+  
+  if (!user) {
+    // Create user with Clerk ID - email will be updated on next profile sync
+    user = await prisma.user.create({
+      data: {
+        clerkId: data.userId,
+        email: `${data.userId}@placeholder.local`, // Placeholder until Clerk webhook syncs
+        plan: 'FREE',
+      },
+    });
+  }
+  
   return prisma.book.create({
     data: {
-      userId: data.userId,
+      userId: user.id, // Use the actual User ID, not Clerk ID
       title: data.title,
+      subtitle: data.subtitle,
       genre: data.genre,
       description: data.description,
+      template: data.template,
+      seriesId: data.seriesId,
       status: 'DRAFT',
       wordCount: 0,
       targetWordCount: data.targetWordCount || 80000,
+      targetChapters: data.targetChapters || 20,
     },
     include: { chapters: true },
   });
