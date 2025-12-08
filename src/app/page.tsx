@@ -9,37 +9,43 @@ const features = [
     icon: PenTool, 
     title: 'Distraction-Free Editor', 
     description: 'A beautiful writing environment with auto-save, focus mode, and chapter organization.',
-    highlight: 'Write faster'
+    highlight: 'Write faster',
+    href: '/books'
   },
   { 
     icon: Sparkles, 
     title: 'AI Writing Assistant', 
     description: 'Overcome writer\'s block with intelligent suggestions for dialogue, descriptions, and plot.',
-    highlight: 'Never stuck'
+    highlight: 'Never stuck',
+    href: '/books'
   },
   { 
     icon: Download, 
     title: 'One-Click Export', 
     description: 'Export to EPUB, PDF, DOCX instantly. Perfect formatting for Amazon KDP, Apple Books, and more.',
-    highlight: 'Publish ready'
+    highlight: 'Publish ready',
+    href: '/books'
   },
   { 
     icon: Users, 
     title: 'Beta Reader Management', 
     description: 'Invite readers, collect feedback, and track revisions all in one place.',
-    highlight: 'Better feedback'
+    highlight: 'Better feedback',
+    href: '/books'
   },
   { 
     icon: BarChart3, 
     title: 'Sales Dashboard', 
     description: 'Connect your publishing accounts and track royalties across all platforms.',
-    highlight: 'Know your numbers'
+    highlight: 'Know your numbers',
+    href: '/analytics'
   },
   { 
     icon: Shield, 
     title: 'Your Words, Protected', 
     description: 'Bank-level encryption, automatic backups, and you own 100% of your content.',
-    highlight: 'Always safe'
+    highlight: 'Always safe',
+    href: '/settings'
   },
 ];
 
@@ -255,8 +261,9 @@ export default function LandingPage() {
           
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
-              <div 
-                key={feature.title} 
+              <Link 
+                key={feature.title}
+                href={feature.href}
                 className="group rounded-xl border border-stone-200 bg-white p-6 transition hover:border-stone-300 hover:shadow-lg"
               >
                 <div className="mb-4 flex items-center justify-between">
@@ -269,7 +276,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-stone-900">{feature.title}</h3>
                 <p className="text-sm leading-relaxed text-stone-600">{feature.description}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
