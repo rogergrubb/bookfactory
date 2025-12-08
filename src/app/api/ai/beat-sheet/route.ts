@@ -21,7 +21,7 @@ const STRUCTURES = {
       { name: 'B Story', percentage: 22, description: 'Introduction of love interest or mentor (often carries theme)' },
       { name: 'Fun and Games', percentage: 20, description: 'The promise of the premise-the fun part' },
       { name: 'Midpoint', percentage: 50, description: 'Stakes are raised, false victory or false defeat' },
-      { name: 'Bad Guys Close In', percentage: 50, description: 'Pressure mounts, team frays, hero's flaws emerge' },
+      { name: 'Bad Guys Close In', percentage: 50, description: 'Pressure mounts, team frays, hero\'s flaws emerge' },
       { name: 'All Is Lost', percentage: 75, description: 'The opposite of the Midpoint, a whiff of death' },
       { name: 'Dark Night of the Soul', percentage: 75, description: 'Hero mourns, wallows, but then finds a solution' },
       { name: 'Break into Three', percentage: 80, description: 'Solution is found, hero rallies' },
