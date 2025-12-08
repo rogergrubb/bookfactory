@@ -449,7 +449,7 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
                 {result ? (
                   <div className="flex-1 p-6 overflow-auto space-y-6">
                     {/* Score */}
-                    {result.score > 0 && (
+                    {(result.score ?? 0) > 0 && (
                       <div className="text-center pb-4 border-b border-gray-100">
                         <div className="text-4xl font-bold text-gray-800">{result.score}</div>
                         <div className="text-sm text-gray-500">Overall Score</div>
