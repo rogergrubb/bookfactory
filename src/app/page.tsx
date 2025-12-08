@@ -15,9 +15,9 @@ const features = [
   { 
     icon: Sparkles, 
     title: 'AI Writing Assistant', 
-    description: 'Overcome writer\'s block with intelligent suggestions for dialogue, descriptions, and plot.',
+    description: 'The most advanced AI tools for fiction writers. Generate, enhance, analyze, and brainstorm.',
     highlight: 'Never stuck',
-    href: '/books'
+    href: '/ai-studio'
   },
   { 
     icon: Download, 
