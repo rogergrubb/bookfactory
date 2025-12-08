@@ -3,10 +3,10 @@ export * from './types';
 export * from './tool-definitions';
 export * from './hooks';
 
-export { AIStudioPage } from './AIStudioPage';
-export { AIStudioWorkspace } from './AIStudioWorkspace';
+export { default as AIStudioPage } from './AIStudioPage';
+export { default as AIStudioWorkspace } from './AIStudioWorkspace';
 export { ToolPanel } from './ToolPanel';
-export { ToolExecutionPanel } from './ToolExecutionPanel';
+export { default as ToolExecutionPanel } from './ToolExecutionPanel';
 export { CommandPalette } from './CommandPalette';
 export { AnalysisPanel } from './AnalysisPanel';
 export { BrainstormPanel } from './BrainstormPanel';
