@@ -312,23 +312,9 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
           suggestions: [],
           highlights: [],
           metrics: { 
-            words: [
-              { word: 'just', count: 12 },
-              { word: 'looked', count: 8 },
-              { word: 'said', count: 7 },
-              { word: 'that', count: 15 },
-              { word: 'was', count: 11 },
-              { word: 'suddenly', count: 4 },
-              { word: 'really', count: 5 },
-              { word: 'very', count: 6 },
-              { word: 'eyes', count: 4 },
-              { word: 'walked', count: 3 },
-              { word: 'thought', count: 5 },
-              { word: 'seemed', count: 4 },
-              { word: 'started', count: 3 },
-              { word: 'began', count: 3 },
-              { word: 'felt', count: 4 }
-            ]
+            just: 12, looked: 8, said: 7, that: 15, was: 11,
+            suddenly: 4, really: 5, very: 6, eyes: 4, walked: 3,
+            thought: 5, seemed: 4, started: 3, began: 3, felt: 4
           }
         },
         'emotional-arc': {
