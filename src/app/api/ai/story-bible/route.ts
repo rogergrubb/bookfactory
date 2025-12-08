@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -21,6 +22,7 @@ interface StoryBibleEntry {
 
 interface StoryBibleMetadata {
   storyBible?: StoryBibleEntry[];
+  [key: string]: unknown;
 }
 
 export async function POST(req: NextRequest) {
@@ -75,7 +77,7 @@ Return JSON with comprehensive world-building:
   "overview": {
     "worldName": "Name if applicable",
     "tagline": "One-line description",
-    "tone": "Description of the world's tone/feel",
+    "tone": "Description of the world tone/feel",
     "themes": ["Central themes"],
     "uniqueHook": "What makes this world special"
   },
@@ -97,7 +99,7 @@ Return JSON with comprehensive world-building:
     {
       "name": "Rule name",
       "description": "How it works",
-      "limitations": "What it can't do",
+      "limitations": "What it cannot do",
       "consequences": "What happens if broken/used"
     }
   ],
@@ -121,7 +123,7 @@ Return JSON with comprehensive world-building:
     "social": "Social structures/norms",
     "beliefs": "Common beliefs/religions",
     "customs": "Daily life customs",
-    "taboos": "What's forbidden"
+    "taboos": "What is forbidden"
   },
   "storyPotential": {
     "conflicts": ["Built-in conflicts to explore"],
@@ -141,7 +143,7 @@ Return JSON with comprehensive world-building:
         if (jsonMatch) {
           worldData = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: worldText });
       }
 
@@ -232,7 +234,7 @@ Return JSON with comprehensive world-building:
       await prisma.book.update({
         where: { id: bookId },
         data: {
-          metadata: { ...currentMetadata, storyBible }
+          metadata: { ...currentMetadata, storyBible } as Prisma.InputJsonValue
         }
       });
 
@@ -297,7 +299,7 @@ Analyze this text against the story bible. Return JSON:
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: analysisText });
       }
 
@@ -338,7 +340,7 @@ Return JSON with the expanded entry in the same format but with richer, more det
         if (jsonMatch) {
           expandedEntry = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         return NextResponse.json({ raw: expandedText });
       }
 
@@ -384,7 +386,7 @@ Return JSON with the expanded entry in the same format but with richer, more det
       await prisma.book.update({
         where: { id: bookId },
         data: {
-          metadata: { ...currentMetadata, storyBible }
+          metadata: { ...currentMetadata, storyBible } as Prisma.InputJsonValue
         }
       });
 
@@ -397,7 +399,7 @@ Return JSON with the expanded entry in the same format but with richer, more det
       await prisma.book.update({
         where: { id: bookId },
         data: {
-          metadata: { ...currentMetadata, storyBible }
+          metadata: { ...currentMetadata, storyBible } as Prisma.InputJsonValue
         }
       });
 
