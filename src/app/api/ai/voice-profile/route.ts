@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -15,7 +16,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { action, sample, bookId } = await req.json();
+    const body = await req.json();
+    const { action, sample, bookId, prompt, voiceProfile: providedProfile } = body;
 
     if (action === 'analyze') {
       // Analyze a writing sample to create/update voice profile
@@ -84,7 +86,7 @@ Provide a JSON response with this exact structure:
         if (jsonMatch) {
           voiceProfile = JSON.parse(jsonMatch[0]);
         }
-      } catch (e) {
+      } catch {
         // If JSON parsing fails, return the raw analysis
         return NextResponse.json({ 
           profile: null, 
@@ -93,15 +95,23 @@ Provide a JSON response with this exact structure:
         });
       }
 
-      // Store the voice profile in user settings or book metadata
+      // Store the voice profile in book metadata
       if (bookId) {
+        const book = await prisma.book.findUnique({
+          where: { id: bookId },
+          select: { metadata: true }
+        });
+        
+        const currentMetadata = (book?.metadata || {}) as Record<string, unknown>;
+        
         await prisma.book.update({
           where: { id: bookId },
           data: {
             metadata: {
+              ...currentMetadata,
               voiceProfile,
               voiceProfileUpdatedAt: new Date().toISOString(),
-            }
+            } as Prisma.InputJsonValue
           }
         });
       }
@@ -114,8 +124,6 @@ Provide a JSON response with this exact structure:
 
     if (action === 'generate') {
       // Generate text using stored voice profile
-      const { prompt, voiceProfile: providedProfile } = await req.json();
-      
       let profile = providedProfile;
       
       // If no profile provided but bookId exists, try to get from book
@@ -142,7 +150,7 @@ Provide a JSON response with this exact structure:
 Voice Profile to match:
 ${JSON.stringify(profile, null, 2)}
 
-Key instruction: ${profile.stylePrompt || 'Match this voice precisely.'}
+Key instruction: ${(profile as { stylePrompt?: string }).stylePrompt || 'Match this voice precisely.'}
 
 Write in this exact voice. Do not explain or comment—just write the requested content as if you ARE this author.`,
         messages: [{
@@ -156,7 +164,7 @@ Write in this exact voice. Do not explain or comment—just write the requested 
 
       return NextResponse.json({
         content: generatedText,
-        tokensUsed: response.usage?.input_tokens + response.usage?.output_tokens || 0
+        tokensUsed: (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0)
       });
     }
 
