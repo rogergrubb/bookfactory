@@ -19,7 +19,7 @@ const STRUCTURES = {
       { name: 'Debate', percentage: 10, description: 'Hero doubts the journey, asks "should I go?"' },
       { name: 'Break into Two', percentage: 20, description: 'Hero decides to accept the call to adventure' },
       { name: 'B Story', percentage: 22, description: 'Introduction of love interest or mentor (often carries theme)' },
-      { name: 'Fun and Games', percentage: 20, description: 'The promise of the premise—the fun part' },
+      { name: 'Fun and Games', percentage: 20, description: 'The promise of the premise-the fun part' },
       { name: 'Midpoint', percentage: 50, description: 'Stakes are raised, false victory or false defeat' },
       { name: 'Bad Guys Close In', percentage: 50, description: 'Pressure mounts, team frays, hero's flaws emerge' },
       { name: 'All Is Lost', percentage: 75, description: 'The opposite of the Midpoint, a whiff of death' },
@@ -327,7 +327,7 @@ ${JSON.stringify(scene, null, 2)}
 
 Write immersive, publishable-quality prose. Include dialogue, action, description, and interiority. Show, don't tell. Aim for approximately ${scene.wordCountEstimate || 1500} words.
 
-Write only the scene—no preamble or explanation.`
+Write only the scene-no preamble or explanation.`
         }],
       });
 
