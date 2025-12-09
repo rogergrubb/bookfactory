@@ -103,14 +103,17 @@ function ToolCard({
           {/* Author badges */}
           {tool.inspiredBy && tool.inspiredBy.length > 0 && size === 'normal' && (
             <div className="flex items-center gap-1 mt-2">
-              {tool.inspiredBy.slice(0, 2).map(author => (
-                <span 
-                  key={author}
-                  className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-${authorModeConfig[author].color}-100 dark:bg-${authorModeConfig[author].color}-900/30 text-${authorModeConfig[author].color}-700 dark:text-${authorModeConfig[author].color}-300`}
-                >
-                  {author.charAt(0).toUpperCase() + author.slice(1)}
-                </span>
-              ))}
+              {tool.inspiredBy.slice(0, 2).map(author => {
+                const config = authorModeConfig[author as AuthorMode];
+                return (
+                  <span 
+                    key={author}
+                    className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${config?.bgClass || 'bg-stone-100 dark:bg-stone-800'} ${config?.textClass || 'text-stone-700 dark:text-stone-300'}`}
+                  >
+                    {author.charAt(0).toUpperCase() + author.slice(1)}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
