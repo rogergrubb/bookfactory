@@ -16,7 +16,7 @@ import {
   type AITool,
   type ToolCategory,
   type AuthorMode
-} from './tool-definitions-complete';
+} from '@/components/ai-studio/tool-definitions';
 
 // ============================================================================
 // TYPES
