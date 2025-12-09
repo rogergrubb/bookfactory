@@ -201,8 +201,8 @@ export async function POST(request: NextRequest) {
       await prisma.activity.create({
         data: {
           userId: user.id,
-          type: 'tool_save',
-          description: `Saved ${toolRun.toolId} output`,
+          type: 'AI_USED',
+          message: `Saved ${toolRun.toolId} output`,
           metadata: JSON.stringify({
             toolRunId,
             savedToId,
@@ -342,8 +342,8 @@ export async function POST(request: NextRequest) {
       await prisma.activity.create({
         data: {
           userId: user.id,
-          type: 'tool_chain',
-          description: `Chained ${toolRun.toolId} to ${nextToolId}`,
+          type: 'AI_USED',
+          message: `Chained ${toolRun.toolId} to ${nextToolId}`,
           metadata: JSON.stringify({
             fromToolRunId: toolRunId,
             nextToolId,
@@ -389,3 +389,4 @@ async function getWorkflowToolRuns(workflowId: string): Promise<string[]> {
   });
   return workflow?.toolRunIds || [];
 }
+
