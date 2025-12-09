@@ -204,8 +204,9 @@ export async function POST(request: NextRequest) {
       where: { id: context.bookId },
       include: {
         characters: true,
-        storyBible: true,
-        voiceProfile: true
+        chapters: {
+          include: { scenes: true }
+        }
       }
     });
 
@@ -214,13 +215,14 @@ export async function POST(request: NextRequest) {
       if (book.description) additionalContext += `\nDescription: ${book.description}`;
     }
 
-    // Fetch document content for scene/hybrid scope
+    // Fetch scene content for scene/hybrid scope
     if (context.documentId) {
-      const document = await prisma.document.findUnique({
-        where: { id: context.documentId }
+      const scene = await prisma.scene.findUnique({
+        where: { id: context.documentId },
+        include: { chapter: true }
       });
-      if (document) {
-        additionalContext += `\n\nCurrent Document: "${document.title}"`;
+      if (scene) {
+        additionalContext += `\n\nCurrent Scene: "${scene.title || 'Untitled'}" (Chapter: ${scene.chapter.title})`;
       }
     }
 

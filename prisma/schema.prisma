@@ -47,6 +47,7 @@ model User {
   
   writingSessions       WritingSession[]
   activities            Activity[]
+  toolRuns              ToolRun[]
   
   @@map("users")
 }
@@ -520,4 +521,63 @@ enum ActivityType {
   EXPORT_COMPLETED
   COLLABORATOR_INVITED
   FEEDBACK_RECEIVED
+}
+
+// ============================================
+// AI STUDIO - TOOL RUNS & WORKFLOWS
+// ============================================
+
+model ToolRun {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  bookId              String
+  documentId          String?   // Scene ID for scene-scope tools
+  toolId              String
+  scope               String    // 'scene' | 'book' | 'hybrid'
+  scopeSelection      Json?     // For hybrid tools: { mode, sceneId?, chapterIds?, bookId }
+  
+  input               String    @db.Text
+  output              String?   @db.Text
+  context             Json?     // Additional context passed to the tool
+  options             Json?     // Tool options (length, tone, customInstructions)
+  result              Json?     // Structured result for analysis tools
+  
+  tokensUsed          Int       @default(0)
+  processingTime      Int       @default(0)  // in ms
+  status              String    @default("pending")  // 'pending' | 'running' | 'completed' | 'failed'
+  error               String?
+  
+  workflowId          String?
+  workflow            Workflow? @relation(fields: [workflowId], references: [id])
+  previousToolRunId   String?
+  savedToDocumentId   String?   // Scene ID if saved
+  appliedAt           DateTime?
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([bookId])
+  @@index([workflowId])
+  @@map("tool_runs")
+}
+
+model Workflow {
+  id          String     @id @default(cuid())
+  userId      String
+  bookId      String
+  name        String
+  toolRunIds  String[]   // Ordered list of tool run IDs
+  status      String     @default("active")  // 'active' | 'completed' | 'archived'
+  
+  startedAt   DateTime   @default(now())
+  completedAt DateTime?
+  
+  toolRuns    ToolRun[]
+  
+  @@index([userId])
+  @@index([bookId])
+  @@map("workflows")
 }

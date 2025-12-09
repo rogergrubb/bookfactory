@@ -152,21 +152,21 @@ export async function POST(request: NextRequest) {
     if (action === 'save') {
       // Determine where to save based on scope
       let savedToId: string;
-      let savedToType: 'document' | 'tool_run' | 'book';
+      let savedToType: 'scene' | 'tool_run' | 'book';
 
       if (metadata.scope === 'scene' && metadata.appliedTo.documentId) {
-        // Save to document (append or replace based on routingOptions)
-        const document = await prisma.document.findUnique({
+        // Save to scene (append or replace based on routingOptions)
+        const scene = await prisma.scene.findUnique({
           where: { id: metadata.appliedTo.documentId }
         });
 
-        if (document) {
+        if (scene) {
           const newContent = routingOptions?.appendToExisting
-            ? document.content + '\n\n' + content
+            ? scene.content + '\n\n' + content
             : content;
 
-          await prisma.document.update({
-            where: { id: document.id },
+          await prisma.scene.update({
+            where: { id: scene.id },
             data: {
               content: newContent,
               wordCount: newContent.split(/\s+/).filter(Boolean).length,
@@ -174,15 +174,15 @@ export async function POST(request: NextRequest) {
             }
           });
 
-          savedToId = document.id;
-          savedToType = 'document';
+          savedToId = scene.id;
+          savedToType = 'scene';
         } else {
           // Fallback to saving in tool run
           savedToId = toolRunId;
           savedToType = 'tool_run';
         }
       } else {
-        // Book-scope or no specific document - save as tool run output
+        // Book-scope or no specific scene - save as tool run output
         savedToId = toolRunId;
         savedToType = 'tool_run';
       }
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       await prisma.toolRun.update({
         where: { id: toolRunId },
         data: {
-          savedToDocumentId: savedToType === 'document' ? savedToId : null,
+          savedToDocumentId: savedToType === 'scene' ? savedToId : null,
           appliedAt: new Date(),
           output: content
         }
@@ -242,20 +242,20 @@ export async function POST(request: NextRequest) {
 
       // Save current output
       let savedToId: string = toolRunId;
-      let savedToType: 'document' | 'tool_run' | 'book' = 'tool_run';
+      let savedToType: 'scene' | 'tool_run' | 'book' = 'tool_run';
 
       if (metadata.scope === 'scene' && metadata.appliedTo.documentId) {
-        const document = await prisma.document.findUnique({
+        const scene = await prisma.scene.findUnique({
           where: { id: metadata.appliedTo.documentId }
         });
 
-        if (document) {
+        if (scene) {
           const newContent = routingOptions?.appendToExisting
-            ? document.content + '\n\n' + content
+            ? scene.content + '\n\n' + content
             : content;
 
-          await prisma.document.update({
-            where: { id: document.id },
+          await prisma.scene.update({
+            where: { id: scene.id },
             data: {
               content: newContent,
               wordCount: newContent.split(/\s+/).filter(Boolean).length,
@@ -263,8 +263,8 @@ export async function POST(request: NextRequest) {
             }
           });
 
-          savedToId = document.id;
-          savedToType = 'document';
+          savedToId = scene.id;
+          savedToType = 'scene';
         }
       }
 
@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
       await prisma.toolRun.update({
         where: { id: toolRunId },
         data: {
-          savedToDocumentId: savedToType === 'document' ? savedToId : null,
+          savedToDocumentId: savedToType === 'scene' ? savedToId : null,
           appliedAt: new Date(),
           output: content
         }
