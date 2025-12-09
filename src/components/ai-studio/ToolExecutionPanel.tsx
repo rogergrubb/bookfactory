@@ -1,4 +1,4 @@
-// ToolExecutionPanel - Comprehensive tool execution interface
+// ToolExecutionPanel - Enhanced with Save & Pass-along workflow
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -11,10 +11,11 @@ import {
   Palette, Zap, Brain, Star, Eye, Heart, Flame, TrendingUp,
   Hash, Activity, Shuffle, UserPlus, Globe, Swords, GitBranch,
   Layout, Users, Search, BookOpen, ArrowRight, AlertCircle,
-  CheckCircle, Info, ChevronUp
+  CheckCircle, Info, ChevronUp, Save, ChevronLeft, Workflow,
+  ExternalLink, FileDown, FileType, FileCode
 } from 'lucide-react';
-import { ToolId, ToolResult, Genre, AnalysisResult, AnalysisIssue } from './types';
-import { AI_TOOLS, GENRES, getToolById, getToolIconBg, TOOL_CATEGORIES } from './tool-definitions';
+import { ToolId, ToolResult, Genre, AnalysisResult, ToolCategory } from './types';
+import { AI_TOOLS, GENRES, getToolById, getToolIconBg, TOOL_CATEGORIES, getToolsByCategory } from './tool-definitions';
 import { useToolExecution } from './hooks';
 
 // Icon mapping
@@ -26,6 +27,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Wand2, Lightbulb
 };
 
+// Workflow step tracking
+interface WorkflowStep {
+  toolId: ToolId;
+  toolName: string;
+  timestamp: Date;
+  wordCount: number;
+}
+
 interface ToolExecutionPanelProps {
   toolId: ToolId;
   isOpen: boolean;
@@ -33,6 +42,8 @@ interface ToolExecutionPanelProps {
   initialInput?: string;
   onApply?: (content: string) => void;
   onChainTool?: (toolId: ToolId, input: string) => void;
+  workflowSteps?: WorkflowStep[];
+  onWorkflowUpdate?: (steps: WorkflowStep[]) => void;
 }
 
 export function ToolExecutionPanel({
@@ -41,7 +52,9 @@ export function ToolExecutionPanel({
   onClose,
   initialInput = '',
   onApply,
-  onChainTool
+  onChainTool,
+  workflowSteps = [],
+  onWorkflowUpdate
 }: ToolExecutionPanelProps) {
   const tool = getToolById(toolId);
   const { isLoading, error, result, execute, clearError, clearResult } = useToolExecution();
@@ -52,6 +65,9 @@ export function ToolExecutionPanel({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [showPassMenu, setShowPassMenu] = useState(false);
+  const [internalWorkflow, setInternalWorkflow] = useState<WorkflowStep[]>(workflowSteps);
   
   // Options state
   const [genre, setGenre] = useState<Genre>('literary');
@@ -61,6 +77,22 @@ export function ToolExecutionPanel({
   
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
+  const saveMenuRef = useRef<HTMLDivElement>(null);
+  const passMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close menus on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) {
+        setShowSaveMenu(false);
+      }
+      if (passMenuRef.current && !passMenuRef.current.contains(e.target as Node)) {
+        setShowPassMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -79,16 +111,34 @@ export function ToolExecutionPanel({
     clearError();
   }, [toolId, clearResult, clearError]);
 
+  // Sync workflow steps
+  useEffect(() => {
+    setInternalWorkflow(workflowSteps);
+  }, [workflowSteps]);
+
   const handleExecute = async () => {
     if (!input.trim() || !tool) return;
     
     try {
-      await execute(toolId, input, {
+      const execResult = await execute(toolId, input, {
         genre,
         length,
         intensity,
         customInstructions: customInstructions || undefined
       });
+      
+      // Add to workflow trail
+      if (execResult?.content) {
+        const newStep: WorkflowStep = {
+          toolId,
+          toolName: tool.name,
+          timestamp: new Date(),
+          wordCount: execResult.content.split(/\s+/).filter(Boolean).length
+        };
+        const updatedWorkflow = [...internalWorkflow, newStep];
+        setInternalWorkflow(updatedWorkflow);
+        onWorkflowUpdate?.(updatedWorkflow);
+      }
     } catch (err) {
       // Error handled in hook
     }
@@ -109,10 +159,62 @@ export function ToolExecutionPanel({
     }
   };
 
-  const handleChainTool = (nextToolId: ToolId) => {
+  // Save locally functionality
+  const handleSaveLocally = (format: 'txt' | 'md' | 'html') => {
+    if (!result?.content || !tool) return;
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `${tool.name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}`;
+    
+    let content = result.content;
+    let mimeType = 'text/plain';
+    let extension = format;
+    
+    if (format === 'md') {
+      content = `# ${tool.name} Output\n\n*Generated on ${new Date().toLocaleDateString()}*\n\n---\n\n${result.content}`;
+      mimeType = 'text/markdown';
+    } else if (format === 'html') {
+      content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${tool.name} Output</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.8; color: #333; }
+    h1 { color: #1a1a1a; border-bottom: 2px solid #e5e5e5; padding-bottom: 0.5rem; }
+    .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+    .content { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>${tool.name} Output</h1>
+  <p class="meta">Generated on ${new Date().toLocaleDateString()}</p>
+  <div class="content">${result.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+</body>
+</html>`;
+      mimeType = 'text/html';
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.${extension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    setShowSaveMenu(false);
+  };
+
+  // Pass to next tool - stay in workflow
+  const handlePassToTool = (nextToolId: ToolId) => {
     if (onChainTool && result?.content) {
       onChainTool(nextToolId, result.content);
     }
+    setShowPassMenu(false);
   };
 
   const handleUseAsInput = () => {
@@ -126,6 +228,8 @@ export function ToolExecutionPanel({
     setInput('');
     clearResult();
     clearError();
+    setInternalWorkflow([]);
+    onWorkflowUpdate?.([]);
   };
 
   const handleSpeak = () => {
@@ -156,22 +260,38 @@ export function ToolExecutionPanel({
   const isAnalysis = tool.category === 'analyze';
   const category = TOOL_CATEGORIES.find(c => c.id === tool.category);
 
+  // Get tools in the same category for "pass to next" suggestions
+  const getSameCategoryTools = (): ToolId[] => {
+    const categoryTools = getToolsByCategory(tool.category);
+    return categoryTools
+      .filter(t => t.id !== toolId)
+      .map(t => t.id);
+  };
+
+  // Get smart chain suggestions based on current tool
   const getChainSuggestions = (): ToolId[] => {
     const suggestions: Record<string, ToolId[]> = {
-      'continue': ['improve', 'deepen-emotion', 'add-tension'],
-      'first-draft': ['improve', 'show-not-tell', 'vary-sentences'],
-      'dialogue': ['deepen-emotion', 'add-tension', 'character-voice'],
-      'description': ['sensory-details', 'improve', 'show-not-tell'],
-      'action': ['add-tension', 'vary-sentences', 'pacing'],
-      'inner-monologue': ['deepen-emotion', 'show-not-tell', 'improve'],
+      // Generate -> Generate (workflow within same category)
+      'continue': ['first-draft', 'dialogue', 'description', 'action', 'inner-monologue'],
+      'first-draft': ['continue', 'dialogue', 'description', 'action', 'inner-monologue'],
+      'dialogue': ['continue', 'first-draft', 'inner-monologue', 'action'],
+      'description': ['continue', 'first-draft', 'dialogue', 'action'],
+      'action': ['continue', 'dialogue', 'description', 'inner-monologue'],
+      'inner-monologue': ['continue', 'dialogue', 'description', 'action'],
+      // Enhance tools
       'improve': ['vary-sentences', 'sensory-details', 'deepen-emotion'],
       'show-not-tell': ['improve', 'sensory-details', 'deepen-emotion'],
       'deepen-emotion': ['improve', 'vary-sentences', 'sensory-details'],
-      'add-tension': ['pacing', 'improve', 'vary-sentences'],
+      'add-tension': ['improve', 'vary-sentences', 'deepen-emotion'],
       'vary-sentences': ['improve', 'sensory-details', 'deepen-emotion'],
       'sensory-details': ['improve', 'deepen-emotion', 'vary-sentences'],
     };
-    return suggestions[toolId] || [];
+    return suggestions[toolId] || getSameCategoryTools();
+  };
+
+  // Get enhance tools for "Polish it" quick action
+  const getEnhanceTools = (): ToolId[] => {
+    return ['improve', 'show-not-tell', 'deepen-emotion', 'add-tension', 'vary-sentences', 'sensory-details'];
   };
 
   return (
@@ -202,96 +322,71 @@ export function ToolExecutionPanel({
               }`}
               onKeyDown={handleKeyDown}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${getToolIconBg(tool)} shadow-lg`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-gray-900">{tool.name}</h2>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        tool.category === 'generate' ? 'bg-violet-100 text-violet-700' :
-                        tool.category === 'enhance' ? 'bg-blue-100 text-blue-700' :
-                        tool.category === 'analyze' ? 'bg-emerald-100 text-emerald-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {tool.category}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500">{tool.description}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {tool.shortcut && (
-                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-md">
-                      {tool.shortcut}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                  >
-                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Options Bar */}
-              <div className="px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center gap-4 flex-wrap flex-shrink-0">
-                {/* Genre Selector */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-500">Genre:</span>
-                  <select
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value as Genre)}
-                    className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-                  >
-                    {GENRES.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Length (for generate/enhance tools) */}
-                {!isAnalysis && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-500">Length:</span>
-                    <div className="flex gap-1">
-                      {(['short', 'medium', 'long'] as const).map(len => (
-                        <button
-                          key={len}
-                          onClick={() => setLength(len)}
-                          className={`px-3 py-1 text-xs rounded-lg transition-all ${
-                            length === len
-                              ? 'bg-violet-100 text-violet-700 font-medium'
-                              : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
-                          }`}
-                        >
-                          {len.charAt(0).toUpperCase() + len.slice(1)}
-                        </button>
-                      ))}
+              {/* Header with Workflow Trail */}
+              <div className="flex-shrink-0">
+                {/* Workflow Trail */}
+                {internalWorkflow.length > 0 && (
+                  <div className="px-6 py-2 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-100">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Workflow className="w-3.5 h-3.5 text-violet-500" />
+                      <span className="text-violet-600 font-medium">Workflow:</span>
+                      <div className="flex items-center gap-1 overflow-x-auto">
+                        {internalWorkflow.map((step, idx) => (
+                          <React.Fragment key={idx}>
+                            {idx > 0 && <ChevronRight className="w-3 h-3 text-violet-300 flex-shrink-0" />}
+                            <span className="px-2 py-0.5 bg-white rounded-full text-violet-700 whitespace-nowrap">
+                              {step.toolName}
+                              <span className="text-violet-400 ml-1">({step.wordCount}w)</span>
+                            </span>
+                          </React.Fragment>
+                        ))}
+                        <ChevronRight className="w-3 h-3 text-violet-300 flex-shrink-0" />
+                        <span className="px-2 py-0.5 bg-violet-100 rounded-full text-violet-800 font-medium whitespace-nowrap">
+                          {tool.name}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
-
-                {/* Advanced Toggle */}
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-                >
-                  <Settings className="w-3 h-3" />
-                  Advanced
-                  <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-                </button>
+                
+                {/* Main Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${getToolIconBg(tool)} shadow-lg`}>
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">{tool.name}</h2>
+                      <p className="text-sm text-gray-500">{tool.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {tool.shortcut && (
+                      <kbd className="px-2.5 py-1 text-xs bg-gray-100 text-gray-500 rounded-lg border border-gray-200">
+                        {tool.shortcut}
+                      </kbd>
+                    )}
+                    <button
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className={`p-2 rounded-lg transition-colors ${showAdvanced ? 'bg-violet-100 text-violet-600' : 'hover:bg-gray-100 text-gray-500'}`}
+                    >
+                      <Settings className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setIsFullscreen(!isFullscreen)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      {isFullscreen ? <Minimize2 className="w-5 h-5 text-gray-500" /> : <Maximize2 className="w-5 h-5 text-gray-500" />}
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Advanced Options */}
@@ -301,32 +396,63 @@ export function ToolExecutionPanel({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="px-6 py-3 bg-gray-50/30 border-b border-gray-100 overflow-hidden flex-shrink-0"
+                    className="border-b border-gray-100 bg-gray-50/50 overflow-hidden flex-shrink-0"
                   >
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 mb-2 block">
-                          Intensity: {intensity}/10
-                        </label>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={intensity}
-                          onChange={(e) => setIntensity(parseInt(e.target.value))}
-                          className="w-full accent-violet-600"
-                        />
+                    <div className="p-4 space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        {/* Genre */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Genre Style</label>
+                          <select
+                            value={genre}
+                            onChange={(e) => setGenre(e.target.value as Genre)}
+                            className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                          >
+                            {GENRES.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {/* Length */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Output Length</label>
+                          <select
+                            value={length}
+                            onChange={(e) => setLength(e.target.value as 'short' | 'medium' | 'long')}
+                            className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                          >
+                            <option value="short">Short (~200 words)</option>
+                            <option value="medium">Medium (~400 words)</option>
+                            <option value="long">Long (~700 words)</option>
+                          </select>
+                        </div>
+                        
+                        {/* Intensity */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                            Intensity: {intensity}/10
+                          </label>
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            value={intensity}
+                            onChange={(e) => setIntensity(Number(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600"
+                          />
+                        </div>
                       </div>
+                      
+                      {/* Custom Instructions */}
                       <div>
-                        <label className="text-xs font-medium text-gray-500 mb-2 block">
-                          Custom Instructions
-                        </label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Custom Instructions</label>
                         <input
                           type="text"
                           value={customInstructions}
                           onChange={(e) => setCustomInstructions(e.target.value)}
-                          placeholder="Any special requirements..."
-                          className="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                          placeholder="Add specific instructions for the AI..."
+                          className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
                         />
                       </div>
                     </div>
@@ -334,53 +460,51 @@ export function ToolExecutionPanel({
                 )}
               </AnimatePresence>
 
-              {/* Main Content - Side by Side */}
-              <div className="flex-1 flex overflow-hidden min-h-0">
+              {/* Main Content - Split View */}
+              <div className="flex-1 flex min-h-0">
                 {/* Input Panel */}
-                <div className="flex-1 flex flex-col border-r border-gray-100 min-w-0">
+                <div className="flex-1 flex flex-col border-r border-gray-100">
                   <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Input</span>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Input</span>
                   </div>
-                  <div className="flex-1 p-4 overflow-auto">
+                  <div className="flex-1 p-4 min-h-0">
                     <textarea
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      placeholder={tool.placeholders.input}
-                      className="w-full h-full resize-none bg-transparent text-gray-800 placeholder:text-gray-400 focus:outline-none text-sm leading-relaxed"
+                      placeholder={tool.placeholders?.input || 'Enter your text here...'}
+                      className="w-full h-full resize-none text-gray-800 placeholder-gray-400 focus:outline-none text-[15px] leading-relaxed"
                     />
                   </div>
                   <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between flex-shrink-0">
-                    <span className="text-xs text-gray-400">
-                      {input.split(/\s+/).filter(Boolean).length} words
-                    </span>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span>{input.split(/\s+/).filter(Boolean).length} words</span>
+                      <span>•</span>
+                      <span>{input.length} characters</span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleReset}
-                        disabled={!input && !result}
-                        className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                       >
-                        <RotateCcw className="w-3 h-3 inline mr-1" />
+                        <RotateCcw className="w-3.5 h-3.5" />
                         Reset
                       </button>
                       <button
                         onClick={handleExecute}
-                        disabled={!input.trim() || isLoading}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
-                          isLoading
-                            ? 'bg-gray-200 text-gray-500 cursor-wait'
-                            : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
-                        }`}
+                        disabled={isLoading || !input.trim()}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-500/25"
                       >
                         {isLoading ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Processing...
+                            Generating...
                           </>
                         ) : (
                           <>
-                            <Send className="w-4 h-4" />
-                            {isAnalysis ? 'Analyze' : 'Generate'}
+                            <Sparkles className="w-4 h-4" />
+                            Generate
+                            <kbd className="ml-1 px-1.5 py-0.5 text-[10px] bg-white/20 rounded">⌘↵</kbd>
                           </>
                         )}
                       </button>
@@ -389,86 +513,66 @@ export function ToolExecutionPanel({
                 </div>
 
                 {/* Output Panel */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-shrink-0">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Output</span>
+                <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50/50 to-white">
+                  <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Output</span>
                     {result?.content && (
                       <div className="flex items-center gap-1">
                         <button
                           onClick={handleSpeak}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          className={`p-1.5 rounded-md transition-colors ${isSpeaking ? 'bg-violet-100 text-violet-600' : 'hover:bg-gray-100 text-gray-500'}`}
                           title={isSpeaking ? 'Stop' : 'Read aloud'}
                         >
-                          {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                          {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={handleCopy}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Copy"
+                          className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"
+                          title="Copy to clipboard"
                         >
-                          {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                        <button
-                          onClick={() => setIsPinned(!isPinned)}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                          title={isPinned ? 'Unpin' : 'Pin'}
-                        >
-                          {isPinned ? <BookmarkCheck className="w-3.5 h-3.5 text-violet-600" /> : <Bookmark className="w-3.5 h-3.5" />}
+                          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-500" />}
                         </button>
                       </div>
                     )}
                   </div>
                   
-                  <div ref={outputRef} className="flex-1 p-4 overflow-y-auto">
+                  <div ref={outputRef} className="flex-1 p-4 overflow-y-auto min-h-0">
                     {error && (
-                      <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                      <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700">
                         <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-medium">Error</p>
-                          <p className="text-sm mt-1">{error}</p>
+                          <p className="font-medium">Generation Failed</p>
+                          <p className="text-sm mt-1 opacity-80">{error}</p>
                         </div>
                       </div>
                     )}
-
+                    
                     {isLoading && (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <Loader2 className="w-8 h-8 animate-spin text-violet-600 mx-auto" />
-                          <p className="text-sm text-gray-500 mt-3">
-                            {isAnalysis ? 'Analyzing your text...' : 'Generating content...'}
-                          </p>
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <div className="relative">
+                          <div className="w-16 h-16 border-4 border-violet-100 rounded-full" />
+                          <div className="absolute inset-0 w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
                         </div>
+                        <p className="mt-4 text-sm">Generating your content...</p>
                       </div>
                     )}
-
+                    
                     {!isLoading && !error && !result && (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        <div className="text-center">
-                          <Icon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                          <p className="text-sm">{tool.placeholders.output}</p>
-                        </div>
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <Icon className="w-12 h-12 opacity-20 mb-3" />
+                        <p className="text-sm">{tool.placeholders?.output || 'Output will appear here...'}</p>
                       </div>
                     )}
-
-                    {!isLoading && !error && result && (
-                      <div className="space-y-4">
-                        {/* Analysis Results */}
-                        {isAnalysis && result.analysis && (
-                          <AnalysisResultDisplay analysis={result.analysis} />
-                        )}
-
-                        {/* Text Output */}
-                        {result.content && !isAnalysis && (
-                          <div className="prose prose-sm max-w-none">
-                            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                              {result.content}
-                            </div>
-                          </div>
-                        )}
+                    
+                    {result && !isAnalysis && (
+                      <div className="prose prose-gray max-w-none">
+                        <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                          {result.content}
+                        </div>
 
                         {/* Metadata */}
                         {result.metadata && (
-                          <div className="flex items-center gap-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                          <div className="flex items-center gap-4 pt-4 mt-4 border-t border-gray-100 text-xs text-gray-400">
                             {result.metadata.tokensUsed > 0 && (
                               <span>Tokens: {result.metadata.tokensUsed}</span>
                             )}
@@ -479,40 +583,158 @@ export function ToolExecutionPanel({
                         )}
                       </div>
                     )}
+                    
+                    {result?.analysis && isAnalysis && (
+                      <AnalysisResultDisplay analysis={result.analysis} />
+                    )}
                   </div>
 
-                  {/* Output Actions */}
+                  {/* Output Actions - Enhanced with Save & Pass */}
                   {result?.content && (
                     <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 flex-shrink-0">
-                      <div className="flex items-center justify-between">
-                        {/* Chain Tools */}
-                        {!isAnalysis && getChainSuggestions().length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Chain:</span>
-                            {getChainSuggestions().slice(0, 3).map(nextToolId => {
-                              const nextTool = getToolById(nextToolId);
-                              if (!nextTool) return null;
-                              const NextIcon = iconMap[nextTool.icon] || Sparkles;
-                              return (
-                                <button
-                                  key={nextToolId}
-                                  onClick={() => handleChainTool(nextToolId)}
-                                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Left: Save & Pass Actions */}
+                        <div className="flex items-center gap-2">
+                          {/* Save Locally Dropdown */}
+                          <div className="relative" ref={saveMenuRef}>
+                            <button
+                              onClick={() => setShowSaveMenu(!showSaveMenu)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                            >
+                              <Save className="w-3.5 h-3.5" />
+                              Save Locally
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                            
+                            <AnimatePresence>
+                              {showSaveMenu && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -5 }}
+                                  className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10"
                                 >
-                                  <NextIcon className="w-3 h-3" />
-                                  {nextTool.name}
-                                </button>
-                              );
-                            })}
+                                  <div className="p-1">
+                                    <button
+                                      onClick={() => handleSaveLocally('txt')}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                    >
+                                      <FileText className="w-4 h-4 text-gray-400" />
+                                      Plain Text (.txt)
+                                    </button>
+                                    <button
+                                      onClick={() => handleSaveLocally('md')}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                    >
+                                      <FileCode className="w-4 h-4 text-gray-400" />
+                                      Markdown (.md)
+                                    </button>
+                                    <button
+                                      onClick={() => handleSaveLocally('html')}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                    >
+                                      <FileType className="w-4 h-4 text-gray-400" />
+                                      Web Page (.html)
+                                    </button>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
-                        )}
 
-                        <div className="flex items-center gap-2 ml-auto">
+                          {/* Pass to Next Tool Dropdown */}
+                          {!isAnalysis && (
+                            <div className="relative" ref={passMenuRef}>
+                              <button
+                                onClick={() => setShowPassMenu(!showPassMenu)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 text-violet-700 rounded-lg hover:from-violet-100 hover:to-purple-100 transition-colors"
+                              >
+                                <ArrowRight className="w-3.5 h-3.5" />
+                                Pass to Next Tool
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                              
+                              <AnimatePresence>
+                                {showPassMenu && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -5 }}
+                                    className="absolute bottom-full left-0 mb-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10"
+                                  >
+                                    {/* Same Category Tools */}
+                                    <div className="p-2 border-b border-gray-100">
+                                      <p className="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Continue in {category?.name}
+                                      </p>
+                                      <div className="space-y-0.5">
+                                        {getChainSuggestions().slice(0, 4).map(nextToolId => {
+                                          const nextTool = getToolById(nextToolId);
+                                          if (!nextTool || nextTool.category !== tool.category) return null;
+                                          const NextIcon = iconMap[nextTool.icon] || Sparkles;
+                                          return (
+                                            <button
+                                              key={nextToolId}
+                                              onClick={() => handlePassToTool(nextToolId)}
+                                              className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                            >
+                                              <div className={`p-1.5 rounded-md ${getToolIconBg(nextTool)}`}>
+                                                <NextIcon className="w-3 h-3 text-white" />
+                                              </div>
+                                              <div className="text-left">
+                                                <p className="font-medium text-gray-800">{nextTool.name}</p>
+                                                <p className="text-xs text-gray-500 truncate">{nextTool.description}</p>
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Enhance Tools */}
+                                    {tool.category === 'generate' && (
+                                      <div className="p-2">
+                                        <p className="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                          Polish It
+                                        </p>
+                                        <div className="space-y-0.5">
+                                          {getEnhanceTools().slice(0, 3).map(nextToolId => {
+                                            const nextTool = getToolById(nextToolId);
+                                            if (!nextTool) return null;
+                                            const NextIcon = iconMap[nextTool.icon] || Sparkles;
+                                            return (
+                                              <button
+                                                key={nextToolId}
+                                                onClick={() => handlePassToTool(nextToolId)}
+                                                className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                              >
+                                                <div className={`p-1.5 rounded-md ${getToolIconBg(nextTool)}`}>
+                                                  <NextIcon className="w-3 h-3 text-white" />
+                                                </div>
+                                                <div className="text-left">
+                                                  <p className="font-medium text-gray-800">{nextTool.name}</p>
+                                                  <p className="text-xs text-gray-500 truncate">{nextTool.description}</p>
+                                                </div>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right: Apply & Use as Input */}
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={handleUseAsInput}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                           >
-                            <ArrowRightLeft className="w-3 h-3" />
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
                             Use as Input
                           </button>
                           {onApply && (
@@ -521,7 +743,7 @@ export function ToolExecutionPanel({
                               className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                             >
                               <Check className="w-4 h-4" />
-                              Apply
+                              Apply to Editor
                             </button>
                           )}
                         </div>
@@ -592,7 +814,7 @@ function AnalysisResultDisplay({ analysis }: { analysis: AnalysisResult }) {
       )}
 
       {/* Issues */}
-      {analysis.issues.length > 0 && (
+      {analysis.issues && analysis.issues.length > 0 && (
         <div className="border border-gray-100 rounded-xl overflow-hidden">
           <button
             onClick={() => toggleSection('issues')}
@@ -622,7 +844,7 @@ function AnalysisResultDisplay({ analysis }: { analysis: AnalysisResult }) {
       )}
 
       {/* Suggestions */}
-      {analysis.suggestions.length > 0 && (
+      {analysis.suggestions && analysis.suggestions.length > 0 && (
         <div className="border border-gray-100 rounded-xl overflow-hidden">
           <button
             onClick={() => toggleSection('suggestions')}
