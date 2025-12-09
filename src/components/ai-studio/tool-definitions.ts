@@ -1299,3 +1299,15 @@ export const AUTHOR_MODES: { id: AuthorInspiration; name: string; description: s
     tools: ['deep-outline', 'chapter-length-advisor', 'hook-checker', 'reader-avatar']
   },
 ];
+
+// ============================================================================
+// COMPATIBILITY EXPORTS (for existing code)
+// ============================================================================
+
+// Alias for backward compatibility
+export const allTools = AI_TOOLS;
+export const categoryConfig = TOOL_CATEGORIES;
+export const authorModeConfig = AUTHOR_MODES;
+
+// Export AuthorMode type
+export type AuthorMode = AuthorInspiration;
