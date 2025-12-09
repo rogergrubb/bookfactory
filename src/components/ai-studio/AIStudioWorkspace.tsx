@@ -1,4 +1,4 @@
-// AIStudioWorkspace - Integrated workspace for all AI tools
+// AIStudioWorkspace - Enhanced with workflow tracking
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -10,7 +10,8 @@ import {
   Shuffle, UserPlus, Globe, Swords, GitBranch, Layout,
   BookOpen, Users, Search, ChevronRight, Settings,
   BookMarked, Clock, Target, Grid3X3, List, History,
-  Pin, PinOff, Trash2, ArrowRightLeft, Plus, Layers
+  Pin, PinOff, Trash2, ArrowRightLeft, Plus, Layers,
+  Workflow, Save, Download
 } from 'lucide-react';
 import { ToolId, ToolCategory, Genre } from './types';
 import { AI_TOOLS, TOOL_CATEGORIES, GENRES, getToolsByCategory, getToolById, getToolIconBg } from './tool-definitions';
@@ -26,12 +27,21 @@ const iconComponents: Record<string, React.ComponentType<{ className?: string }>
   Wand2, Lightbulb
 };
 
+// Workflow step tracking
+interface WorkflowStep {
+  toolId: ToolId;
+  toolName: string;
+  timestamp: Date;
+  wordCount: number;
+}
+
 interface WorkspaceSession {
   id: string;
   toolId: ToolId;
   input: string;
   output: string;
   timestamp: Date;
+  workflow: WorkflowStep[];
 }
 
 export function AIStudioWorkspace() {
@@ -43,6 +53,7 @@ export function AIStudioWorkspace() {
   const [sessions, setSessions] = useState<WorkspaceSession[]>([]);
   const [chainInput, setChainInput] = useState<string>('');
   const [showHistory, setShowHistory] = useState(false);
+  const [currentWorkflow, setCurrentWorkflow] = useState<WorkflowStep[]>([]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -68,17 +79,34 @@ export function AIStudioWorkspace() {
   const handleCloseTool = useCallback(() => {
     setActiveTool(null);
     setChainInput('');
-  }, []);
+    // Keep workflow for history but clear current
+    if (currentWorkflow.length > 0) {
+      // Save to sessions if there was output
+      const sessionId = Date.now().toString();
+      // We could save the workflow here to sessions
+    }
+  }, [currentWorkflow]);
 
   const handleChainTool = useCallback((toolId: ToolId, input: string) => {
     setChainInput(input);
     setActiveTool(toolId);
+    // Workflow is preserved when chaining
+  }, []);
+
+  const handleWorkflowUpdate = useCallback((steps: WorkflowStep[]) => {
+    setCurrentWorkflow(steps);
   }, []);
 
   const handleApplyOutput = useCallback((content: string) => {
     // In a real implementation, this would insert the content into the editor
     console.log('Apply output:', content);
     navigator.clipboard.writeText(content);
+  }, []);
+
+  const handleStartNewWorkflow = useCallback(() => {
+    setCurrentWorkflow([]);
+    setChainInput('');
+    setActiveTool(null);
   }, []);
 
   const filteredTools = selectedCategory === 'all' 
@@ -107,6 +135,23 @@ export function AIStudioWorkspace() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Current Workflow Indicator */}
+              {currentWorkflow.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 border border-violet-200 rounded-lg">
+                  <Workflow className="w-4 h-4 text-violet-600" />
+                  <span className="text-sm text-violet-700 font-medium">
+                    {currentWorkflow.length} step{currentWorkflow.length > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={handleStartNewWorkflow}
+                    className="p-1 hover:bg-violet-100 rounded transition-colors"
+                    title="Start new workflow"
+                  >
+                    <X className="w-3 h-3 text-violet-500" />
+                  </button>
+                </div>
+              )}
+
               {/* Command Palette Trigger */}
               <button
                 onClick={() => setShowCommandPalette(true)}
@@ -179,45 +224,11 @@ export function AIStudioWorkspace() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex gap-6">
-          {/* Tools Grid */}
-          <div className={`flex-1 ${showHistory ? 'pr-6' : ''}`}>
-            {/* Quick Actions */}
-            {selectedCategory === 'all' && (
-              <section className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-6 gap-3">
-                  {[
-                    { id: 'continue' as ToolId, label: 'Continue Writing', icon: ArrowRight, gradient: 'from-violet-500 to-purple-600' },
-                    { id: 'improve' as ToolId, label: 'Improve Prose', icon: Star, gradient: 'from-blue-500 to-cyan-500' },
-                    { id: 'dialogue' as ToolId, label: 'Write Dialogue', icon: MessageSquare, gradient: 'from-violet-500 to-purple-600' },
-                    { id: 'pacing' as ToolId, label: 'Check Pacing', icon: BarChart3, gradient: 'from-emerald-500 to-teal-500' },
-                    { id: 'plot-twists' as ToolId, label: 'Plot Twists', icon: Shuffle, gradient: 'from-amber-500 to-orange-500' },
-                    { id: 'character-ideas' as ToolId, label: 'Character Ideas', icon: UserPlus, gradient: 'from-amber-500 to-orange-500' }
-                  ].map((tool, idx) => {
-                    const Icon = tool.icon;
-                    return (
-                      <motion.button
-                        key={tool.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.05 }}
-                        onClick={() => handleSelectTool(tool.id)}
-                        className="group flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all"
-                      >
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${tool.gradient} shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all`}>
-                          <Icon className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="text-xs font-medium text-gray-700 text-center">{tool.label}</span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Category Sections or All Tools */}
+          {/* Tools Grid/List */}
+          <div className="flex-1">
             {selectedCategory === 'all' ? (
-              <div className="grid grid-cols-2 gap-6">
+              /* All Categories View */
+              <div className="space-y-8">
                 {TOOL_CATEGORIES.map((category, catIdx) => {
                   const tools = getToolsByCategory(category.id);
                   const CategoryIcon = iconComponents[category.icon] || Sparkles;
@@ -230,20 +241,18 @@ export function AIStudioWorkspace() {
                       transition={{ delay: catIdx * 0.1 }}
                       className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
                     >
-                      {/* Category Header */}
-                      <div className={`p-4 ${category.bgColor} border-b border-gray-100`}>
+                      <div className={`px-6 py-4 bg-gradient-to-r ${category.gradient}`}>
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg bg-gradient-to-br ${category.gradient}`}>
+                          <div className="p-2 bg-white/20 rounded-lg">
                             <CategoryIcon className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                            <p className="text-sm text-gray-500">{category.description}</p>
+                            <h2 className="font-bold text-white text-lg">{category.name}</h2>
+                            <p className="text-white/80 text-sm">{category.description}</p>
                           </div>
                         </div>
                       </div>
-
-                      {/* Tools List */}
+                      
                       <div className="p-4 grid grid-cols-2 gap-2">
                         {tools.map((tool, idx) => {
                           const ToolIcon = iconComponents[tool.icon] || Sparkles;
@@ -375,12 +384,18 @@ export function AIStudioWorkspace() {
                           className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
                           onClick={() => {
                             setChainInput(session.output);
+                            setCurrentWorkflow(session.workflow || []);
                             setActiveTool(session.toolId);
                           }}
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <ToolIcon className="w-4 h-4 text-gray-500" />
                             <span className="text-sm font-medium text-gray-700">{tool.name}</span>
+                            {session.workflow && session.workflow.length > 1 && (
+                              <span className="px-1.5 py-0.5 text-[10px] bg-violet-100 text-violet-600 rounded-full">
+                                {session.workflow.length} steps
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-gray-500 line-clamp-2">{session.input}</p>
                           <p className="text-xs text-gray-400 mt-2">
@@ -396,6 +411,40 @@ export function AIStudioWorkspace() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Quick Start Banner for Generate Workflow */}
+      {selectedCategory === 'all' && currentWorkflow.length === 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4"
+          >
+            <Workflow className="w-5 h-5" />
+            <span className="font-medium">Start a writing workflow</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleSelectTool('continue')}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors"
+              >
+                Continue Writing
+              </button>
+              <button
+                onClick={() => handleSelectTool('first-draft')}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors"
+              >
+                First Draft
+              </button>
+              <button
+                onClick={() => handleSelectTool('dialogue')}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors"
+              >
+                Dialogue
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Command Palette */}
       <CommandPalette
@@ -413,6 +462,8 @@ export function AIStudioWorkspace() {
           initialInput={chainInput}
           onApply={handleApplyOutput}
           onChainTool={handleChainTool}
+          workflowSteps={currentWorkflow}
+          onWorkflowUpdate={handleWorkflowUpdate}
         />
       )}
     </div>
