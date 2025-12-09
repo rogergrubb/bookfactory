@@ -1,232 +1,329 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  BookOpen, PenTool, Image, Send, BarChart3, Megaphone, Settings,
-  ChevronLeft, ChevronRight, Menu, Search, Bell, User, Plus, Sparkles,
-  HelpCircle, X, Home, Users, DollarSign, Library, Keyboard, Moon, Sun,
+import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
+import { 
+  BookOpen, FolderOpen, PenTool, BarChart3, Settings, 
+  ChevronLeft, ChevronRight, Sparkles, Users, Map, 
+  Clock, Target, Flame, HelpCircle, GitBranch, Shield,
+  Scroll, Menu, X, Bell, Search, Command
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Tooltip } from '@/components/ui/tooltip';
-import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: typeof BookOpen;
+  href: string;
+  badge?: string | number;
+}
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/books', icon: Home, tooltip: 'View all your books', shortcut: '⌘1' },
-  { name: 'My Books', href: '/books/library', icon: Library, tooltip: 'Manage your library', shortcut: '⌘2' },
-  { name: 'Write', href: '/write', icon: PenTool, tooltip: 'Open the editor', shortcut: '⌘3' },
-  { name: 'Covers', href: '/covers', icon: Image, tooltip: 'Design covers', shortcut: '⌘4' },
-  { name: 'Publish', href: '/publish', icon: Send, tooltip: 'Export and publish', shortcut: '⌘5' },
-  { name: 'Marketing', href: '/marketing', icon: Megaphone, tooltip: 'Marketing tools', shortcut: '⌘6' },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3, tooltip: 'Track performance', shortcut: '⌘7' },
-  { name: 'Collaborators', href: '/collaborators', icon: Users, tooltip: 'Manage team', shortcut: '⌘8' },
-  { name: 'Finances', href: '/finances', icon: DollarSign, tooltip: 'Track royalties', shortcut: '⌘9' },
-];
+// ============================================================================
+// BOOKFACTORY LOGO
+// ============================================================================
 
-const bottomNav = [
-  { name: 'Settings', href: '/settings', icon: Settings, tooltip: 'Account settings' },
-  { name: 'Help', href: '/help', icon: HelpCircle, tooltip: 'Get help' },
-];
-
-export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const pathname = usePathname();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const breadcrumbs = React.useMemo(() => {
-    const paths = pathname.split('/').filter(Boolean);
-    return paths.map((path, index) => ({
-      name: path.charAt(0).toUpperCase() + path.slice(1).replace(/-/g, ' '),
-      href: '/' + paths.slice(0, index + 1).join('/'),
-      current: index === paths.length - 1,
-    }));
-  }, [pathname]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowCommandPalette(true);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
-        e.preventDefault();
-        setShowKeyboardShortcuts(true);
-      }
-      if (e.key === 'Escape') {
-        setShowKeyboardShortcuts(false);
-        setShowCommandPalette(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
+function BookFactoryLogo({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className={cn('flex h-screen', darkMode ? 'dark' : '')}>
-      {/* Desktop Sidebar */}
-      <aside className={cn(
-        'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-300 dark:border-slate-800 dark:bg-slate-900',
-        sidebarCollapsed ? 'w-20' : 'w-72',
-        'hidden lg:flex'
-      )}>
-        <div className={cn('flex h-16 items-center border-b border-slate-200 dark:border-slate-800', sidebarCollapsed ? 'justify-center px-4' : 'px-6')}>
-          <Link href="/books" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/30">
-              <BookOpen className="h-5 w-5 text-white" />
-            </div>
-            {!sidebarCollapsed && (
-              <div className="flex flex-col">
-                <span className="font-bold text-slate-900 dark:text-white">BookFactory</span>
-                <span className="text-xs text-violet-600">AI-Powered Writing</span>
-              </div>
-            )}
-          </Link>
+    <Link href="/dashboard" className={`
+      flex items-center gap-3 px-3 py-2 rounded-xl
+      transition-all duration-300 hover:bg-stone-100 dark:hover:bg-stone-800
+      ${collapsed ? 'justify-center' : ''}
+    `}>
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-500/25">
+        <BookOpen className="w-5 h-5 text-white" />
+      </div>
+      {!collapsed && (
+        <div className="overflow-hidden">
+          <span className="font-semibold text-stone-900 dark:text-stone-100 whitespace-nowrap"
+                style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
+            BookFactory
+          </span>
         </div>
-
-        <div className={cn('p-4', sidebarCollapsed && 'px-3')}>
-          <Tooltip content="Create a new book (⌘N)" side="right" disabled={!sidebarCollapsed}>
-            <Link href="/books/new" className={cn(
-              'flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3 font-medium text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-violet-500/40 hover:scale-[1.02]',
-              sidebarCollapsed ? 'px-3' : 'px-4'
-            )}>
-              <Plus className="h-5 w-5" />
-              {!sidebarCollapsed && <span>New Book</span>}
-            </Link>
-          </Tooltip>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto px-3 py-2">
-          <ul className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              return (
-                <li key={item.name}>
-                  <Tooltip content={<div><p className="font-medium">{item.name}</p><p className="text-xs text-slate-400">{item.tooltip}</p>{item.shortcut && <p className="mt-1 text-xs text-violet-400">{item.shortcut}</p>}</div>} side="right" disabled={!sidebarCollapsed}>
-                    <Link href={item.href} className={cn(
-                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                      isActive ? 'bg-gradient-to-r from-violet-50 to-indigo-50 text-violet-700 dark:from-violet-950/50 dark:to-indigo-950/50 dark:text-violet-300' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white',
-                      sidebarCollapsed && 'justify-center px-2'
-                    )}>
-                      <item.icon className={cn('h-5 w-5 transition-colors', isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 group-hover:text-slate-600')} />
-                      {!sidebarCollapsed && <><span className="flex-1">{item.name}</span>{item.shortcut && <span className="text-xs text-slate-400">{item.shortcut}</span>}</>}
-                    </Link>
-                  </Tooltip>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="border-t border-slate-200 p-3 dark:border-slate-800">
-          <ul className="space-y-1">
-            {bottomNav.map((item) => (
-              <li key={item.name}>
-                <Tooltip content={item.tooltip} side="right" disabled={!sidebarCollapsed}>
-                  <Link href={item.href} className={cn(
-                    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800',
-                    sidebarCollapsed && 'justify-center px-2'
-                  )}>
-                    <item.icon className="h-5 w-5" />
-                    {!sidebarCollapsed && <span>{item.name}</span>}
-                  </Link>
-                </Tooltip>
-              </li>
-            ))}
-          </ul>
-          <div className={cn('mt-3 flex gap-2', sidebarCollapsed ? 'flex-col' : 'flex-row')}>
-            <button onClick={() => setShowKeyboardShortcuts(true)} className="flex-1 rounded-lg border border-slate-200 p-2 text-slate-400 hover:border-slate-300 hover:text-slate-600 dark:border-slate-700"><Keyboard className="mx-auto h-4 w-4" /></button>
-            <button onClick={() => setDarkMode(!darkMode)} className="flex-1 rounded-lg border border-slate-200 p-2 text-slate-400 hover:border-slate-300 hover:text-slate-600 dark:border-slate-700">{darkMode ? <Sun className="mx-auto h-4 w-4" /> : <Moon className="mx-auto h-4 w-4" />}</button>
-          </div>
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 py-2 text-sm text-slate-500 hover:border-slate-300 dark:border-slate-700">
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <><ChevronLeft className="h-4 w-4" /><span>Collapse</span></>}
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-            <motion.aside initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} className="fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:hidden">
-              <div className="flex h-16 items-center justify-between border-b border-slate-200 px-6 dark:border-slate-800">
-                <Link href="/books" className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600"><BookOpen className="h-5 w-5 text-white" /></div><span className="font-bold text-slate-900 dark:text-white">BookFactory</span></Link>
-                <button onClick={() => setMobileMenuOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
-              </div>
-              <nav className="p-4">
-                <Link href="/books/new" onClick={() => setMobileMenuOpen(false)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3 font-medium text-white"><Plus className="h-5 w-5" /><span>New Book</span></Link>
-                <ul className="space-y-1">{[...navigation, ...bottomNav].map((item) => (<li key={item.name}><Link href={item.href} onClick={() => setMobileMenuOpen(false)} className={cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium', pathname === item.href ? 'bg-violet-50 text-violet-700' : 'text-slate-600 hover:bg-slate-50')}><item.icon className="h-5 w-5" /><span>{item.name}</span></Link></li>))}</ul>
-              </nav>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content */}
-      <main className={cn('flex flex-1 flex-col overflow-hidden bg-slate-50 transition-all duration-300 dark:bg-slate-950', sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72')}>
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900 lg:px-8">
-          <button onClick={() => setMobileMenuOpen(true)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 lg:hidden"><Menu className="h-5 w-5" /></button>
-          <nav className="hidden items-center gap-2 text-sm lg:flex">
-            <Link href="/books" className="text-slate-400 hover:text-slate-600"><Home className="h-4 w-4" /></Link>
-            {breadcrumbs.map((crumb, index) => (<React.Fragment key={crumb.href}><ChevronRight className="h-4 w-4 text-slate-300" />{crumb.current ? <span className="font-medium text-slate-900 dark:text-white">{crumb.name}</span> : <Link href={crumb.href} className="text-slate-500 hover:text-slate-700">{crumb.name}</Link>}</React.Fragment>))}
-          </nav>
-          <div className="flex items-center gap-4">
-            <button onClick={() => setShowCommandPalette(true)} className="hidden md:flex items-center gap-3 w-64 rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-sm text-slate-400 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-800"><Search className="h-4 w-4" /><span className="flex-1 text-left">Search...</span><kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs dark:border-slate-600 dark:bg-slate-700">⌘K</kbd></button>
-            <div className="hidden lg:flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700"><Sparkles className="h-4 w-4 text-violet-500" /><span className="font-medium text-slate-700 dark:text-slate-300">847</span><span className="text-slate-400">credits</span></div>
-            <button className="relative rounded-lg p-2 text-slate-400 hover:bg-slate-100"><Bell className="h-5 w-5" /><span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" /></button>
-            <Link href="/help" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><HelpCircle className="h-5 w-5" /></Link>
-            <button className="flex items-center gap-3 rounded-xl border border-slate-200 p-1.5 pr-3 hover:border-slate-300 dark:border-slate-700"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600"><User className="h-4 w-4 text-white" /></div><span className="hidden text-sm font-medium text-slate-700 dark:text-slate-300 md:block">Author</span></button>
-          </div>
-        </header>
-        {showOnboarding && <OnboardingProgress onDismiss={() => setShowOnboarding(false)} />}
-        <div className="flex-1 overflow-y-auto">{children}</div>
-      </main>
-
-      {/* Keyboard Shortcuts Modal */}
-      <AnimatePresence>
-        {showKeyboardShortcuts && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowKeyboardShortcuts(false)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
-              <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold text-slate-900 dark:text-white">Keyboard Shortcuts</h2><button onClick={() => setShowKeyboardShortcuts(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {[{category:'Navigation',shortcuts:[{keys:'⌘ K',action:'Command palette'},{keys:'⌘ 1-9',action:'Go to section'},{keys:'⌘ N',action:'New book'}]},{category:'Editor',shortcuts:[{keys:'⌘ S',action:'Save'},{keys:'⌘ F',action:'Focus mode'},{keys:'⌘ B',action:'Bold'}]},{category:'AI',shortcuts:[{keys:'⌘ J',action:'AI assistant'},{keys:'⌘ G',action:'Generate'}]}].map((group) => (
-                  <div key={group.category}><h3 className="mb-2 text-sm font-medium text-slate-500">{group.category}</h3><div className="space-y-1">{group.shortcuts.map((s) => (<div key={s.action} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800"><span className="text-sm text-slate-700 dark:text-slate-300">{s.action}</span><kbd className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300">{s.keys}</kbd></div>))}</div></div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Command Palette */}
-      <AnimatePresence>
-        {showCommandPalette && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-24" onClick={() => setShowCommandPalette(false)}>
-            <motion.div initial={{ scale: 0.95, y: -10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: -10 }} className="w-full max-w-xl rounded-2xl bg-white shadow-2xl dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800"><Search className="h-5 w-5 text-slate-400" /><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search commands, books..." className="flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white" autoFocus /><kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-400 dark:border-slate-700 dark:bg-slate-800">ESC</kbd></div>
-              <div className="max-h-80 overflow-y-auto p-2">
-                <div className="mb-2 px-2 text-xs font-medium text-slate-500">Quick Actions</div>
-                {[{icon:Plus,label:'Create new book',href:'/books/new'},{icon:PenTool,label:'Open editor',href:'/write'},{icon:Sparkles,label:'AI assistant',href:'/write?ai=true'},{icon:Image,label:'Create cover',href:'/covers/new'}].filter(i => !searchQuery || i.label.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => (<Link key={item.label} href={item.href} onClick={() => setShowCommandPalette(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><item.icon className="h-4 w-4 text-slate-400" /><span className="text-sm">{item.label}</span></Link>))}
-                <div className="mb-2 mt-4 px-2 text-xs font-medium text-slate-500">Navigation</div>
-                {navigation.filter(i => !searchQuery || i.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => (<Link key={item.name} href={item.href} onClick={() => setShowCommandPalette(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><item.icon className="h-4 w-4 text-slate-400" /><span className="text-sm">Go to {item.name}</span>{item.shortcut && <kbd className="ml-auto rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-400 dark:border-slate-700">{item.shortcut}</kbd>}</Link>))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      )}
+    </Link>
   );
 }
 
-export default DashboardLayout;
+// ============================================================================
+// MAIN LAYOUT
+// ============================================================================
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { user } = useUser();
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Mock data - replace with real data from API
+  const writingStreak = 7;
+  const dailyProgress = 65; // percentage
+  const dailyGoal = 2000;
+  const wordsToday = 1300;
+  
+  // Main navigation items
+  const mainNav: NavItem[] = [
+    { id: 'studio', label: 'AI Studio', icon: Sparkles, href: '/dashboard/ai-studio' },
+    { id: 'books', label: 'My Books', icon: FolderOpen, href: '/dashboard/books' },
+    { id: 'write', label: 'Write', icon: PenTool, href: '/dashboard/write' },
+  ];
+  
+  // Story Bible section
+  const storyBibleNav: NavItem[] = [
+    { id: 'characters', label: 'Characters', icon: Users, href: '/dashboard/story-bible/characters' },
+    { id: 'locations', label: 'Locations', icon: Map, href: '/dashboard/story-bible/locations' },
+    { id: 'timeline', label: 'Timeline', icon: Clock, href: '/dashboard/story-bible/timeline' },
+    { id: 'world', label: 'World Rules', icon: Scroll, href: '/dashboard/story-bible/world' },
+  ];
+  
+  // Craft tools section
+  const craftNav: NavItem[] = [
+    { id: 'threads', label: 'Story Threads', icon: GitBranch, href: '/dashboard/craft/threads' },
+    { id: 'continuity', label: 'Continuity', icon: Shield, href: '/dashboard/craft/continuity' },
+  ];
+  
+  // Bottom navigation
+  const bottomNav: NavItem[] = [
+    { id: 'analytics', label: 'Progress', icon: BarChart3, href: '/dashboard/analytics' },
+    { id: 'help', label: 'Help', icon: HelpCircle, href: '/dashboard/help' },
+    { id: 'settings', label: 'Settings', icon: Settings, href: '/dashboard/settings' },
+  ];
+  
+  // Check if route is active
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  
+  // Render nav item
+  const renderNavItem = (item: NavItem, showTooltip: boolean = true) => (
+    <Link
+      key={item.id}
+      href={item.href}
+      onClick={() => setMobileMenuOpen(false)}
+      className={`
+        relative flex items-center gap-3 px-3 py-2.5 rounded-xl
+        transition-all duration-200 group
+        ${collapsed && !mobileMenuOpen ? 'justify-center' : ''}
+        ${isActive(item.href)
+          ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300'
+          : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
+        }
+      `}
+    >
+      <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? 'text-teal-600 dark:text-teal-400' : ''}`} />
+      
+      {(!collapsed || mobileMenuOpen) && (
+        <>
+          <span className="text-sm font-medium flex-1">{item.label}</span>
+          {item.badge && (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-teal-600 text-white">
+              {item.badge}
+            </span>
+          )}
+        </>
+      )}
+      
+      {/* Tooltip for collapsed state */}
+      {collapsed && showTooltip && !mobileMenuOpen && (
+        <div className="
+          absolute left-full ml-2 px-2 py-1 rounded-lg
+          bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900
+          text-xs font-medium whitespace-nowrap
+          opacity-0 group-hover:opacity-100 pointer-events-none
+          transition-opacity duration-200 z-50
+        ">
+          {item.label}
+        </div>
+      )}
+    </Link>
+  );
+  
+  // Render section
+  const renderSection = (title: string, items: NavItem[]) => (
+    <div className="mb-6">
+      {(!collapsed || mobileMenuOpen) && (
+        <h3 className="px-3 mb-2 text-xs font-medium text-stone-400 uppercase tracking-wider">
+          {title}
+        </h3>
+      )}
+      <div className="space-y-1">
+        {items.map(item => renderNavItem(item))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex bg-stone-50 dark:bg-stone-950">
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <aside className={`
+        fixed lg:relative z-50 lg:z-auto
+        flex flex-col h-screen
+        bg-white dark:bg-stone-900
+        border-r border-stone-200 dark:border-stone-800
+        transition-all duration-300 ease-out
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${collapsed && !mobileMenuOpen ? 'w-[72px]' : 'w-64'}
+      `}>
+        {/* Header */}
+        <div className="flex-shrink-0 p-4 flex items-center justify-between">
+          <BookFactoryLogo collapsed={collapsed && !mobileMenuOpen} />
+          
+          {/* Mobile close button */}
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800"
+          >
+            <X className="w-5 h-5 text-stone-500" />
+          </button>
+        </div>
+        
+        {/* Streak indicator */}
+        {writingStreak > 0 && (!collapsed || mobileMenuOpen) && (
+          <div className="mx-4 mb-4 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/50">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-amber-500" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  {writingStreak} day streak!
+                </p>
+                <div className="mt-1.5 h-1.5 rounded-full bg-amber-200 dark:bg-amber-800 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
+                    style={{ width: `${dailyProgress}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  {wordsToday.toLocaleString()} / {dailyGoal.toLocaleString()} words
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Collapsed streak indicator */}
+        {writingStreak > 0 && collapsed && !mobileMenuOpen && (
+          <div className="mx-3 mb-4 p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <div className="relative">
+              <Flame className="w-5 h-5 text-amber-500" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 text-[10px] rounded-full bg-amber-500 text-white flex items-center justify-center font-medium">
+                {writingStreak}
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {/* Main Navigation */}
+        <nav className="flex-1 px-3 overflow-y-auto">
+          {/* Primary nav */}
+          <div className="space-y-1 mb-6">
+            {mainNav.map(item => renderNavItem(item))}
+          </div>
+          
+          {/* Divider */}
+          <div className="h-px bg-stone-200 dark:bg-stone-800 my-4" />
+          
+          {/* Story Bible */}
+          {renderSection('Story Bible', storyBibleNav)}
+          
+          {/* Craft Tools */}
+          {renderSection('Craft', craftNav)}
+        </nav>
+        
+        {/* Bottom Navigation */}
+        <div className="flex-shrink-0 p-3 border-t border-stone-200 dark:border-stone-800">
+          <div className="space-y-1">
+            {bottomNav.map(item => renderNavItem(item))}
+          </div>
+        </div>
+        
+        {/* Collapse Toggle (desktop only) */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="
+            hidden lg:flex
+            absolute -right-3 top-20
+            w-6 h-6 rounded-full
+            bg-white dark:bg-stone-800
+            border border-stone-200 dark:border-stone-700
+            shadow-sm
+            items-center justify-center
+            text-stone-500 hover:text-stone-700 dark:hover:text-stone-300
+            transition-colors duration-200
+            z-10
+          "
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </button>
+      </aside>
+      
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Top Bar */}
+        <header className="flex-shrink-0 h-14 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4 flex items-center justify-between">
+          {/* Left: Mobile menu + Search */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800"
+            >
+              <Menu className="w-5 h-5 text-stone-600" />
+            </button>
+            
+            {/* Search */}
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
+              <Search className="w-4 h-4" />
+              <span className="text-sm hidden sm:inline">Search...</span>
+              <kbd className="hidden sm:inline px-1.5 py-0.5 text-xs rounded bg-stone-200 dark:bg-stone-700">
+                ⌘K
+              </kbd>
+            </button>
+          </div>
+          
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            {/* Notifications */}
+            <button className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 relative">
+              <Bell className="w-5 h-5 text-stone-600 dark:text-stone-400" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-teal-500" />
+            </button>
+            
+            {/* User */}
+            {user && (
+              <div className="flex items-center gap-3 pl-3 border-l border-stone-200 dark:border-stone-800">
+                <span className="text-sm font-medium text-stone-700 dark:text-stone-300 hidden sm:inline">
+                  {user.firstName || 'Writer'}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-sm font-medium">
+                  {user.firstName?.[0] || 'W'}
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+        
+        {/* Page Content */}
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
