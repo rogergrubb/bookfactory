@@ -1,894 +1,750 @@
-// ToolExecutionPanel - Enhanced with Save & Pass-along workflow
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronRight,
-  Send, Settings, Download, Bookmark, BookmarkCheck,
-  Maximize2, Minimize2, Volume2, VolumeX, ArrowRightLeft,
-  Sparkles, Wand2, BarChart3, Lightbulb, FileText, MessageSquare,
-  Palette, Zap, Brain, Star, Eye, Heart, Flame, TrendingUp,
-  Hash, Activity, Shuffle, UserPlus, Globe, Swords, GitBranch,
-  Layout, Users, Search, BookOpen, ArrowRight, AlertCircle,
-  CheckCircle, Info, ChevronUp, Save, ChevronLeft, Workflow,
-  ExternalLink, FileDown, FileType, FileCode
+  X, Play, Save, Send, ArrowRight, ChevronDown, ChevronRight,
+  Download, Copy, Check, Loader2, AlertCircle, Sparkles,
+  FileText, BookOpen, Layers, RotateCcw, Wand2, Star,
+  ArrowRightCircle, CheckCircle, Clock, Zap
 } from 'lucide-react';
-import { ToolId, ToolResult, Genre, AnalysisResult, ToolCategory } from './types';
-import { AI_TOOLS, GENRES, getToolById, getToolIconBg, TOOL_CATEGORIES, getToolsByCategory } from './tool-definitions';
-import { useToolExecution } from './hooks';
+import { 
+  ToolId, ToolResult, ToolContext, HybridScopeSelection, 
+  SaveAction, SaveRequest, ToolOptions, AITool
+} from './types';
+import { getToolById, getChainableTools, getToolIconBg, getScopeBadgeClass, getScopeLabel } from './tool-definitions';
 
-// Icon mapping
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  ArrowRight, FileText, MessageSquare, Palette, Zap, Brain,
-  Star, Eye, Heart, Flame, TrendingUp, Sparkles,
-  BarChart3, Users, Search, BookOpen, Hash, Activity,
-  Shuffle, UserPlus, Globe, Swords, GitBranch, Layout,
-  Wand2, Lightbulb
+// ============================================================================
+// ICON MAPPING
+// ============================================================================
+
+const iconComponents: Record<string, React.ComponentType<{ className?: string }>> = {
+  ArrowRight: ArrowRight,
+  FileText: FileText,
+  MessageSquare: Sparkles,
+  Palette: Sparkles,
+  Zap: Zap,
+  Brain: Sparkles,
+  Star: Star,
+  Eye: Sparkles,
+  Heart: Sparkles,
+  Flame: Sparkles,
+  TrendingUp: Sparkles,
+  Sparkles: Sparkles,
+  BarChart3: Sparkles,
+  Users: Sparkles,
+  Search: Sparkles,
+  Hash: Sparkles,
+  Activity: Sparkles,
+  BookOpen: BookOpen,
+  Shuffle: Sparkles,
+  UserPlus: Sparkles,
+  Globe: Sparkles,
+  Swords: Sparkles,
+  GitBranch: Sparkles,
+  Layout: Layers,
+  Wand2: Wand2,
+  Lightbulb: Sparkles
 };
 
-// Workflow step tracking
-interface WorkflowStep {
-  toolId: ToolId;
-  toolName: string;
-  timestamp: Date;
-  wordCount: number;
+// ============================================================================
+// HYBRID SCOPE SELECTOR
+// ============================================================================
+
+interface HybridScopeSelectorProps {
+  tool: AITool;
+  bookId: string;
+  documentId?: string;
+  selection: HybridScopeSelection | null;
+  onSelectionChange: (selection: HybridScopeSelection) => void;
 }
+
+function HybridScopeSelector({ tool, bookId, documentId, selection, onSelectionChange }: HybridScopeSelectorProps) {
+  const modes = [
+    { id: 'this-scene', label: 'This Scene', icon: FileText, description: 'Run on current scene only', disabled: !documentId },
+    { id: 'selected-chapters', label: 'Selected Chapters', icon: Layers, description: 'Choose specific chapters' },
+    { id: 'whole-book', label: 'Whole Book', icon: BookOpen, description: 'Analyze entire manuscript' }
+  ] as const;
+
+  return (
+    <div className="bg-teal-50 dark:bg-teal-950/30 rounded-xl p-4 border border-teal-200 dark:border-teal-800">
+      <div className="flex items-center gap-2 mb-3">
+        <Layers className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+        <span className="text-sm font-medium text-teal-800 dark:text-teal-200">
+          Choose Scope for {tool.name}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {modes.map((mode) => {
+          const Icon = mode.icon;
+          const isSelected = selection?.mode === mode.id;
+          return (
+            <button
+              key={mode.id}
+              onClick={() => !mode.disabled && onSelectionChange({
+                mode: mode.id,
+                bookId,
+                sceneId: mode.id === 'this-scene' ? documentId : undefined,
+                chapterIds: mode.id === 'selected-chapters' ? [] : undefined
+              })}
+              disabled={mode.disabled}
+              className={`
+                p-3 rounded-lg border-2 text-left transition-all
+                ${isSelected 
+                  ? 'border-teal-500 bg-teal-100 dark:bg-teal-900/50' 
+                  : mode.disabled
+                    ? 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
+                    : 'border-transparent bg-white dark:bg-gray-800 hover:border-teal-300'
+                }
+              `}
+            >
+              <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-teal-600' : 'text-gray-400'}`} />
+              <div className="text-sm font-medium text-gray-900 dark:text-white">{mode.label}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{mode.description}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// TOOL OPTIONS PANEL
+// ============================================================================
+
+interface ToolOptionsPanelProps {
+  tool: AITool;
+  options: ToolOptions;
+  onChange: (options: ToolOptions) => void;
+}
+
+function ToolOptionsPanel({ tool, options, onChange }: ToolOptionsPanelProps) {
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Output Options</span>
+      </div>
+      
+      {/* Length selector */}
+      <div>
+        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Output Length</label>
+        <div className="flex gap-2">
+          {(['short', 'medium', 'long'] as const).map((length) => (
+            <button
+              key={length}
+              onClick={() => onChange({ ...options, length })}
+              className={`
+                px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-all
+                ${options.length === length
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }
+              `}
+            >
+              {length}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom instructions */}
+      <div>
+        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Custom Instructions (optional)</label>
+        <textarea
+          value={options.customInstructions || ''}
+          onChange={(e) => onChange({ ...options, customInstructions: e.target.value })}
+          placeholder="Add any specific instructions for the AI..."
+          rows={2}
+          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SAVE BAR COMPONENT
+// ============================================================================
+
+interface SaveBarProps {
+  result: ToolResult | null;
+  tool: AITool;
+  onSave: () => void;
+  onSaveAndSend: (nextToolId: ToolId) => void;
+  onDownload: (format: 'txt' | 'md' | 'html') => void;
+  onCopy: () => void;
+  isSaving: boolean;
+}
+
+function SaveBar({ result, tool, onSave, onSaveAndSend, onDownload, onCopy, isSaving }: SaveBarProps) {
+  const [showChainMenu, setShowChainMenu] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const chainableTools = useMemo(() => getChainableTools(tool), [tool]);
+
+  const handleCopy = () => {
+    onCopy();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!result?.success) return null;
+
+  return (
+    <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-6 py-4">
+      <div className="flex items-center justify-between">
+        {/* Left side - Download & Copy */}
+        <div className="flex items-center gap-2">
+          {/* Download dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span>Save Locally</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            <AnimatePresence>
+              {showDownloadMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden min-w-[160px]"
+                >
+                  {[
+                    { format: 'txt' as const, label: 'Plain Text (.txt)' },
+                    { format: 'md' as const, label: 'Markdown (.md)' },
+                    { format: 'html' as const, label: 'HTML (.html)' }
+                  ].map(({ format, label }) => (
+                    <button
+                      key={format}
+                      onClick={() => {
+                        onDownload(format);
+                        setShowDownloadMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Copy button */}
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? 'Copied!' : 'Copy'}</span>
+          </button>
+        </div>
+
+        {/* Right side - Save & Pass Along */}
+        <div className="flex items-center gap-3">
+          {/* Save button */}
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span>Save</span>
+          </button>
+
+          {/* Save & Send dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowChainMenu(!showChainMenu)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Send className="w-4 h-4" />
+              <span>Save & Send</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            <AnimatePresence>
+              {showChainMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden min-w-[280px] max-h-[400px] overflow-y-auto"
+                >
+                  {/* Same category tools */}
+                  <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                    <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Continue in {tool.category}
+                    </div>
+                    {chainableTools
+                      .filter(t => t.category === tool.category)
+                      .map(chainTool => {
+                        const Icon = iconComponents[chainTool.icon] || Sparkles;
+                        return (
+                          <button
+                            key={chainTool.id}
+                            onClick={() => {
+                              onSaveAndSend(chainTool.id);
+                              setShowChainMenu(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                          >
+                            <div className={`p-1.5 rounded-lg ${getToolIconBg(chainTool)}`}>
+                              <Icon className="w-3 h-3 text-white" />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{chainTool.name}</div>
+                            </div>
+                            <ArrowRightCircle className="w-4 h-4 text-gray-400" />
+                          </button>
+                        );
+                      })}
+                  </div>
+
+                  {/* Polish/Enhance tools */}
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Polish It
+                    </div>
+                    {chainableTools
+                      .filter(t => t.category === 'enhance' && t.category !== tool.category)
+                      .slice(0, 4)
+                      .map(chainTool => {
+                        const Icon = iconComponents[chainTool.icon] || Sparkles;
+                        return (
+                          <button
+                            key={chainTool.id}
+                            onClick={() => {
+                              onSaveAndSend(chainTool.id);
+                              setShowChainMenu(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                          >
+                            <div className={`p-1.5 rounded-lg ${getToolIconBg(chainTool)}`}>
+                              <Icon className="w-3 h-3 text-white" />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{chainTool.name}</div>
+                            </div>
+                            <ArrowRightCircle className="w-4 h-4 text-gray-400" />
+                          </button>
+                        );
+                      })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// WORKFLOW TRAIL COMPONENT
+// ============================================================================
+
+interface WorkflowTrailProps {
+  steps: Array<{ toolId: ToolId; wordCount: number }>;
+  currentToolId: ToolId;
+}
+
+export function WorkflowTrail({ steps, currentToolId }: WorkflowTrailProps) {
+  if (steps.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 bg-violet-50 dark:bg-violet-950/30 rounded-lg overflow-x-auto">
+      <span className="text-xs text-violet-600 dark:text-violet-400 font-medium whitespace-nowrap">Workflow:</span>
+      {steps.map((step, idx) => {
+        const tool = getToolById(step.toolId);
+        if (!tool) return null;
+        const Icon = iconComponents[tool.icon] || Sparkles;
+        return (
+          <React.Fragment key={idx}>
+            {idx > 0 && <ArrowRight className="w-3 h-3 text-violet-400 flex-shrink-0" />}
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-800 rounded-md whitespace-nowrap">
+              <Icon className="w-3 h-3 text-violet-600" />
+              <span className="text-xs text-gray-700 dark:text-gray-300">{tool.name}</span>
+              {step.wordCount > 0 && (
+                <span className="text-[10px] text-gray-400">({step.wordCount}w)</span>
+              )}
+            </div>
+          </React.Fragment>
+        );
+      })}
+      <ArrowRight className="w-3 h-3 text-violet-400 flex-shrink-0" />
+      <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-600 text-white rounded-md whitespace-nowrap">
+        <span className="text-xs font-medium">{getToolById(currentToolId)?.name}</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN TOOL EXECUTION PANEL
+// ============================================================================
 
 interface ToolExecutionPanelProps {
   toolId: ToolId;
-  isOpen: boolean;
+  bookId: string;
+  documentId?: string;
   onClose: () => void;
-  initialInput?: string;
-  onApply?: (content: string) => void;
-  onChainTool?: (toolId: ToolId, input: string) => void;
-  workflowSteps?: WorkflowStep[];
-  onWorkflowUpdate?: (steps: WorkflowStep[]) => void;
+  onSaveAndSend: (nextToolId: ToolId) => void;
+  preloadedInput?: string;
+  workflowSteps?: Array<{ toolId: ToolId; wordCount: number }>;
 }
 
 export function ToolExecutionPanel({
   toolId,
-  isOpen,
+  bookId,
+  documentId,
   onClose,
-  initialInput = '',
-  onApply,
-  onChainTool,
-  workflowSteps = [],
-  onWorkflowUpdate
+  onSaveAndSend,
+  preloadedInput = '',
+  workflowSteps = []
 }: ToolExecutionPanelProps) {
   const tool = getToolById(toolId);
-  const { isLoading, error, result, execute, clearError, clearResult } = useToolExecution();
   
-  const [input, setInput] = useState(initialInput);
-  const [copied, setCopied] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [showSaveMenu, setShowSaveMenu] = useState(false);
-  const [showPassMenu, setShowPassMenu] = useState(false);
-  const [internalWorkflow, setInternalWorkflow] = useState<WorkflowStep[]>(workflowSteps);
-  
-  // Options state
-  const [genre, setGenre] = useState<Genre>('literary');
-  const [length, setLength] = useState<'short' | 'medium' | 'long'>('medium');
-  const [intensity, setIntensity] = useState(5);
-  const [customInstructions, setCustomInstructions] = useState('');
-  
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const outputRef = useRef<HTMLDivElement>(null);
-  const saveMenuRef = useRef<HTMLDivElement>(null);
-  const passMenuRef = useRef<HTMLDivElement>(null);
+  // State
+  const [input, setInput] = useState(preloadedInput);
+  const [output, setOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [result, setResult] = useState<ToolResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [options, setOptions] = useState<ToolOptions>({ length: 'medium' });
+  const [hybridSelection, setHybridSelection] = useState<HybridScopeSelection | null>(null);
+  const [showOptions, setShowOptions] = useState(false);
 
-  // Close menus on outside click
+  // Initialize hybrid selection for hybrid tools
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) {
-        setShowSaveMenu(false);
-      }
-      if (passMenuRef.current && !passMenuRef.current.contains(e.target as Node)) {
-        setShowPassMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+    if (tool?.scope === 'hybrid' && documentId) {
+      setHybridSelection({
+        mode: 'this-scene',
+        bookId,
+        sceneId: documentId
+      });
     }
-  }, [isOpen]);
+  }, [tool?.scope, bookId, documentId]);
 
-  useEffect(() => {
-    if (initialInput) {
-      setInput(initialInput);
+  if (!tool) {
+    return (
+      <div className="fixed inset-y-0 right-0 w-[600px] bg-white dark:bg-gray-900 shadow-2xl flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Tool not found</p>
+        </div>
+      </div>
+    );
+  }
+
+  const Icon = iconComponents[tool.icon] || Sparkles;
+
+  // Run tool
+  const handleRun = async () => {
+    if (!input.trim()) {
+      setError('Please enter some content');
+      return;
     }
-  }, [initialInput]);
 
-  useEffect(() => {
-    clearResult();
-    clearError();
-  }, [toolId, clearResult, clearError]);
+    // Validate input length
+    if (input.length < tool.minInputLength) {
+      setError(`Input must be at least ${tool.minInputLength} characters`);
+      return;
+    }
 
-  // Sync workflow steps
-  useEffect(() => {
-    setInternalWorkflow(workflowSteps);
-  }, [workflowSteps]);
+    setIsRunning(true);
+    setError(null);
+    setResult(null);
+    setOutput('');
 
-  const handleExecute = async () => {
-    if (!input.trim() || !tool) return;
-    
     try {
-      const execResult = await execute(toolId, input, {
-        genre,
-        length,
-        intensity,
-        customInstructions: customInstructions || undefined
+      const response = await fetch('/api/ai-studio/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolId,
+          input,
+          context: {
+            bookId,
+            documentId,
+            userId: 'current-user' // Will be replaced with actual user ID
+          },
+          options,
+          scopeSelection: tool.scope === 'hybrid' ? hybridSelection : undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Tool execution failed');
+      }
+
+      const data = await response.json();
+      setResult(data);
+      setOutput(data.content);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  // Save result
+  const handleSave = async () => {
+    if (!result) return;
+    
+    setIsSaving(true);
+    try {
+      await fetch('/api/ai-studio/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save' as SaveAction,
+          toolRunId: result.metadata.toolRunId,
+          content: output,
+          metadata: result.metadata
+        } as SaveRequest)
+      });
+    } catch (err) {
+      console.error('Save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Save and send to next tool
+  const handleSaveAndSend = async (nextToolId: ToolId) => {
+    if (!result) return;
+    
+    setIsSaving(true);
+    try {
+      await fetch('/api/ai-studio/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save-and-send' as SaveAction,
+          toolRunId: result.metadata.toolRunId,
+          content: output,
+          metadata: result.metadata,
+          nextToolId
+        } as SaveRequest)
       });
       
-      // Add to workflow trail
-      if (execResult?.content) {
-        const newStep: WorkflowStep = {
-          toolId,
-          toolName: tool.name,
-          timestamp: new Date(),
-          wordCount: execResult.content.split(/\s+/).filter(Boolean).length
-        };
-        const updatedWorkflow = [...internalWorkflow, newStep];
-        setInternalWorkflow(updatedWorkflow);
-        onWorkflowUpdate?.(updatedWorkflow);
-      }
+      onSaveAndSend(nextToolId);
     } catch (err) {
-      // Error handled in hook
+      console.error('Save and send failed:', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleCopy = async () => {
-    if (result?.content) {
-      await navigator.clipboard.writeText(result.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  // Download output
+  const handleDownload = (format: 'txt' | 'md' | 'html') => {
+    if (!output) return;
 
-  const handleApply = () => {
-    if (onApply && result?.content) {
-      onApply(result.content);
-      onClose();
-    }
-  };
-
-  // Save locally functionality
-  const handleSaveLocally = (format: 'txt' | 'md' | 'html') => {
-    if (!result?.content || !tool) return;
-    
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `${tool.name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}`;
-    
-    let content = result.content;
+    let content = output;
     let mimeType = 'text/plain';
     let extension = format;
-    
+
     if (format === 'md') {
-      content = `# ${tool.name} Output\n\n*Generated on ${new Date().toLocaleDateString()}*\n\n---\n\n${result.content}`;
+      content = `# ${tool.name} Output\n\n${output}`;
       mimeType = 'text/markdown';
     } else if (format === 'html') {
       content = `<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${tool.name} Output</title>
   <style>
-    body { font-family: Georgia, serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; line-height: 1.8; color: #333; }
-    h1 { color: #1a1a1a; border-bottom: 2px solid #e5e5e5; padding-bottom: 0.5rem; }
-    .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
-    .content { white-space: pre-wrap; }
+    body { font-family: Georgia, serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+    h1 { color: #4f46e5; }
   </style>
 </head>
 <body>
   <h1>${tool.name} Output</h1>
-  <p class="meta">Generated on ${new Date().toLocaleDateString()}</p>
-  <div class="content">${result.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+  <div>${output.replace(/\n/g, '<br>')}</div>
 </body>
 </html>`;
       mimeType = 'text/html';
     }
-    
+
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}.${extension}`;
+    a.download = `${tool.name.toLowerCase().replace(/\s+/g, '-')}-output.${extension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    setShowSaveMenu(false);
   };
 
-  // Pass to next tool - stay in workflow
-  const handlePassToTool = (nextToolId: ToolId) => {
-    if (onChainTool && result?.content) {
-      onChainTool(nextToolId, result.content);
-    }
-    setShowPassMenu(false);
-  };
-
-  const handleUseAsInput = () => {
-    if (result?.content) {
-      setInput(result.content);
-      clearResult();
-    }
-  };
-
-  const handleReset = () => {
-    setInput('');
-    clearResult();
-    clearError();
-    setInternalWorkflow([]);
-    onWorkflowUpdate?.([]);
-  };
-
-  const handleSpeak = () => {
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    } else if (result?.content) {
-      const utterance = new SpeechSynthesisUtterance(result.content);
-      utterance.onend = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-      setIsSpeaking(true);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      handleExecute();
-    }
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
-  if (!tool) return null;
-
-  const Icon = iconMap[tool.icon] || Sparkles;
-  const isAnalysis = tool.category === 'analyze';
-  const category = TOOL_CATEGORIES.find(c => c.id === tool.category);
-
-  // Get tools in the same category for "pass to next" suggestions
-  const getSameCategoryTools = (): ToolId[] => {
-    const categoryTools = getToolsByCategory(tool.category);
-    return categoryTools
-      .filter(t => t.id !== toolId)
-      .map(t => t.id);
-  };
-
-  // Get smart chain suggestions based on current tool
-  const getChainSuggestions = (): ToolId[] => {
-    const suggestions: Record<string, ToolId[]> = {
-      // Generate -> Generate (workflow within same category)
-      'continue': ['first-draft', 'dialogue', 'description', 'action', 'inner-monologue'],
-      'first-draft': ['continue', 'dialogue', 'description', 'action', 'inner-monologue'],
-      'dialogue': ['continue', 'first-draft', 'inner-monologue', 'action'],
-      'description': ['continue', 'first-draft', 'dialogue', 'action'],
-      'action': ['continue', 'dialogue', 'description', 'inner-monologue'],
-      'inner-monologue': ['continue', 'dialogue', 'description', 'action'],
-      // Enhance tools
-      'improve': ['vary-sentences', 'sensory-details', 'deepen-emotion'],
-      'show-not-tell': ['improve', 'sensory-details', 'deepen-emotion'],
-      'deepen-emotion': ['improve', 'vary-sentences', 'sensory-details'],
-      'add-tension': ['improve', 'vary-sentences', 'deepen-emotion'],
-      'vary-sentences': ['improve', 'sensory-details', 'deepen-emotion'],
-      'sensory-details': ['improve', 'deepen-emotion', 'vary-sentences'],
-    };
-    return suggestions[toolId] || getSameCategoryTools();
-  };
-
-  // Get enhance tools for "Polish it" quick action
-  const getEnhanceTools = (): ToolId[] => {
-    return ['improve', 'show-not-tell', 'deepen-emotion', 'add-tension', 'vary-sentences', 'sensory-details'];
-  };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Full-screen container with flexbox centering */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={onClose}
-            />
-            
-            {/* Panel - 90% of screen, centered */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className={`relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col ${
-                isFullscreen 
-                  ? 'w-full h-full' 
-                  : 'w-[90vw] h-[90vh] max-w-[1400px]'
-              }`}
-              onKeyDown={handleKeyDown}
-            >
-              {/* Header with Workflow Trail */}
-              <div className="flex-shrink-0">
-                {/* Workflow Trail */}
-                {internalWorkflow.length > 0 && (
-                  <div className="px-6 py-2 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-100">
-                    <div className="flex items-center gap-2 text-xs">
-                      <Workflow className="w-3.5 h-3.5 text-violet-500" />
-                      <span className="text-violet-600 font-medium">Workflow:</span>
-                      <div className="flex items-center gap-1 overflow-x-auto">
-                        {internalWorkflow.map((step, idx) => (
-                          <React.Fragment key={idx}>
-                            {idx > 0 && <ChevronRight className="w-3 h-3 text-violet-300 flex-shrink-0" />}
-                            <span className="px-2 py-0.5 bg-white rounded-full text-violet-700 whitespace-nowrap">
-                              {step.toolName}
-                              <span className="text-violet-400 ml-1">({step.wordCount}w)</span>
-                            </span>
-                          </React.Fragment>
-                        ))}
-                        <ChevronRight className="w-3 h-3 text-violet-300 flex-shrink-0" />
-                        <span className="px-2 py-0.5 bg-violet-100 rounded-full text-violet-800 font-medium whitespace-nowrap">
-                          {tool.name}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Main Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${getToolIconBg(tool)} shadow-lg`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900">{tool.name}</h2>
-                      <p className="text-sm text-gray-500">{tool.description}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {tool.shortcut && (
-                      <kbd className="px-2.5 py-1 text-xs bg-gray-100 text-gray-500 rounded-lg border border-gray-200">
-                        {tool.shortcut}
-                      </kbd>
-                    )}
-                    <button
-                      onClick={() => setShowAdvanced(!showAdvanced)}
-                      className={`p-2 rounded-lg transition-colors ${showAdvanced ? 'bg-violet-100 text-violet-600' : 'hover:bg-gray-100 text-gray-500'}`}
-                    >
-                      <Settings className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setIsFullscreen(!isFullscreen)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      {isFullscreen ? <Minimize2 className="w-5 h-5 text-gray-500" /> : <Maximize2 className="w-5 h-5 text-gray-500" />}
-                    </button>
-                    <button
-                      onClick={onClose}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Advanced Options */}
-              <AnimatePresence>
-                {showAdvanced && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="border-b border-gray-100 bg-gray-50/50 overflow-hidden flex-shrink-0"
-                  >
-                    <div className="p-4 space-y-4">
-                      <div className="grid grid-cols-3 gap-4">
-                        {/* Genre */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Genre Style</label>
-                          <select
-                            value={genre}
-                            onChange={(e) => setGenre(e.target.value as Genre)}
-                            className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-                          >
-                            {GENRES.map(g => (
-                              <option key={g.id} value={g.id}>{g.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        {/* Length */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Output Length</label>
-                          <select
-                            value={length}
-                            onChange={(e) => setLength(e.target.value as 'short' | 'medium' | 'long')}
-                            className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-                          >
-                            <option value="short">Short (~200 words)</option>
-                            <option value="medium">Medium (~400 words)</option>
-                            <option value="long">Long (~700 words)</option>
-                          </select>
-                        </div>
-                        
-                        {/* Intensity */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                            Intensity: {intensity}/10
-                          </label>
-                          <input
-                            type="range"
-                            min="1"
-                            max="10"
-                            value={intensity}
-                            onChange={(e) => setIntensity(Number(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-violet-600"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Custom Instructions */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Custom Instructions</label>
-                        <input
-                          type="text"
-                          value={customInstructions}
-                          onChange={(e) => setCustomInstructions(e.target.value)}
-                          placeholder="Add specific instructions for the AI..."
-                          className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Main Content - Split View */}
-              <div className="flex-1 flex min-h-0">
-                {/* Input Panel */}
-                <div className="flex-1 flex flex-col border-r border-gray-100">
-                  <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Input</span>
-                  </div>
-                  <div className="flex-1 p-4 min-h-0">
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder={tool.placeholders?.input || 'Enter your text here...'}
-                      className="w-full h-full resize-none text-gray-800 placeholder-gray-400 focus:outline-none text-[15px] leading-relaxed"
-                    />
-                  </div>
-                  <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between flex-shrink-0">
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <span>{input.split(/\s+/).filter(Boolean).length} words</span>
-                      <span>•</span>
-                      <span>{input.length} characters</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleReset}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Reset
-                      </button>
-                      <button
-                        onClick={handleExecute}
-                        disabled={isLoading || !input.trim()}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-500/25"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4" />
-                            Generate
-                            <kbd className="ml-1 px-1.5 py-0.5 text-[10px] bg-white/20 rounded">⌘↵</kbd>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Output Panel */}
-                <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50/50 to-white">
-                  <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Output</span>
-                    {result?.content && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={handleSpeak}
-                          className={`p-1.5 rounded-md transition-colors ${isSpeaking ? 'bg-violet-100 text-violet-600' : 'hover:bg-gray-100 text-gray-500'}`}
-                          title={isSpeaking ? 'Stop' : 'Read aloud'}
-                        >
-                          {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={handleCopy}
-                          className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"
-                          title="Copy to clipboard"
-                        >
-                          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-500" />}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div ref={outputRef} className="flex-1 p-4 overflow-y-auto min-h-0">
-                    {error && (
-                      <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700">
-                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Generation Failed</p>
-                          <p className="text-sm mt-1 opacity-80">{error}</p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {isLoading && (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <div className="relative">
-                          <div className="w-16 h-16 border-4 border-violet-100 rounded-full" />
-                          <div className="absolute inset-0 w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                        <p className="mt-4 text-sm">Generating your content...</p>
-                      </div>
-                    )}
-                    
-                    {!isLoading && !error && !result && (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <Icon className="w-12 h-12 opacity-20 mb-3" />
-                        <p className="text-sm">{tool.placeholders?.output || 'Output will appear here...'}</p>
-                      </div>
-                    )}
-                    
-                    {result && !isAnalysis && (
-                      <div className="prose prose-gray max-w-none">
-                        <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                          {result.content}
-                        </div>
-
-                        {/* Metadata */}
-                        {result.metadata && (
-                          <div className="flex items-center gap-4 pt-4 mt-4 border-t border-gray-100 text-xs text-gray-400">
-                            {result.metadata.tokensUsed > 0 && (
-                              <span>Tokens: {result.metadata.tokensUsed}</span>
-                            )}
-                            {result.content && (
-                              <span>Words: {result.content.split(/\s+/).filter(Boolean).length}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {result?.analysis && isAnalysis && (
-                      <AnalysisResultDisplay analysis={result.analysis} />
-                    )}
-                  </div>
-
-                  {/* Output Actions - Enhanced with Save & Pass */}
-                  {result?.content && (
-                    <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 flex-shrink-0">
-                      <div className="flex items-center justify-between gap-4">
-                        {/* Left: Save & Pass Actions */}
-                        <div className="flex items-center gap-2">
-                          {/* Save Locally Dropdown */}
-                          <div className="relative" ref={saveMenuRef}>
-                            <button
-                              onClick={() => setShowSaveMenu(!showSaveMenu)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
-                            >
-                              <Save className="w-3.5 h-3.5" />
-                              Save Locally
-                              <ChevronDown className="w-3 h-3" />
-                            </button>
-                            
-                            <AnimatePresence>
-                              {showSaveMenu && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -5 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -5 }}
-                                  className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10"
-                                >
-                                  <div className="p-1">
-                                    <button
-                                      onClick={() => handleSaveLocally('txt')}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                    >
-                                      <FileText className="w-4 h-4 text-gray-400" />
-                                      Plain Text (.txt)
-                                    </button>
-                                    <button
-                                      onClick={() => handleSaveLocally('md')}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                    >
-                                      <FileCode className="w-4 h-4 text-gray-400" />
-                                      Markdown (.md)
-                                    </button>
-                                    <button
-                                      onClick={() => handleSaveLocally('html')}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                    >
-                                      <FileType className="w-4 h-4 text-gray-400" />
-                                      Web Page (.html)
-                                    </button>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-
-                          {/* Pass to Next Tool Dropdown */}
-                          {!isAnalysis && (
-                            <div className="relative" ref={passMenuRef}>
-                              <button
-                                onClick={() => setShowPassMenu(!showPassMenu)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 text-violet-700 rounded-lg hover:from-violet-100 hover:to-purple-100 transition-colors"
-                              >
-                                <ArrowRight className="w-3.5 h-3.5" />
-                                Pass to Next Tool
-                                <ChevronDown className="w-3 h-3" />
-                              </button>
-                              
-                              <AnimatePresence>
-                                {showPassMenu && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="absolute bottom-full left-0 mb-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10"
-                                  >
-                                    {/* Same Category Tools */}
-                                    <div className="p-2 border-b border-gray-100">
-                                      <p className="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Continue in {category?.name}
-                                      </p>
-                                      <div className="space-y-0.5">
-                                        {getChainSuggestions().slice(0, 4).map(nextToolId => {
-                                          const nextTool = getToolById(nextToolId);
-                                          if (!nextTool || nextTool.category !== tool.category) return null;
-                                          const NextIcon = iconMap[nextTool.icon] || Sparkles;
-                                          return (
-                                            <button
-                                              key={nextToolId}
-                                              onClick={() => handlePassToTool(nextToolId)}
-                                              className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                            >
-                                              <div className={`p-1.5 rounded-md ${getToolIconBg(nextTool)}`}>
-                                                <NextIcon className="w-3 h-3 text-white" />
-                                              </div>
-                                              <div className="text-left">
-                                                <p className="font-medium text-gray-800">{nextTool.name}</p>
-                                                <p className="text-xs text-gray-500 truncate">{nextTool.description}</p>
-                                              </div>
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Enhance Tools */}
-                                    {tool.category === 'generate' && (
-                                      <div className="p-2">
-                                        <p className="px-2 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                          Polish It
-                                        </p>
-                                        <div className="space-y-0.5">
-                                          {getEnhanceTools().slice(0, 3).map(nextToolId => {
-                                            const nextTool = getToolById(nextToolId);
-                                            if (!nextTool) return null;
-                                            const NextIcon = iconMap[nextTool.icon] || Sparkles;
-                                            return (
-                                              <button
-                                                key={nextToolId}
-                                                onClick={() => handlePassToTool(nextToolId)}
-                                                className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                              >
-                                                <div className={`p-1.5 rounded-md ${getToolIconBg(nextTool)}`}>
-                                                  <NextIcon className="w-3 h-3 text-white" />
-                                                </div>
-                                                <div className="text-left">
-                                                  <p className="font-medium text-gray-800">{nextTool.name}</p>
-                                                  <p className="text-xs text-gray-500 truncate">{nextTool.description}</p>
-                                                </div>
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Right: Apply & Use as Input */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={handleUseAsInput}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            <ArrowRightLeft className="w-3.5 h-3.5" />
-                            Use as Input
-                          </button>
-                          {onApply && (
-                            <button
-                              onClick={handleApply}
-                              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                            >
-                              <Check className="w-4 h-4" />
-                              Apply to Editor
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
-// Analysis Result Display Component
-function AnalysisResultDisplay({ analysis }: { analysis: AnalysisResult }) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['issues', 'suggestions']));
-
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => {
-      const next = new Set(prev);
-      if (next.has(section)) {
-        next.delete(section);
-      } else {
-        next.add(section);
-      }
-      return next;
-    });
-  };
-
-  const getIssueIcon = (type: string) => {
-    switch (type) {
-      case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />;
-      case 'warning': return <AlertCircle className="w-4 h-4 text-amber-500" />;
-      default: return <Info className="w-4 h-4 text-blue-500" />;
+  // Copy to clipboard
+  const handleCopy = () => {
+    if (output) {
+      navigator.clipboard.writeText(output);
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Score */}
-      {typeof analysis.score === 'number' && (
-        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100">
-          <div className="relative w-16 h-16">
-            <svg className="w-16 h-16 transform -rotate-90">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="#e5e7eb" strokeWidth="6" />
-              <circle
-                cx="32" cy="32" r="28" fill="none"
-                stroke={analysis.score >= 70 ? '#10b981' : analysis.score >= 40 ? '#f59e0b' : '#ef4444'}
-                strokeWidth="6"
-                strokeDasharray={(analysis.score / 100) * 176 + ' 176'}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-lg font-bold">
-              {analysis.score}
-            </span>
+    <motion.div
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      className="fixed inset-y-0 right-0 w-[600px] bg-white dark:bg-gray-900 shadow-2xl flex flex-col z-50"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl ${getToolIconBg(tool)}`}>
+            <Icon className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-medium text-gray-900">Overall Score</p>
-            <p className="text-sm text-gray-500">
-              {analysis.score >= 70 ? 'Good' : analysis.score >= 40 ? 'Needs Improvement' : 'Needs Work'}
-            </p>
+            <h2 className="font-semibold text-gray-900 dark:text-white">{tool.name}</h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${getScopeBadgeClass(tool.scope)}`}>
+                {getScopeLabel(tool.scope)} Scope
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{tool.description}</span>
+            </div>
           </div>
         </div>
-      )}
+        <button
+          onClick={onClose}
+          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
-      {/* Issues */}
-      {analysis.issues && analysis.issues.length > 0 && (
-        <div className="border border-gray-100 rounded-xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('issues')}
-            className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
-          >
-            <span className="font-medium text-gray-900">Issues ({analysis.issues.length})</span>
-            {expandedSections.has('issues') ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          {expandedSections.has('issues') && (
-            <div className="divide-y divide-gray-100">
-              {analysis.issues.map((issue, idx) => (
-                <div key={idx} className="p-3 flex gap-3">
-                  {getIssueIcon(issue.type)}
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-800">{issue.message}</p>
-                    {issue.suggestion && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        <span className="font-medium">Suggestion:</span> {issue.suggestion}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Workflow Trail */}
+      {workflowSteps.length > 0 && (
+        <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-800">
+          <WorkflowTrail steps={workflowSteps} currentToolId={toolId} />
         </div>
       )}
 
-      {/* Suggestions */}
-      {analysis.suggestions && analysis.suggestions.length > 0 && (
-        <div className="border border-gray-100 rounded-xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('suggestions')}
-            className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
-          >
-            <span className="font-medium text-gray-900">Suggestions ({analysis.suggestions.length})</span>
-            {expandedSections.has('suggestions') ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          {expandedSections.has('suggestions') && (
-            <div className="p-3 space-y-2">
-              {analysis.suggestions.map((suggestion, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-700">{suggestion}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {/* Hybrid Scope Selector */}
+        {tool.scope === 'hybrid' && (
+          <HybridScopeSelector
+            tool={tool}
+            bookId={bookId}
+            documentId={documentId}
+            selection={hybridSelection}
+            onSelectionChange={setHybridSelection}
+          />
+        )}
 
-      {/* Metrics */}
-      {analysis.metrics && Object.keys(analysis.metrics).length > 0 && (
-        <div className="border border-gray-100 rounded-xl overflow-hidden">
-          <button
-            onClick={() => toggleSection('metrics')}
-            className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
-          >
-            <span className="font-medium text-gray-900">Metrics</span>
-            {expandedSections.has('metrics') ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          {expandedSections.has('metrics') && (
-            <div className="p-3 grid grid-cols-2 gap-3">
-              {Object.entries(analysis.metrics).map(([key, value]) => (
-                <div key={key} className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-xs text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                  <p className="text-sm font-medium text-gray-900">{String(value)}</p>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Input
+          </label>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={tool.placeholders.input}
+            rows={8}
+            className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+          />
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-400">
+              {input.length} / {tool.maxInputLength} characters
+            </span>
+            <button
+              onClick={() => setShowOptions(!showOptions)}
+              className="text-xs text-violet-600 dark:text-violet-400 hover:underline"
+            >
+              {showOptions ? 'Hide options' : 'Show options'}
+            </button>
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Options */}
+        <AnimatePresence>
+          {showOptions && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <ToolOptionsPanel tool={tool} options={options} onChange={setOptions} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 rounded-lg">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm">{error}</span>
+          </div>
+        )}
+
+        {/* Run Button */}
+        <button
+          onClick={handleRun}
+          disabled={isRunning || !input.trim()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isRunning ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Running...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-5 h-5" />
+              <span>Run {tool.name}</span>
+            </>
+          )}
+        </button>
+
+        {/* Output */}
+        {output && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Output
+            </label>
+            <div className="w-full min-h-[200px] px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl whitespace-pre-wrap">
+              {output}
+            </div>
+            {result?.metadata && (
+              <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                <span className="flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  {result.metadata.tokensUsed} tokens
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {(result.metadata.processingTime / 1000).toFixed(1)}s
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Save Bar */}
+      <SaveBar
+        result={result}
+        tool={tool}
+        onSave={handleSave}
+        onSaveAndSend={handleSaveAndSend}
+        onDownload={handleDownload}
+        onCopy={handleCopy}
+        isSaving={isSaving}
+      />
+    </motion.div>
   );
 }
 
