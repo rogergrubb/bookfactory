@@ -62,8 +62,8 @@ interface HybridScopeSelectorProps {
 function HybridScopeSelector({ tool, bookId, documentId, selection, onSelectionChange }: HybridScopeSelectorProps) {
   const modes = [
     { id: 'this-scene', label: 'This Scene', icon: FileText, description: 'Run on current scene only', disabled: !documentId },
-    { id: 'selected-chapters', label: 'Selected Chapters', icon: Layers, description: 'Choose specific chapters' },
-    { id: 'whole-book', label: 'Whole Book', icon: BookOpen, description: 'Analyze entire manuscript' }
+    { id: 'selected-chapters', label: 'Selected Chapters', icon: Layers, description: 'Choose specific chapters', disabled: false },
+    { id: 'whole-book', label: 'Whole Book', icon: BookOpen, description: 'Analyze entire manuscript', disabled: false }
   ] as const;
 
   return (
