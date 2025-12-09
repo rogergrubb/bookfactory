@@ -2,7 +2,16 @@
 // AI STUDIO TOOL DEFINITIONS - COMPLETE SCOPED TOOL SYSTEM
 // ============================================================================
 
-import { AITool, ToolId, ToolCategory, ToolScope } from './types';
+import { AITool, ToolId, ToolCategory, ToolScope, Genre } from './types';
+
+// ============================================================================
+// GENRE OPTIONS
+// ============================================================================
+
+export const GENRES: Genre[] = [
+  'romance', 'mystery', 'thriller', 'fantasy', 'scifi',
+  'literary', 'horror', 'ya', 'historical', 'contemporary'
+];
 
 // ============================================================================
 // SECTION 1: TOOL SCOPE ASSIGNMENTS
