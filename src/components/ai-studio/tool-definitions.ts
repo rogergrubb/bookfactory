@@ -112,13 +112,13 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Enter your outline, bullet points, or scene notes...
+      input: `Enter your outline, bullet points, or scene notes...
 
 Example:
 - Sarah enters the coffee shop
 - She spots Marcus at a corner table
 - They have an awkward reunion
-- Old feelings resurface',
+- Old feelings resurface`,
       output: 'Complete scene will be generated here...'
     },
     canChainTo: ['improve', 'show-not-tell', 'deepen-emotion', 'pacing', 'character-voice'],
@@ -138,11 +138,11 @@ Example:
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Describe the conversation context:
+      input: `Describe the conversation context:
 - Who is talking?
 - What are they discussing?
 - What is the emotional undercurrent?
-- What do they each want?',
+- What do they each want?`,
       output: 'Dialogue will be generated here...'
     },
     canChainTo: ['improve', 'show-not-tell', 'character-voice', 'add-tension'],
@@ -162,8 +162,8 @@ Example:
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'What needs description?
-- A character\'s appearance
+      input: `What needs description?
+- A character\`s appearance
 - A location/setting
 - An object
 - An atmosphere/mood',
@@ -186,10 +186,10 @@ Example:
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Describe the action scene:
+      input: `Describe the action scene:
 - Who is involved?
 - What triggers the action?
-- What\'s at stake?
+- What\`s at stake?
 - Setting/environment?',
       output: 'Action sequence will be generated here...'
     },
@@ -210,11 +210,11 @@ Example:
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Context for internal monologue:
+      input: `Context for internal monologue:
 - Which character?
 - What situation are they in?
 - What are they wrestling with?
-- What memories might surface?',
+- What memories might surface?`,
       output: 'Internal monologue will appear here...'
     },
     canChainTo: ['improve', 'deepen-emotion', 'show-not-tell', 'character-voice'],
@@ -258,9 +258,9 @@ Example:
     requiresSelection: true,
     outputType: 'text',
     placeholders: {
-      input: 'Paste text with "telling" that needs to become "showing"...
+      input: `Paste text with "telling" that needs to become "showing"...
 
-Example: "She was angry" → showing her anger through actions',
+Example: "She was angry" → showing her anger through actions`,
       output: 'Rewritten passage will appear here...'
     },
     canChainTo: ['improve', 'deepen-emotion', 'sensory-details'],
@@ -488,10 +488,10 @@ Example: "She was angry" → showing her anger through actions',
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'Describe your current plot situation:
+      input: `Describe your current plot situation:
 - What has happened so far?
 - Who are the key players?
-- What do readers expect to happen?',
+- What do readers expect to happen?`,
       output: 'Plot twist ideas will appear here...'
     },
     canChainTo: ['scene-ideas', 'conflict-generator', 'first-draft'],
@@ -511,10 +511,10 @@ Example: "She was angry" → showing her anger through actions',
     requiresSelection: false,
     outputType: 'structured',
     placeholders: {
-      input: 'What kind of character do you need?
+      input: `What kind of character do you need?
 - Role in story (protagonist, antagonist, mentor, etc.)
 - Genre and setting
-- Themes they should embody',
+- Themes they should embody`,
       output: 'Character concepts will appear here...'
     },
     canChainTo: ['dialogue', 'inner-monologue', 'conflict-generator'],
@@ -534,11 +534,11 @@ Example: "She was angry" → showing her anger through actions',
     requiresSelection: false,
     outputType: 'structured',
     placeholders: {
-      input: 'What aspect of your world needs development?
+      input: `What aspect of your world needs development?
 - Geography and environment
 - Culture and society
 - Magic/technology systems
-- History and lore',
+- History and lore`,
       output: 'World-building details will appear here...'
     },
     canChainTo: ['description', 'scene-ideas'],
@@ -558,11 +558,11 @@ Example: "She was angry" → showing her anger through actions',
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'Context for conflicts:
+      input: `Context for conflicts:
 - Who is your protagonist?
 - What do they want?
 - What are they afraid of?
-- Who/what opposes them?',
+- Who/what opposes them?`,
       output: 'Conflict ideas will appear here...'
     },
     canChainTo: ['plot-twists', 'scene-ideas', 'action', 'add-tension'],
@@ -582,10 +582,10 @@ Example: "She was angry" → showing her anger through actions',
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'Your main plot summary:
+      input: `Your main plot summary:
 - What is the central conflict?
 - Who are the main characters?
-- What themes are you exploring?',
+- What themes are you exploring?`,
       output: 'Subplot suggestions will appear here...'
     },
     canChainTo: ['scene-ideas', 'character-ideas', 'conflict-generator'],
@@ -605,12 +605,12 @@ Example: "She was angry" → showing her anger through actions',
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'What do you need scenes for?
+      input: `What do you need scenes for?
 - Character development
 - Plot advancement
 - Relationship building
 - Tension and conflict
-- World exploration',
+- World exploration`,
       output: 'Scene ideas will appear here...'
     },
     canChainTo: ['first-draft', 'dialogue', 'action', 'description'],
