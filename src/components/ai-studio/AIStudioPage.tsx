@@ -24,7 +24,6 @@ import {
 } from './tool-definitions';
 import { ToolExecutionPanel } from './ToolExecutionPanel';
 import { ScopedContextSelector } from './ScopedContextSelector';
-import { WorkflowTrail } from './WorkflowTrail';
 
 // ============================================================================
 // ICON MAPPING
