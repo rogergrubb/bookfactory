@@ -87,20 +87,9 @@ export function AIStudioWorkspace() {
     }
   }, [currentWorkflow]);
 
-  const handleChainTool = useCallback((toolId: ToolId, input: string) => {
-    setChainInput(input);
+  const handleChainTool = useCallback((toolId: ToolId) => {
     setActiveTool(toolId);
     // Workflow is preserved when chaining
-  }, []);
-
-  const handleWorkflowUpdate = useCallback((steps: WorkflowStep[]) => {
-    setCurrentWorkflow(steps);
-  }, []);
-
-  const handleApplyOutput = useCallback((content: string) => {
-    // In a real implementation, this would insert the content into the editor
-    console.log('Apply output:', content);
-    navigator.clipboard.writeText(content);
   }, []);
 
   const handleStartNewWorkflow = useCallback(() => {
@@ -457,13 +446,11 @@ export function AIStudioWorkspace() {
       {activeTool && (
         <ToolExecutionPanel
           toolId={activeTool}
-          isOpen={!!activeTool}
+          bookId="demo-book"
           onClose={handleCloseTool}
-          initialInput={chainInput}
-          onApply={handleApplyOutput}
-          onChainTool={handleChainTool}
-          workflowSteps={currentWorkflow}
-          onWorkflowUpdate={handleWorkflowUpdate}
+          onSaveAndSend={handleChainTool}
+          preloadedInput={chainInput}
+          workflowSteps={currentWorkflow.map(s => ({ toolId: s.toolId, wordCount: s.wordCount }))}
         />
       )}
     </div>
