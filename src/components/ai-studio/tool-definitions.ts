@@ -166,7 +166,7 @@ Example:
 - A character\`s appearance
 - A location/setting
 - An object
-- An atmosphere/mood',
+- An atmosphere/mood`,
       output: 'Descriptive passage will appear here...'
     },
     canChainTo: ['improve', 'sensory-details', 'show-not-tell'],
@@ -190,7 +190,7 @@ Example:
 - Who is involved?
 - What triggers the action?
 - What\`s at stake?
-- Setting/environment?',
+- Setting/environment?`,
       output: 'Action sequence will be generated here...'
     },
     canChainTo: ['improve', 'add-tension', 'vary-sentences', 'pacing'],
