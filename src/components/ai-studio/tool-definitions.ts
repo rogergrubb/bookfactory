@@ -1272,6 +1272,20 @@ export const TOOL_CATEGORIES: { id: ToolCategory; label: string; description: st
   { id: 'craft', label: 'Craft', description: 'Master author tools', color: 'rose' },
 ];
 
+// Category config as Record for object-style access
+export const CATEGORY_STYLE_CONFIG: Record<ToolCategory, { 
+  label: string; 
+  description: string; 
+  color: string;
+  icon: any;
+}> = {
+  generate: { label: 'Generate', description: 'Create new content', color: 'teal', icon: PenTool },
+  enhance: { label: 'Enhance', description: 'Improve existing content', color: 'violet', icon: Sparkles },
+  analyze: { label: 'Analyze', description: 'Evaluate and measure', color: 'blue', icon: BarChart2 },
+  brainstorm: { label: 'Brainstorm', description: 'Generate ideas', color: 'amber', icon: Lightbulb },
+  craft: { label: 'Craft', description: 'Master author tools', color: 'rose', icon: Feather },
+};
+
 // Author modes with metadata
 export const AUTHOR_MODES: { id: AuthorInspiration; name: string; description: string; tools: string[] }[] = [
   { 
@@ -1354,9 +1368,10 @@ export const AUTHOR_STYLE_CONFIG: Record<AuthorInspiration, {
 
 // Alias for backward compatibility
 export const allTools = AI_TOOLS;
-export const categoryConfig = TOOL_CATEGORIES;
+export const categoryConfig = CATEGORY_STYLE_CONFIG;
 export const authorModeConfig = AUTHOR_STYLE_CONFIG;
 export const authorModes = AUTHOR_MODES;
+export const toolCategories = TOOL_CATEGORIES;
 
 // Export AuthorMode type
 export type AuthorMode = AuthorInspiration;
