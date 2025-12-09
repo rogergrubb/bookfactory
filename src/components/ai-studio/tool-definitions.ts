@@ -8,9 +8,9 @@ import { AITool, ToolId, ToolCategory, ToolScope, Genre } from './types';
 // GENRE OPTIONS
 // ============================================================================
 
-export const GENRES: Genre[] = [
-  'romance', 'mystery', 'thriller', 'fantasy', 'scifi',
-  'literary', 'horror', 'ya', 'historical', 'contemporary'
+export const GENRES: { id: Genre; name: string }[] = [
+  { id: 'romance', name: 'Romance' }, { id: 'mystery', name: 'Mystery' }, { id: 'thriller', name: 'Thriller' }, { id: 'fantasy', name: 'Fantasy' }, { id: 'scifi', name: 'Sci-Fi' },
+  { id: 'literary', name: 'Literary' }, { id: 'horror', name: 'Horror' }, { id: 'ya', name: 'Young Adult' }, { id: 'historical', name: 'Historical' }, { id: 'contemporary', name: 'Contemporary' }
 ];
 
 // ============================================================================
@@ -112,7 +112,13 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Enter your outline, bullet points, or scene notes...\n\nExample:\n- Sarah enters the coffee shop\n- She spots Marcus at a corner table\n- They have an awkward reunion\n- Old feelings resurface',
+      input: 'Enter your outline, bullet points, or scene notes...
+
+Example:
+- Sarah enters the coffee shop
+- She spots Marcus at a corner table
+- They have an awkward reunion
+- Old feelings resurface',
       output: 'Complete scene will be generated here...'
     },
     canChainTo: ['improve', 'show-not-tell', 'deepen-emotion', 'pacing', 'character-voice'],
@@ -132,7 +138,11 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Describe the conversation context:\n- Who is talking?\n- What are they discussing?\n- What is the emotional undercurrent?\n- What do they each want?',
+      input: 'Describe the conversation context:
+- Who is talking?
+- What are they discussing?
+- What is the emotional undercurrent?
+- What do they each want?',
       output: 'Dialogue will be generated here...'
     },
     canChainTo: ['improve', 'show-not-tell', 'character-voice', 'add-tension'],
@@ -152,7 +162,11 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'What needs description?\n- A character\'s appearance\n- A location/setting\n- An object\n- An atmosphere/mood',
+      input: 'What needs description?
+- A character\'s appearance
+- A location/setting
+- An object
+- An atmosphere/mood',
       output: 'Descriptive passage will appear here...'
     },
     canChainTo: ['improve', 'sensory-details', 'show-not-tell'],
@@ -172,7 +186,11 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Describe the action scene:\n- Who is involved?\n- What triggers the action?\n- What\'s at stake?\n- Setting/environment?',
+      input: 'Describe the action scene:
+- Who is involved?
+- What triggers the action?
+- What\'s at stake?
+- Setting/environment?',
       output: 'Action sequence will be generated here...'
     },
     canChainTo: ['improve', 'add-tension', 'vary-sentences', 'pacing'],
@@ -192,7 +210,11 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'text',
     placeholders: {
-      input: 'Context for internal monologue:\n- Which character?\n- What situation are they in?\n- What are they wrestling with?\n- What memories might surface?',
+      input: 'Context for internal monologue:
+- Which character?
+- What situation are they in?
+- What are they wrestling with?
+- What memories might surface?',
       output: 'Internal monologue will appear here...'
     },
     canChainTo: ['improve', 'deepen-emotion', 'show-not-tell', 'character-voice'],
@@ -236,7 +258,9 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: true,
     outputType: 'text',
     placeholders: {
-      input: 'Paste text with "telling" that needs to become "showing"...\n\nExample: "She was angry" → showing her anger through actions',
+      input: 'Paste text with "telling" that needs to become "showing"...
+
+Example: "She was angry" → showing her anger through actions',
       output: 'Rewritten passage will appear here...'
     },
     canChainTo: ['improve', 'deepen-emotion', 'sensory-details'],
@@ -464,7 +488,10 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'Describe your current plot situation:\n- What has happened so far?\n- Who are the key players?\n- What do readers expect to happen?',
+      input: 'Describe your current plot situation:
+- What has happened so far?
+- Who are the key players?
+- What do readers expect to happen?',
       output: 'Plot twist ideas will appear here...'
     },
     canChainTo: ['scene-ideas', 'conflict-generator', 'first-draft'],
@@ -484,7 +511,10 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'structured',
     placeholders: {
-      input: 'What kind of character do you need?\n- Role in story (protagonist, antagonist, mentor, etc.)\n- Genre and setting\n- Themes they should embody',
+      input: 'What kind of character do you need?
+- Role in story (protagonist, antagonist, mentor, etc.)
+- Genre and setting
+- Themes they should embody',
       output: 'Character concepts will appear here...'
     },
     canChainTo: ['dialogue', 'inner-monologue', 'conflict-generator'],
@@ -504,7 +534,11 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'structured',
     placeholders: {
-      input: 'What aspect of your world needs development?\n- Geography and environment\n- Culture and society\n- Magic/technology systems\n- History and lore',
+      input: 'What aspect of your world needs development?
+- Geography and environment
+- Culture and society
+- Magic/technology systems
+- History and lore',
       output: 'World-building details will appear here...'
     },
     canChainTo: ['description', 'scene-ideas'],
@@ -524,7 +558,11 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'Context for conflicts:\n- Who is your protagonist?\n- What do they want?\n- What are they afraid of?\n- Who/what opposes them?',
+      input: 'Context for conflicts:
+- Who is your protagonist?
+- What do they want?
+- What are they afraid of?
+- Who/what opposes them?',
       output: 'Conflict ideas will appear here...'
     },
     canChainTo: ['plot-twists', 'scene-ideas', 'action', 'add-tension'],
@@ -544,7 +582,10 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'Your main plot summary:\n- What is the central conflict?\n- Who are the main characters?\n- What themes are you exploring?',
+      input: 'Your main plot summary:
+- What is the central conflict?
+- Who are the main characters?
+- What themes are you exploring?',
       output: 'Subplot suggestions will appear here...'
     },
     canChainTo: ['scene-ideas', 'character-ideas', 'conflict-generator'],
@@ -564,7 +605,12 @@ export const AI_TOOLS: AITool[] = [
     requiresSelection: false,
     outputType: 'suggestions',
     placeholders: {
-      input: 'What do you need scenes for?\n- Character development\n- Plot advancement\n- Relationship building\n- Tension and conflict\n- World exploration',
+      input: 'What do you need scenes for?
+- Character development
+- Plot advancement
+- Relationship building
+- Tension and conflict
+- World exploration',
       output: 'Scene ideas will appear here...'
     },
     canChainTo: ['first-draft', 'dialogue', 'action', 'description'],
