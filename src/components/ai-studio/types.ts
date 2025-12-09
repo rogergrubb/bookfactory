@@ -970,3 +970,39 @@ export type {
   // Tools
   AITool,
 };
+
+// ============================================================================
+// BACKWARD COMPATIBILITY EXPORTS
+// ============================================================================
+
+// Legacy type aliases for existing components
+export type ToolId = string;
+export type Document = Scene;
+export type ScopeView = 'scene' | 'book';
+export type CategoryFilter = ToolCategory | 'all';
+
+export interface HybridScopeSelection {
+  mode: 'scene' | 'book' | 'all';
+  sceneId?: string;
+  bookId?: string;
+}
+
+export interface AIStudioState {
+  selectedTool: string | null;
+  scope: ScopeView;
+  category: CategoryFilter;
+  isExecuting: boolean;
+  result: string | null;
+}
+
+export interface ToolContext {
+  bookId?: string;
+  chapterId?: string;
+  sceneId?: string;
+  selectedText?: string;
+  fullContent?: string;
+}
+
+export function validateToolExecution(toolId: string, context: ToolContext): boolean {
+  return true; // Allow all for now
+}
