@@ -259,17 +259,17 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         bookId: context.bookId,
-        documentId: context.documentId || null,
+        documentId: context.documentId,
         toolId,
         scope,
-        scopeSelection: scopeSelection || null,
+        scopeSelection: scopeSelection || undefined,
         input,
         output: '',
-        context: context,
-        options: options || null,
+        context: context as object,
+        options: options as object || undefined,
         status: 'RUNNING',
-        workflowId: context.workflowId || null,
-        previousToolRunId: context.previousToolRuns?.[context.previousToolRuns.length - 1] || null
+        workflowId: context.workflowId,
+        previousToolRunId: context.previousToolRuns?.[context.previousToolRuns.length - 1]
       }
     });
 
