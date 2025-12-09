@@ -511,7 +511,7 @@ export default function AIStudioPage() {
             >
               <option value="all">All Authors</option>
               {Object.entries(authorModeConfig).map(([key, config]) => (
-                <option key={key} value={key}>{config.label}</option>
+                <option key={key} value={key}>{config.name}</option>
               ))}
             </select>
           </div>
