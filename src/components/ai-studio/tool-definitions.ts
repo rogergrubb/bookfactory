@@ -1301,13 +1301,62 @@ export const AUTHOR_MODES: { id: AuthorInspiration; name: string; description: s
 ];
 
 // ============================================================================
+// AUTHOR STYLE CONFIG (for UI styling)
+// ============================================================================
+
+export const AUTHOR_STYLE_CONFIG: Record<AuthorInspiration, { 
+  color: string; 
+  name: string; 
+  description: string;
+  bgClass: string;
+  textClass: string;
+}> = {
+  king: { 
+    color: 'amber', 
+    name: 'Stephen King',
+    description: 'Discovery Writer',
+    bgClass: 'bg-amber-100 dark:bg-amber-900/30',
+    textClass: 'text-amber-700 dark:text-amber-300'
+  },
+  sanderson: { 
+    color: 'blue', 
+    name: 'Brandon Sanderson',
+    description: 'World Builder',
+    bgClass: 'bg-blue-100 dark:bg-blue-900/30',
+    textClass: 'text-blue-700 dark:text-blue-300'
+  },
+  rowling: { 
+    color: 'purple', 
+    name: 'J.K. Rowling',
+    description: 'Mystery Weaver',
+    bgClass: 'bg-purple-100 dark:bg-purple-900/30',
+    textClass: 'text-purple-700 dark:text-purple-300'
+  },
+  patterson: { 
+    color: 'rose', 
+    name: 'James Patterson',
+    description: 'Commercial Master',
+    bgClass: 'bg-rose-100 dark:bg-rose-900/30',
+    textClass: 'text-rose-700 dark:text-rose-300'
+  },
+  collins: { 
+    color: 'emerald', 
+    name: 'Suzanne Collins',
+    description: 'Tension Builder',
+    bgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
+    textClass: 'text-emerald-700 dark:text-emerald-300'
+  },
+};
+
+// ============================================================================
 // COMPATIBILITY EXPORTS (for existing code)
 // ============================================================================
 
 // Alias for backward compatibility
 export const allTools = AI_TOOLS;
 export const categoryConfig = TOOL_CATEGORIES;
-export const authorModeConfig = AUTHOR_MODES;
+export const authorModeConfig = AUTHOR_STYLE_CONFIG;
+export const authorModes = AUTHOR_MODES;
 
 // Export AuthorMode type
 export type AuthorMode = AuthorInspiration;
