@@ -11,3 +11,5 @@ export { ToolExecutionPanel } from './ToolExecutionPanel';
 export { CommandPalette } from './CommandPalette';
 export { AnalysisPanel } from './AnalysisPanel';
 export { BrainstormPanel } from './BrainstormPanel';
+export { VoiceProfilePanel } from './VoiceProfilePanel';
+export { StoryBiblePanel } from './StoryBiblePanel';
