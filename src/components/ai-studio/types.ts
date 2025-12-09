@@ -1,614 +1,972 @@
 // ============================================================================
-// AI STUDIO TYPES - COMPLETE SCOPED TOOL SYSTEM
+// BOOKFACTORY AI - COMPLETE TYPE SYSTEM
+// The Master Storyteller's Toolkit
 // ============================================================================
 
 // ============================================================================
-// SECTION 1: TOOL SCOPE DEFINITIONS
+// SECTION 1: CORE BOOK & PROJECT TYPES
 // ============================================================================
 
-/**
- * Tool Scope Types:
- * - scene: Operates on a single scene/chapter, requires book_id + document_id
- * - book: Operates on entire book or global structure, requires book_id only
- * - hybrid: User chooses scope at runtime (scene, selected chapters, or whole book)
- */
-export type ToolScope = 'scene' | 'book' | 'hybrid';
-
-export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm';
-
-export type ToolId = 
-  // Generate tools
-  | 'continue' | 'first-draft' | 'dialogue' | 'description' | 'action' | 'inner-monologue'
-  // Enhance tools  
-  | 'improve' | 'show-not-tell' | 'deepen-emotion' | 'add-tension' | 'vary-sentences' | 'sensory-details'
-  // Analyze tools
-  | 'pacing' | 'character-voice' | 'plot-holes' | 'readability' | 'word-frequency' | 'emotional-arc'
-  // Brainstorm tools
-  | 'plot-twists' | 'character-ideas' | 'world-building' | 'conflict-generator' | 'subplot-ideas' | 'scene-ideas';
-
-export type Genre = 
-  | 'romance' | 'mystery' | 'thriller' | 'fantasy' | 'scifi' 
-  | 'literary' | 'horror' | 'ya' | 'historical' | 'contemporary';
-
-// ============================================================================
-// SECTION 2: SCOPE VIEW FILTERS
-// ============================================================================
-
-/**
- * Top-level scope view for UI filtering
- */
-export type ScopeView = 'scene' | 'book' | 'all';
-
-/**
- * Category filter for tools
- */
-export type CategoryFilter = 'all' | ToolCategory;
-
-/**
- * Scope selection for hybrid tools at runtime
- */
-export interface HybridScopeSelection {
-  mode: 'this-scene' | 'selected-chapters' | 'whole-book';
-  sceneId?: string;
-  chapterIds?: string[];
-  bookId: string;
-}
-
-// ============================================================================
-// SECTION 3: TOOL DEFINITIONS
-// ============================================================================
-
-export interface AITool {
-  id: ToolId;
-  category: ToolCategory;
-  scope: ToolScope;
-  name: string;
-  description: string;
-  icon: string;
-  shortcut: string | null;
-  color: string;
-  requiresSelection: boolean;
-  outputType: 'text' | 'analysis' | 'suggestions' | 'structured';
-  placeholders: {
-    input: string;
-    output: string;
-  };
-  // Scope-specific metadata
-  canChainTo: ToolId[];
-  minInputLength: number;
-  maxInputLength: number;
-  estimatedTokens: number;
-}
-
-// ============================================================================
-// SECTION 4: TOOL EXECUTION & CONTEXT
-// ============================================================================
-
-export interface ToolExecution {
-  toolId: ToolId;
-  input: string;
-  context: ToolContext;
-  options?: ToolOptions;
-  scopeSelection?: HybridScopeSelection;
-}
-
-export interface ToolContext {
-  // Required identifiers based on scope
-  userId: string;
-  bookId: string;
-  documentId?: string; // Required for scene-scope tools
-  
-  // Optional enrichment
-  chapterIds?: string[]; // For hybrid tools with selected chapters
-  characterIds?: string[];
-  genre?: Genre;
-  storyBibleId?: string;
-  voiceProfileId?: string;
-  previousContent?: string;
-  selectedText?: string;
-  
-  // Workflow chain context
-  workflowId?: string;
-  previousToolRuns?: string[];
-}
-
-export interface ToolOptions {
-  length?: 'short' | 'medium' | 'long';
-  tone?: string;
-  style?: string;
-  intensity?: number;
-  focusAreas?: string[];
-  customInstructions?: string;
-}
-
-// ============================================================================
-// SECTION 5: TOOL RESULTS
-// ============================================================================
-
-export interface ToolResult {
-  success: boolean;
-  content: string;
-  metadata: ToolResultMetadata;
-  analysis?: AnalysisResult;
-  structured?: StructuredResult;
-}
-
-export interface ToolResultMetadata {
-  toolRunId: string;
-  tokensUsed: number;
-  processingTime: number;
-  scope: ToolScope;
-  appliedTo: {
-    bookId: string;
-    documentId?: string;
-    chapterIds?: string[];
-  };
-  suggestions?: string[];
-  warnings?: string[];
-}
-
-export interface AnalysisResult {
-  score?: number;
-  issues: AnalysisIssue[];
-  suggestions: string[];
-  highlights: TextHighlight[];
-  metrics?: Record<string, number | string>;
-}
-
-export interface AnalysisIssue {
-  type: 'error' | 'warning' | 'info';
-  message: string;
-  location?: { start: number; end: number };
-  suggestion?: string;
-}
-
-export interface TextHighlight {
-  start: number;
-  end: number;
-  type: string;
-  label: string;
-  color: string;
-}
-
-export interface StructuredResult {
-  items: StructuredItem[];
-  summary?: string;
-}
-
-export interface StructuredItem {
-  id: string;
-  title: string;
-  description: string;
-  details?: Record<string, string>;
-  selected?: boolean;
-}
-
-// ============================================================================
-// SECTION 6: SAVE & ROUTING LOGIC
-// ============================================================================
-
-export type SaveAction = 'save' | 'save-and-send';
-
-export interface SaveRequest {
-  action: SaveAction;
-  toolRunId: string;
-  content: string;
-  metadata: ToolResultMetadata;
-  // For save-and-send
-  nextToolId?: ToolId;
-  routingOptions?: RoutingOptions;
-}
-
-export interface RoutingOptions {
-  preserveInput: boolean;
-  appendToExisting: boolean;
-  targetScope?: HybridScopeSelection;
-}
-
-export interface SaveResponse {
-  success: boolean;
-  savedToId: string;
-  savedToType: 'document' | 'tool_run' | 'book';
-  // For save-and-send: next tool preloaded state
-  nextToolState?: {
-    toolId: ToolId;
-    preloadedInput: string;
-    context: ToolContext;
-  };
-}
-
-// ============================================================================
-// SECTION 7: DATA MODEL - CENTRAL DATA POOL
-// ============================================================================
-
-/**
- * User table - core user data
- */
-export interface User {
-  id: string;
-  clerkId: string;
-  email: string;
-  name: string | null;
-  avatarUrl: string | null;
-  subscription: 'free' | 'pro' | 'enterprise';
-  aiCredits: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Book table - top-level container
- */
 export interface Book {
   id: string;
   userId: string;
   title: string;
+  subtitle?: string;
   genre: Genre;
-  description: string | null;
-  coverImageUrl: string | null;
+  targetWordCount?: number;
+  currentWordCount: number;
+  status: BookStatus;
+  coverImage?: string;
+  
+  // Structure preference
+  structureMode: 'discovery' | 'planned' | 'outlined';
+  chapterCount?: number; // If planned upfront
+  
+  // Series support (Rowling-style)
+  seriesId?: string;
+  seriesOrder?: number;
+  
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  lastWrittenAt?: Date;
+}
+
+export type BookStatus = 'idea' | 'outlining' | 'drafting' | 'revising' | 'editing' | 'complete';
+
+export type Genre = 
+  | 'romance' | 'mystery' | 'thriller' | 'fantasy' | 'scifi'
+  | 'literary' | 'horror' | 'ya' | 'historical' | 'contemporary'
+  | 'crime' | 'adventure' | 'dystopian' | 'paranormal' | 'other';
+
+export interface Chapter {
+  id: string;
+  bookId: string;
+  number: number;
+  title?: string;
+  
+  // Content state
+  status: 'empty' | 'drafting' | 'complete';
   wordCount: number;
-  status: 'draft' | 'in-progress' | 'completed' | 'published';
-  metadata: BookMetadata;
+  
+  // Ordering
+  order: number;
+  
+  // Patterson-style metrics
+  estimatedReadTime?: number; // minutes
+  hookScore?: number; // 0-100, how strong is the chapter ending
+  
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface BookMetadata {
-  targetWordCount?: number;
-  targetAudience?: string;
-  themes?: string[];
-  tone?: string;
-  pov?: string;
-  timeline?: string;
-}
-
-/**
- * Document table - scenes, chapters, outlines, notes
- */
-export interface Document {
+export interface Scene {
   id: string;
+  chapterId: string;
   bookId: string;
-  type: 'chapter' | 'scene' | 'outline' | 'note' | 'character-sheet';
-  parentId: string | null; // For nested scenes within chapters
-  title: string;
+  
+  // Content
+  title?: string;
   content: string;
   wordCount: number;
+  
+  // Ordering
   order: number;
-  metadata: DocumentMetadata;
+  
+  // POV tracking
+  povCharacterId?: string;
+  
+  // Location tracking
+  locationId?: string;
+  
+  // Timeline
+  timelinePosition?: string; // e.g., "Day 3, Morning"
+  
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface DocumentMetadata {
-  pov?: string;
-  location?: string;
-  timeframe?: string;
-  characters?: string[];
-  tags?: string[];
-  status?: 'draft' | 'revision' | 'final';
-}
+// ============================================================================
+// SECTION 2: VERSION CONTROL (10-state undo system)
+// ============================================================================
 
-/**
- * ToolRun table - all AI tool executions
- */
-export interface ToolRun {
+export interface VersionState {
   id: string;
-  userId: string;
-  bookId: string;
-  documentId: string | null;
-  toolId: ToolId;
-  scope: ToolScope;
-  scopeSelection: HybridScopeSelection | null;
-  input: string;
-  output: string;
-  context: ToolContext;
-  options: ToolOptions | null;
-  result: ToolResult;
-  tokensUsed: number;
-  processingTime: number;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  errorMessage: string | null;
-  // Workflow chaining
-  workflowId: string | null;
-  previousToolRunId: string | null;
-  nextToolRunId: string | null;
-  // Save tracking
-  savedToDocumentId: string | null;
-  appliedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  sceneId: string;
+  
+  // Content snapshot
+  content: string;
+  wordCount: number;
+  
+  // Metadata
+  timestamp: Date;
+  modifiedBy: 'user' | 'ai';
+  description: string;
+  toolUsed?: string; // If AI, which tool was used
+  
+  // For display
+  previewText: string; // First 100 chars
 }
 
-/**
- * Workflow table - chained tool sequences
- */
-export interface Workflow {
-  id: string;
-  userId: string;
-  bookId: string;
-  name: string;
-  toolRunIds: string[];
-  status: 'in-progress' | 'completed' | 'abandoned';
-  startedAt: Date;
-  completedAt: Date | null;
-  createdAt: Date;
+export interface VersionStack {
+  sceneId: string;
+  versions: VersionState[]; // Max 10, newest first
+  currentIndex: number; // Which version is active
 }
 
-/**
- * Character table
- */
+// ============================================================================
+// SECTION 3: STORY BIBLE SYSTEM
+// ============================================================================
+
+// ----- CHARACTERS -----
+
 export interface Character {
   id: string;
   bookId: string;
+  
+  // Basic Info
   name: string;
-  role: 'protagonist' | 'antagonist' | 'supporting' | 'minor';
-  description: string;
-  traits: string[];
-  backstory: string | null;
-  goals: string[];
-  flaws: string[];
-  relationships: CharacterRelationship[];
-  voiceNotes: string | null;
-  imageUrl: string | null;
+  fullName?: string;
+  aliases?: string[];
+  role: CharacterRole;
+  isDeceased: boolean;
+  
+  // Appearance
+  avatar?: string;
+  age?: number;
+  ageDescription?: string; // "mid-thirties", "elderly"
+  physicalDescription: string;
+  distinctiveFeatures?: string[];
+  
+  // Voice & Personality
+  voiceNotes: string; // How they speak
+  personality: string;
+  quirks?: string[];
+  speechPatterns?: string[];
+  
+  // Arc & Motivation
+  backstory: string;
+  motivation: string;
+  arc: string; // e.g., "Grief → Denial → Acceptance"
+  internalConflict?: string;
+  externalGoal?: string;
+  
+  // For Rowling-style tracking
+  secrets?: CharacterSecret[];
+  
+  // For Character Web positioning
+  webPosition: { x: number; y: number };
+  webColor?: string;
+  
+  // Tracking
+  appearsInChapters: number[];
+  firstAppearance?: { chapterId: string; lineNumber?: number };
+  
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface CharacterRelationship {
-  characterId: string;
-  relationshipType: string;
+export type CharacterRole = 
+  | 'protagonist' 
+  | 'antagonist' 
+  | 'deuteragonist' // Second main character
+  | 'mentor'
+  | 'love-interest'
+  | 'sidekick'
+  | 'supporting'
+  | 'minor'
+  | 'mentioned'; // Referenced but never appears
+
+export interface CharacterSecret {
+  id: string;
   description: string;
+  knownBy: string[]; // Character IDs who know
+  revealedIn?: { chapterId: string; lineNumber?: number };
+  status: 'hidden' | 'hinted' | 'revealed';
 }
 
-/**
- * StoryBible table
- */
-export interface StoryBible {
+// ----- RELATIONSHIPS (Character Web edges) -----
+
+export interface Relationship {
   id: string;
   bookId: string;
-  worldBuilding: WorldBuildingEntry[];
-  rules: StoryRule[];
-  timeline: TimelineEvent[];
-  locations: Location[];
-  lore: LoreEntry[];
-  createdAt: Date;
-  updatedAt: Date;
+  
+  // The two characters
+  characterA: string; // Character ID
+  characterB: string; // Character ID
+  
+  // Relationship info
+  label: string; // "siblings", "ex-lovers", "enemies"
+  type: RelationshipType;
+  description?: string;
+  
+  // Evolution (for dynamic relationships)
+  evolution?: RelationshipEvolution[];
+  
+  // Visual styling for Character Web
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+  lineColor?: string;
+  bidirectional: boolean; // Does it go both ways equally?
 }
 
-export interface WorldBuildingEntry {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  details: Record<string, string>;
+export type RelationshipType = 
+  | 'family' 
+  | 'romantic' 
+  | 'former-romantic'
+  | 'friendship' 
+  | 'professional' 
+  | 'antagonistic'
+  | 'mentor-student'
+  | 'rivals'
+  | 'secret';
+
+export interface RelationshipEvolution {
+  chapter: number;
+  description: string; // "Tension begins after betrayal"
+  newType?: RelationshipType;
 }
 
-export interface StoryRule {
-  id: string;
-  rule: string;
-  reasoning: string;
-  examples?: string[];
-}
-
-export interface TimelineEvent {
-  id: string;
-  date: string;
-  event: string;
-  characters: string[];
-  significance: string;
-}
+// ----- LOCATIONS -----
 
 export interface Location {
   id: string;
-  name: string;
-  description: string;
-  significance: string;
-  connectedLocations: string[];
-}
-
-export interface LoreEntry {
-  id: string;
-  category: string;
-  title: string;
-  content: string;
-  references: string[];
-}
-
-/**
- * VoiceProfile table
- */
-export interface VoiceProfile {
-  id: string;
   bookId: string;
+  
+  // Basic
   name: string;
-  samples: string[];
-  characteristics: VoiceCharacteristics;
-  avoidPatterns: string[];
-  preferPatterns: string[];
+  type: LocationType;
+  description: string;
+  
+  // Sensory details (Sanderson-style immersion)
+  sights?: string;
+  sounds?: string;
+  smells?: string;
+  atmosphere?: string;
+  
+  // Connections
+  parentLocationId?: string; // For nested locations (room in a building)
+  connectedLocations?: string[]; // Adjacent places
+  
+  // History
+  history?: string;
+  significance?: string; // Why this place matters
+  
+  // Tracking
+  appearsInChapters: number[];
+  
+  // For visual mapping
+  mapPosition?: { x: number; y: number };
+  
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface VoiceCharacteristics {
-  sentenceLength: 'short' | 'medium' | 'long' | 'varied';
-  vocabulary: 'simple' | 'moderate' | 'complex';
-  tone: string[];
-  pacing: 'fast' | 'moderate' | 'slow';
-  dialogueStyle: string;
-  narrativeStyle: string;
-}
+export type LocationType = 
+  | 'city' | 'town' | 'village'
+  | 'building' | 'room' | 'outdoor'
+  | 'landscape' | 'vehicle' | 'other';
 
-// ============================================================================
-// SECTION 8: UI STATE TYPES
-// ============================================================================
+// ----- WORLD RULES (Sanderson's Laws) -----
 
-export interface AIStudioState {
-  // View filters
-  scopeView: ScopeView;
-  categoryFilter: CategoryFilter;
-  
-  // Context selection
-  selectedBookId: string | null;
-  selectedDocumentId: string | null;
-  selectedChapterIds: string[];
-  
-  // Active tool
-  activeTool: ToolId | null;
-  toolPanelOpen: boolean;
-  
-  // Execution state
-  isExecuting: boolean;
-  currentToolRun: ToolRun | null;
-  
-  // Workflow state
-  activeWorkflow: Workflow | null;
-  workflowTrail: ToolRun[];
-  
-  // Results
-  lastResult: ToolResult | null;
-  resultHistory: ToolRun[];
-}
-
-export interface ToolPanelState {
-  isOpen: boolean;
-  selectedTool: ToolId | null;
-  input: string;
-  output: string;
-  isLoading: boolean;
-  error: string | null;
-  history: ToolHistoryEntry[];
-  context: ToolContext;
-  options: ToolOptions;
-  // Hybrid scope selection
-  hybridSelection: HybridScopeSelection | null;
-}
-
-export interface ToolHistoryEntry {
+export interface WorldRule {
   id: string;
-  toolId: ToolId;
-  input: string;
-  output: string;
+  bookId: string;
+  
+  category: WorldRuleCategory;
+  name: string;
+  description: string;
+  
+  // Sanderson's Laws compliance
+  limitations?: string[]; // What it CAN'T do (Limitations > Powers)
+  costs?: string[]; // What it costs to use
+  
+  // Consistency tracking
+  exceptions?: WorldRuleException[];
+  
+  // Source tracking
+  establishedIn?: { chapterId: string; lineNumber?: number };
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type WorldRuleCategory = 
+  | 'magic-system'
+  | 'technology'
+  | 'physics' // If different from our world
+  | 'society'
+  | 'economy'
+  | 'religion'
+  | 'politics'
+  | 'biology'
+  | 'other';
+
+export interface WorldRuleException {
+  id: string;
+  description: string;
+  reason?: string;
+  occurredIn?: { chapterId: string; lineNumber?: number };
+}
+
+// ----- TIMELINE -----
+
+export interface TimelineEvent {
+  id: string;
+  bookId: string;
+  
+  // Event details
+  title: string;
+  description?: string;
+  
+  // Timing
+  storyDate?: string; // In-story date/time
+  relativeTime?: string; // "3 days before Chapter 1"
+  chapter?: number;
+  
+  // Type
+  type: TimelineEventType;
+  
+  // Connections
+  involvedCharacters?: string[];
+  locationId?: string;
+  
+  // For timeline visualization
+  order: number;
+  
+  createdAt: Date;
+}
+
+export type TimelineEventType = 
+  | 'backstory'
+  | 'plot-point'
+  | 'character-moment'
+  | 'world-event'
+  | 'death'
+  | 'revelation';
+
+// ----- THEMES -----
+
+export interface Theme {
+  id: string;
+  bookId: string;
+  
+  name: string;
+  description: string;
+  
+  // How it manifests
+  symbols?: string[];
+  motifs?: string[];
+  
+  // Tracking
+  occurrences?: ThemeOccurrence[];
+}
+
+export interface ThemeOccurrence {
+  chapterId: string;
+  description: string;
+  type: 'subtle' | 'explicit' | 'symbolic';
+}
+
+// ----- RESEARCH NOTES -----
+
+export interface ResearchNote {
+  id: string;
+  bookId: string;
+  
+  title: string;
+  content: string;
+  category?: string;
+  source?: string;
+  
+  // Tagging
+  tags?: string[];
+  linkedCharacters?: string[];
+  linkedLocations?: string[];
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================================================
+// SECTION 4: CONTINUITY GUARDIAN
+// ============================================================================
+
+export interface ContinuityAlert {
+  id: string;
+  bookId: string;
+  
+  // Severity
+  severity: 'error' | 'warning' | 'info';
+  
+  // Type of inconsistency
+  type: ContinuityAlertType;
+  
+  // Where the problem is
+  location: {
+    chapterId: string;
+    lineNumber?: number;
+    text: string; // The problematic text
+  };
+  
+  // What it conflicts with
+  conflictsWith: {
+    source: 'story-bible' | 'chapter' | 'timeline';
+    reference: string; // ID or location
+    originalText: string;
+    description: string;
+  };
+  
+  // Status
+  status: 'active' | 'ignored' | 'resolved';
+  resolution?: string;
+  resolvedAt?: Date;
+  
+  createdAt: Date;
+}
+
+export type ContinuityAlertType = 
+  | 'physical-description' // Eye color changed
+  | 'character-location' // Character in two places
+  | 'timeline' // Date/time inconsistency
+  | 'character-knowledge' // Character knows something they shouldn't
+  | 'object-placement' // Object moved without explanation
+  | 'relationship' // Relationship contradicted
+  | 'world-rule' // Magic/tech rule violated
+  | 'death' // Dead character appears alive
+  | 'name' // Name spelled differently
+  | 'age'; // Age inconsistency
+
+// ============================================================================
+// SECTION 5: NARRATIVE THREAD TRACKER (Rowling-style)
+// ============================================================================
+
+export interface NarrativeThread {
+  id: string;
+  bookId: string;
+  
+  // Type of thread
+  type: NarrativeThreadType;
+  
+  // The setup (planting)
+  planted: {
+    chapterId: string;
+    lineNumber?: number;
+    text: string;
+    description: string; // What was planted
+  };
+  
+  // The payoff (resolution)
+  payoff?: {
+    chapterId: string;
+    lineNumber?: number;
+    text: string;
+    description: string;
+  };
+  
+  // Status
+  status: 'planted' | 'hinted' | 'partial' | 'resolved' | 'abandoned';
+  
+  // Notes
+  notes?: string;
+  
+  // Reminder system
+  reminderAtChapter?: number; // "Remind me to resolve this by Chapter X"
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type NarrativeThreadType = 
+  | 'foreshadowing' // Hints at future events
+  | 'promise' // Promise made to reader
+  | 'mystery' // Question raised
+  | 'dramatic-irony' // Reader knows, character doesn't
+  | 'chekhovs-gun' // Object/detail that must be used
+  | 'setup-payoff' // Generic setup needing resolution
+  | 'red-herring'; // Intentional misdirection
+
+// ============================================================================
+// SECTION 6: CLUE TRACKER (Rowling's color-coded system)
+// ============================================================================
+
+export interface Clue {
+  id: string;
+  bookId: string;
+  
+  // Type
+  type: 'clue' | 'red-herring';
+  
+  // The clue itself
+  location: {
+    chapterId: string;
+    lineNumber?: number;
+    text: string;
+  };
+  
+  description: string;
+  
+  // What it points to
+  pointsTo?: string; // What truth/reveal this leads to
+  
+  // Reveal tracking
+  revealedIn?: {
+    chapterId: string;
+    lineNumber?: number;
+  };
+  
+  // For color-coding (blue = clue, red = red herring)
+  color: 'blue' | 'red';
+  
+  status: 'planted' | 'revealed' | 'abandoned';
+  
+  createdAt: Date;
+}
+
+// ============================================================================
+// SECTION 7: MAGIC SYSTEM BUILDER (Sanderson's Laws)
+// ============================================================================
+
+export interface MagicSystem {
+  id: string;
+  bookId: string;
+  
+  name: string;
+  description: string;
+  
+  // Sanderson's First Law: Reader understanding = author's ability to solve problems
+  hardness: 'soft' | 'medium' | 'hard'; // How well-defined are the rules?
+  
+  // Core mechanics
+  source: string; // Where does the power come from?
+  users: string; // Who can use it?
+  
+  // Sanderson's Second Law: Limitations > Powers
+  powers: MagicPower[];
+  limitations: MagicLimitation[];
+  costs: MagicCost[];
+  
+  // Sanderson's Third Law: Expand before adding
+  expansions?: MagicExpansion[];
+  
+  // Visual/sensory
+  visualManifestation?: string;
+  sideEffects?: string[];
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MagicPower {
+  id: string;
+  name: string;
+  description: string;
+  level: 'basic' | 'intermediate' | 'advanced' | 'master';
+}
+
+export interface MagicLimitation {
+  id: string;
+  description: string;
+  type: 'absolute' | 'conditional' | 'personal';
+  // Absolute: Never possible
+  // Conditional: Only under certain circumstances
+  // Personal: Varies by user
+}
+
+export interface MagicCost {
+  id: string;
+  description: string;
+  type: 'physical' | 'mental' | 'resource' | 'moral' | 'time';
+}
+
+export interface MagicExpansion {
+  id: string;
+  description: string;
+  buildsOn: string; // Which existing power this expands
+  introducedIn?: { chapterId: string };
+}
+
+// ============================================================================
+// SECTION 8: AUTHOR MODE FEATURES
+// ============================================================================
+
+// ----- KING MODE: Discovery Writing -----
+
+export interface WritingSession {
+  id: string;
+  bookId: string;
+  userId: string;
+  
+  // Session data
+  startTime: Date;
+  endTime?: Date;
+  
+  // Word counts
+  startingWordCount: number;
+  endingWordCount?: number;
+  wordsWritten: number;
+  
+  // Goal tracking
+  dailyGoal: number;
+  goalMet: boolean;
+  
+  // Where they stopped (King's mid-action stop)
+  stoppedMidScene: boolean;
+  resumeHint?: string; // What was happening when they stopped
+}
+
+export interface WritingStreak {
+  userId: string;
+  currentStreak: number; // Days in a row
+  longestStreak: number;
+  lastWritingDate: Date;
+  totalDaysWritten: number;
+}
+
+export interface DailyGoal {
+  userId: string;
+  wordCount: number; // Default: 2000 (King's target)
+  active: boolean;
+}
+
+// ----- PATTERSON MODE: Outlining & Hooks -----
+
+export interface DetailedOutline {
+  id: string;
+  bookId: string;
+  
+  // Patterson writes 50-80 page outlines
+  chapters: OutlineChapter[];
+  
+  wordCount: number; // Track outline length
+  draftNumber: number; // Patterson does 3-6 drafts of outline
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OutlineChapter {
+  id: string;
+  number: number;
+  
+  // Scene-by-scene breakdown
+  scenes: OutlineScene[];
+  
+  // Patterson's hook requirement
+  endingHook?: string;
+  hookStrength?: 'weak' | 'medium' | 'strong' | 'cliffhanger';
+  
+  // Character arcs in this chapter
+  characterBeats?: { characterId: string; beat: string }[];
+  
+  // Notes
+  notes?: string;
+}
+
+export interface OutlineScene {
+  id: string;
+  order: number;
+  
+  // What happens
+  description: string;
+  
+  // Key elements
+  povCharacter?: string;
+  location?: string;
+  characters?: string[];
+  
+  // Emotional goal (Patterson: "know what you want emotionally")
+  emotionalGoal?: string;
+  
+  // Status
+  status: 'tbd' | 'sketched' | 'detailed' | 'written';
+}
+
+export interface ChapterHookAnalysis {
+  chapterId: string;
+  
+  // Analysis results
+  endingText: string; // Last 2-3 sentences
+  hookType: 'question' | 'cliffhanger' | 'revelation' | 'tension' | 'mystery' | 'none';
+  score: number; // 0-100
+  
+  suggestions?: string[];
+}
+
+// ----- ROWLING MODE: Series & Mystery -----
+
+export interface Series {
+  id: string;
+  userId: string;
+  
+  name: string;
+  description?: string;
+  
+  books: string[]; // Book IDs in order
+  
+  // Cross-book planning
+  overarchingPlot?: string;
+  seriesArc?: string;
+  
+  // Shared Story Bible elements
+  sharedCharacters?: string[];
+  sharedLocations?: string[];
+  sharedWorldRules?: string[];
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChapterMatrix {
+  bookId: string;
+  
+  // Columns = subplots
+  subplots: Subplot[];
+  
+  // Rows = chapters with their subplot involvement
+  chapters: ChapterMatrixRow[];
+}
+
+export interface Subplot {
+  id: string;
+  name: string;
+  color: string; // For visual coding
+  description?: string;
+}
+
+export interface ChapterMatrixRow {
+  chapterId: string;
+  chapterNumber: number;
+  
+  // What happens in each subplot this chapter
+  subplotBeats: {
+    subplotId: string;
+    beat: string;
+    status: 'planned' | 'written';
+  }[];
+  
+  // Main plot beat
+  mainPlotBeat?: string;
+}
+
+// ----- READER AVATAR (Patterson: Write for one reader) -----
+
+export interface ReaderAvatar {
+  id: string;
+  bookId: string;
+  
+  // Demographics
+  name?: string;
+  age?: number;
+  ageRange?: string;
+  
+  // Reading preferences
+  favoriteBooks?: string[];
+  favoriteAuthors?: string[];
+  genres?: string[];
+  
+  // What they want
+  readsFor: ('escape' | 'learning' | 'entertainment' | 'emotion' | 'thrill')[];
+  pacing: 'slow-burn' | 'moderate' | 'fast-paced';
+  
+  // What they hate
+  petPeeves?: string[];
+  turnoffs?: string[];
+  
+  // Notes
+  notes?: string;
+}
+
+// ============================================================================
+// SECTION 9: CANVAS & WORKSPACE
+// ============================================================================
+
+export interface CanvasState {
+  bookId: string;
+  currentChapterId?: string;
+  currentSceneId?: string;
+  
+  // Split view
+  viewMode: 'write' | 'split' | 'preview';
+  
+  // Chat pane
+  chatOpen: boolean;
+  chatHistory: ChatMessage[];
+  
+  // Tool state
+  activeToolId?: string;
+  
+  // Selection
+  selectedText?: {
+    start: number;
+    end: number;
+    text: string;
+  };
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
   timestamp: Date;
-  applied: boolean;
-  savedToDocumentId: string | null;
+  
+  // If AI made changes
+  changes?: {
+    type: 'addition' | 'replacement' | 'suggestion';
+    originalText?: string;
+    newText: string;
+    accepted?: boolean;
+  };
+  
+  // Tool used
+  toolUsed?: string;
 }
 
 // ============================================================================
-// SECTION 9: VALIDATION RULES
+// SECTION 10: USER PREFERENCES & ENTRY POINTS
 // ============================================================================
 
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
+export interface UserProfile {
+  id: string;
+  userId: string;
+  
+  // Name for personalized greeting
+  displayName: string;
+  
+  // Writing preferences
+  authorMode: 'king' | 'sanderson' | 'rowling' | 'patterson' | 'hybrid';
+  
+  // Goals
+  dailyWordGoal: number;
+  
+  // UI preferences
+  theme: 'light' | 'dark' | 'auto';
+  sidebarCollapsed: boolean;
+  
+  // Feature toggles
+  enableContinuityGuardian: boolean;
+  enableThreadTracker: boolean;
+  enableHookChecker: boolean;
+  
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface ValidationError {
-  field: string;
-  message: string;
-  code: 'MISSING_BOOK_ID' | 'MISSING_DOCUMENT_ID' | 'INVALID_SCOPE' | 
-        'SCOPE_MISMATCH' | 'INVALID_CHAIN' | 'INSUFFICIENT_INPUT' |
-        'CONTEXT_REQUIRED' | 'CHAPTERS_REQUIRED';
+export type EntryPoint = 
+  | 'idea' // Just a concept
+  | 'notes' // Outline or notes
+  | 'draft' // Have a draft
+  | 'finished'; // Polished manuscript
+
+export interface JourneyState {
+  userId: string;
+  bookId: string;
+  
+  entryPoint: EntryPoint;
+  currentPhase: BookStatus;
+  
+  // What tools they've used
+  toolsUsed: string[];
+  
+  // Suggestions
+  recommendedNextTool?: string;
+  skippedTools?: string[];
 }
 
-/**
- * Validate tool execution based on scope requirements
- */
-export function validateToolExecution(
-  tool: AITool,
-  context: ToolContext,
-  scopeSelection?: HybridScopeSelection
-): ValidationResult {
-  const errors: ValidationError[] = [];
+// ============================================================================
+// SECTION 11: TOOL SYSTEM (Extended)
+// ============================================================================
 
-  // All tools require bookId
-  if (!context.bookId) {
-    errors.push({
-      field: 'bookId',
-      message: 'Book selection is required',
-      code: 'MISSING_BOOK_ID'
-    });
-  }
+export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
 
-  // Scene-scope tools require documentId
-  if (tool.scope === 'scene' && !context.documentId) {
-    errors.push({
-      field: 'documentId',
-      message: 'Scene/chapter selection is required for this tool',
-      code: 'MISSING_DOCUMENT_ID'
-    });
-  }
+export type ToolScope = 'scene' | 'chapter' | 'book' | 'hybrid';
 
-  // Hybrid tools require scope selection
-  if (tool.scope === 'hybrid') {
-    if (!scopeSelection) {
-      errors.push({
-        field: 'scopeSelection',
-        message: 'Please select a scope: this scene, selected chapters, or whole book',
-        code: 'INVALID_SCOPE'
-      });
-    } else if (scopeSelection.mode === 'this-scene' && !scopeSelection.sceneId) {
-      errors.push({
-        field: 'sceneId',
-        message: 'Scene selection is required',
-        code: 'MISSING_DOCUMENT_ID'
-      });
-    } else if (scopeSelection.mode === 'selected-chapters' && 
-               (!scopeSelection.chapterIds || scopeSelection.chapterIds.length === 0)) {
-      errors.push({
-        field: 'chapterIds',
-        message: 'Please select at least one chapter',
-        code: 'CHAPTERS_REQUIRED'
-      });
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
+export interface AITool {
+  id: string;
+  category: ToolCategory;
+  scope: ToolScope;
+  
+  name: string;
+  description: string;
+  icon: string;
+  shortcut?: string;
+  color: string;
+  
+  // Requirements
+  requiresSelection: boolean;
+  requiresStoryBible?: boolean;
+  
+  // Input/Output
+  inputType: 'text' | 'selection' | 'context' | 'none';
+  outputType: 'text' | 'suggestions' | 'analysis' | 'data';
+  
+  // Placeholders
+  placeholders: {
+    input: string;
+    output: string;
   };
+  
+  // Chaining
+  canChainTo: string[];
+  
+  // Constraints
+  minInputLength?: number;
+  maxInputLength?: number;
+  estimatedTokens: number;
+  
+  // Master author alignment
+  inspiredBy?: ('king' | 'sanderson' | 'rowling' | 'patterson')[];
 }
 
-/**
- * Validate tool chaining based on scope compatibility
- */
-export function validateToolChain(
-  sourceTool: AITool,
-  targetTool: AITool,
-  sourceScope: ToolScope,
-  targetScope?: HybridScopeSelection
-): ValidationResult {
-  const errors: ValidationError[] = [];
+// ============================================================================
+// EXPORT ALL
+// ============================================================================
 
-  // Scene tools can only chain to scene or hybrid tools
-  if (sourceScope === 'scene' && targetTool.scope === 'book') {
-    errors.push({
-      field: 'targetTool',
-      message: 'Scene-level outputs cannot be sent to book-level tools',
-      code: 'INVALID_CHAIN'
-    });
-  }
-
-  // Book tools can only chain to book or hybrid tools
-  if (sourceScope === 'book' && targetTool.scope === 'scene') {
-    errors.push({
-      field: 'targetTool',
-      message: 'Book-level outputs cannot be sent to scene-level tools',
-      code: 'INVALID_CHAIN'
-    });
-  }
-
-  // Check if tool is in allowed chain list
-  if (sourceTool.canChainTo.length > 0 && 
-      !sourceTool.canChainTo.includes(targetTool.id)) {
-    errors.push({
-      field: 'targetTool',
-      message: `${sourceTool.name} cannot chain to ${targetTool.name}`,
-      code: 'INVALID_CHAIN'
-    });
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
+export type {
+  // Core
+  Book,
+  Chapter,
+  Scene,
+  
+  // Version Control
+  VersionState,
+  VersionStack,
+  
+  // Story Bible
+  Character,
+  Relationship,
+  Location,
+  WorldRule,
+  TimelineEvent,
+  Theme,
+  ResearchNote,
+  
+  // Continuity
+  ContinuityAlert,
+  
+  // Narrative
+  NarrativeThread,
+  Clue,
+  
+  // Magic
+  MagicSystem,
+  
+  // Author Modes
+  WritingSession,
+  WritingStreak,
+  DetailedOutline,
+  ChapterHookAnalysis,
+  Series,
+  ChapterMatrix,
+  ReaderAvatar,
+  
+  // Workspace
+  CanvasState,
+  ChatMessage,
+  
+  // User
+  UserProfile,
+  JourneyState,
+  
+  // Tools
+  AITool,
+};
