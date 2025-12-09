@@ -90,8 +90,15 @@ export function useToolExecution() {
         success: true,
         content: data.content || data.text || data.summary || '',
         metadata: {
+          toolRunId: Date.now() + '-' + Math.random().toString(36).slice(2),
           tokensUsed: data.tokensUsed || 0,
           processingTime: 0,
+          scope: tool.scope,
+          appliedTo: {
+            bookId: options.bookId || '',
+            documentId: undefined,
+            chapterIds: undefined
+          },
           suggestions: data.suggestions,
           warnings: data.warnings
         },
