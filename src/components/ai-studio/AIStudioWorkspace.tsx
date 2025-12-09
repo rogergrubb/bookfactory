@@ -13,8 +13,8 @@ import {
   Pin, PinOff, Trash2, ArrowRightLeft, Plus, Layers,
   Workflow, Save, Download
 } from 'lucide-react';
-import { ToolId, ToolCategory, Genre } from './types';
-import { AI_TOOLS, TOOL_CATEGORIES, GENRES, getToolsByCategory, getToolById, getToolIconBg } from './tool-definitions';
+import { ToolId, ToolCategory } from './types';
+import { AI_TOOLS, TOOL_CATEGORIES, getToolsByCategory, getToolById, getToolIconBg } from './tool-definitions';
 import { ToolExecutionPanel } from './ToolExecutionPanel';
 import { CommandPalette } from './CommandPalette';
 
