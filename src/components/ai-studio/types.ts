@@ -970,3 +970,74 @@ export type {
   // Tools
   AITool,
 };
+
+// ============================================================================
+// SECTION: AI STUDIO TOOL TYPES (for AIStudioPage)
+// ============================================================================
+
+export type ToolId = string;
+
+export type ToolScope = 'scene' | 'chapter' | 'book' | 'hybrid';
+
+export type ScopeView = 'scene' | 'book' | 'all';
+
+export type CategoryFilter = 'all' | 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
+
+export interface Document {
+  id: string;
+  bookId: string;
+  chapterId?: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  type: 'scene' | 'chapter' | 'notes' | 'outline';
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface HybridScopeSelection {
+  scope: 'scene' | 'book';
+  bookId: string;
+  documentId?: string;
+}
+
+export interface AIStudioState {
+  selectedScope: ScopeView;
+  selectedCategory: CategoryFilter;
+  selectedBook?: Book;
+  selectedDocument?: Document;
+  activeToolId?: ToolId;
+  isExecuting: boolean;
+  error?: string;
+}
+
+export interface ToolContext {
+  bookId: string;
+  documentId?: string;
+  content?: string;
+  selection?: string;
+  scope: ToolScope;
+}
+
+export function validateToolExecution(
+  toolId: ToolId, 
+  context: ToolContext
+): { valid: boolean; error?: string } {
+  if (!toolId) {
+    return { valid: false, error: 'No tool selected' };
+  }
+  
+  if (!context.bookId) {
+    return { valid: false, error: 'Please select a book first' };
+  }
+  
+  if (context.scope === 'scene' && !context.documentId) {
+    return { valid: false, error: 'Please select a scene or chapter' };
+  }
+  
+  return { valid: true };
+}
+
+// Define ToolCategory directly to avoid circular imports
+export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
