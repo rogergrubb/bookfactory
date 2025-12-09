@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        aiCredits: { decrement: Math.ceil(tokensUsed / 100) }
+        aiCreditsUsed: { increment: Math.ceil(tokensUsed / 100) }
       }
     });
 
@@ -315,9 +315,9 @@ export async function POST(request: NextRequest) {
     await prisma.activity.create({
       data: {
         userId: user.id,
-        type: 'TOOL_RUN',
-        action: `Used ${toolId} tool`,
-        details: {
+        type: 'AI_USED',
+        message: `Used ${toolId} AI tool`,
+        metadata: {
           toolId,
           bookId: context.bookId,
           documentId: context.documentId,
@@ -350,3 +350,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
