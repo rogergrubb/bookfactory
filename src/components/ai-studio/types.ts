@@ -1013,6 +1013,7 @@ export interface AIStudioState {
 }
 
 export interface ToolContext {
+  userId?: string;
   bookId: string;
   documentId?: string;
   content?: string;
