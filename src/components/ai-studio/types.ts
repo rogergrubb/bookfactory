@@ -1021,6 +1021,31 @@ export interface ToolContext {
   scope: ToolScope;
 }
 
+
+// ============================================================================
+// ANALYSIS TYPES
+// ============================================================================
+
+export interface AnalysisIssue {
+  id: string;
+  type: 'warning' | 'error' | 'info';
+  message: string;
+  location?: {
+    start: number;
+    end: number;
+  };
+  suggestion?: string;
+}
+
+export interface AnalysisResult {
+  score?: number;
+  metrics?: Record<string, unknown>;
+  issues: AnalysisIssue[];
+  suggestions: string[];
+  summary?: string;
+}
+
+
 export function validateToolExecution(
   toolId: ToolId, 
   context: ToolContext
