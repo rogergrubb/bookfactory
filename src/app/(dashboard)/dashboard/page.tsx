@@ -111,7 +111,7 @@ export default function DashboardHome() {
   
   // Fetch dashboard stats
   const { data: statsData, isLoading: statsLoading } = useSWR<{ stats: DashboardStats }>(
-    '/api/dashboard/stats',
+    '/api/dashboard',
     fetcher,
     { 
       revalidateOnFocus: false,
