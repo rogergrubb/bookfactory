@@ -475,16 +475,16 @@ export function AIStudioPage() {
       scope: scopeView === 'all' ? 'scene' : scopeView as 'scene' | 'book'
     };
 
-    const validation = validateToolExecution(tool, context);
+    const validation = validateToolExecution(tool.id, context);
     
     if (!validation.valid) {
       // Show appropriate selector
-      if (validation.errors.some(e => e.code === 'MISSING_BOOK_ID')) {
+      if (validation.error?.includes('book')) {
         setSelectorMode('book');
         setShowContextSelector(true);
         return;
       }
-      if (validation.errors.some(e => e.code === 'MISSING_DOCUMENT_ID')) {
+      if (validation.error?.includes('document')) {
         setSelectorMode('document');
         setShowContextSelector(true);
         return;
