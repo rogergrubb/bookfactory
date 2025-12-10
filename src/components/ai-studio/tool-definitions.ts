@@ -1509,20 +1509,3 @@ export function getQuickActions(scope: 'scene' | 'book' | 'all'): AITool[] {
   const tools = getToolsByScopeAndCategory(scope);
   return tools.filter(tool => popularToolIds.includes(tool.id)).slice(0, 6);
 }
-
-/**
- * Get chainable tools that can follow a given tool
- */
-export function getChainableTools(currentToolId: string): AITool[] {
-  // Define logical tool chains
-  const chainMap: Record<string, string[]> = {
-    'first-draft-generator': ['dialogue-generator', 'prose-enhancer', 'tension-amplifier'],
-    'dialogue-generator': ['prose-enhancer', 'emotion-deepener', 'subtext-weaver'],
-    'prose-enhancer': ['tension-amplifier', 'sensory-enricher', 'pacing-optimizer'],
-    'scene-expander': ['dialogue-generator', 'prose-enhancer', 'sensory-enricher'],
-    'character-developer': ['dialogue-generator', 'backstory-generator', 'voice-crafter']
-  };
-  
-  const chainableIds = chainMap[currentToolId] || [];
-  return AI_TOOLS.filter(tool => chainableIds.includes(tool.id));
-}
