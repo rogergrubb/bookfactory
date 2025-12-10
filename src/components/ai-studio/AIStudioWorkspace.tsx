@@ -236,7 +236,7 @@ export function AIStudioWorkspace() {
                             <CategoryIcon className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <h2 className="font-bold text-white text-lg">{category.name}</h2>
+                            <h2 className="font-bold text-white text-lg">{category.label}</h2>
                             <p className="text-white/80 text-sm">{category.description}</p>
                           </div>
                         </div>
