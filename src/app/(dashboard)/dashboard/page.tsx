@@ -107,7 +107,7 @@ function EmptyBooksState() {
 
 export default function DashboardHome() {
   // Fetch books
-  const { data: booksData, isLoading: booksLoading, error: booksError } = useBooks();
+  const { books, isLoading: booksLoading, error: booksError } = useBooks();
   
   // Fetch dashboard stats
   const { data: statsData, isLoading: statsLoading } = useSWR<{ stats: DashboardStats }>(
@@ -136,10 +136,10 @@ export default function DashboardHome() {
     { revalidateOnFocus: false }
   );
 
-  const books = booksData?.books ?? [];
+  const booksList = books ?? [];
   const stats = statsData?.stats ?? {
-    totalBooks: books.length,
-    totalWords: books.reduce((sum, b) => sum + (b.wordCount || 0), 0),
+    totalBooks: booksList.length,
+    totalWords: booksList.reduce((sum, b) => sum + (b.wordCount || 0), 0),
     wordsToday: 0,
     currentStreak: 0,
     longestStreak: 0,
@@ -156,13 +156,13 @@ export default function DashboardHome() {
 
   // Get most recent book for "Continue Writing" action
   const mostRecentBook = useMemo(() => {
-    if (!books.length) return null;
-    return books.reduce((latest, book) => {
+    if (!booksList.length) return null;
+    return booksList.reduce((latest, book) => {
       const latestDate = new Date(latest.updatedAt);
       const bookDate = new Date(book.updatedAt);
       return bookDate > latestDate ? book : latest;
-    }, books[0]);
-  }, [books]);
+    }, booksList[0]);
+  }, [booksList]);
 
   // Dynamic quick actions based on user's books
   const dynamicQuickActions = useMemo(() => {
@@ -187,7 +187,7 @@ export default function DashboardHome() {
           <p className="mt-1 text-stone-500">
             {stats.currentStreak > 0 
               ? `You're on a ${stats.currentStreak}-day writing streak! Keep it up.`
-              : books.length > 0 
+              : booksList.length > 0 
                 ? 'Start writing today to begin your streak!'
                 : 'Welcome to BookFactory! Create your first book to get started.'}
           </p>
@@ -329,11 +329,11 @@ export default function DashboardHome() {
                   <BookCardSkeleton />
                   <BookCardSkeleton />
                 </div>
-              ) : books.length === 0 ? (
+              ) : booksList.length === 0 ? (
                 <EmptyBooksState />
               ) : (
                 <div className="divide-y divide-stone-100 dark:divide-stone-800">
-                  {books.slice(0, 5).map((book) => {
+                  {booksList.slice(0, 5).map((book) => {
                     const progress = book.targetWordCount > 0 
                       ? Math.round((book.wordCount / book.targetWordCount) * 100) 
                       : 0;
