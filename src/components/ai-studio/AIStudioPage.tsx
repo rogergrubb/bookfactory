@@ -451,7 +451,8 @@ export function AIStudioPage() {
       generate: [],
       enhance: [],
       analyze: [],
-      brainstorm: []
+      brainstorm: [],
+      craft: []
     };
     
     filteredTools.forEach(tool => {
