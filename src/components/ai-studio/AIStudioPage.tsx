@@ -132,7 +132,7 @@ function CategoryFilterBar({
             `}
           >
             <Icon className="w-3.5 h-3.5" />
-            <span>{category.name}</span>
+            <span>{category.label}</span>
             <span className={`
               text-xs px-1.5 py-0.5 rounded-full
               ${isActive ? 'bg-white/20' : 'bg-gray-200 dark:bg-gray-700'}
@@ -298,7 +298,7 @@ function ToolCategorySection({
             <Icon className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white">{category.name}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{category.label}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">{category.description}</p>
           </div>
           <span className="ml-auto text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
