@@ -1264,12 +1264,12 @@ export function getChainableTools(toolId: string): AITool[] {
 }
 
 // Tool categories with metadata
-export const TOOL_CATEGORIES: { id: ToolCategory; label: string; description: string; color: string; icon: string }[] = [
-  { id: 'generate', label: 'Generate', description: 'Create new content', color: 'teal', icon: 'PenTool' },
-  { id: 'enhance', label: 'Enhance', description: 'Improve existing content', color: 'violet', icon: 'Sparkles' },
-  { id: 'analyze', label: 'Analyze', description: 'Evaluate and measure', color: 'blue', icon: 'BarChart3' },
-  { id: 'brainstorm', label: 'Brainstorm', description: 'Generate ideas', color: 'amber', icon: 'Lightbulb' },
-  { id: 'craft', label: 'Craft', description: 'Master author tools', color: 'rose', icon: 'Feather' },
+export const TOOL_CATEGORIES: { id: ToolCategory; label: string; description: string; color: string; icon: string; gradient: string }[] = [
+  { id: 'generate', label: 'Generate', description: 'Create new content', color: 'teal', icon: 'PenTool', gradient: 'from-teal-500 to-emerald-600' },
+  { id: 'enhance', label: 'Enhance', description: 'Improve existing content', color: 'violet', icon: 'Sparkles', gradient: 'from-violet-500 to-purple-600' },
+  { id: 'analyze', label: 'Analyze', description: 'Evaluate and measure', color: 'blue', icon: 'BarChart3', gradient: 'from-blue-500 to-cyan-600' },
+  { id: 'brainstorm', label: 'Brainstorm', description: 'Generate ideas', color: 'amber', icon: 'Lightbulb', gradient: 'from-amber-500 to-orange-600' },
+  { id: 'craft', label: 'Craft', description: 'Master author tools', color: 'rose', icon: 'Feather', gradient: 'from-rose-500 to-pink-600' },
 ];
 
 // Category config as Record for object-style access
@@ -1375,140 +1375,3 @@ export const toolCategories = TOOL_CATEGORIES;
 
 // Export AuthorMode type
 export type AuthorMode = AuthorInspiration;
-
-// ============================================================================
-// SCOPE VIEWS (for UI scope switching)
-// ============================================================================
-
-export type ScopeViewId = 'scene' | 'book' | 'all';
-
-export interface ScopeViewDefinition {
-  id: ScopeViewId;
-  name: string;
-  description: string;
-  icon: string;
-}
-
-export const SCOPE_VIEWS: ScopeViewDefinition[] = [
-  {
-    id: 'scene',
-    name: 'Scene/Chapter',
-    description: 'Tools that work on individual scenes or chapters',
-    icon: 'FileText'
-  },
-  {
-    id: 'book',
-    name: 'Whole Book',
-    description: 'Tools that analyze or affect the entire book',
-    icon: 'BookOpen'
-  },
-  {
-    id: 'all',
-    name: 'All Tools',
-    description: 'View all available tools',
-    icon: 'Grid3X3'
-  }
-];
-
-// ============================================================================
-// EXTENDED HELPER FUNCTIONS
-// ============================================================================
-
-export function getToolsByScopeAndCategory(
-  scope: ScopeViewId | null, 
-  category: ToolCategory | 'all'
-): AITool[] {
-  let filtered = AI_TOOLS;
-  
-  // Filter by scope
-  if (scope && scope !== 'all') {
-    filtered = filtered.filter(tool => {
-      if (scope === 'scene') {
-        return tool.scope === 'scene' || tool.scope === 'chapter' || tool.scope === 'hybrid';
-      }
-      if (scope === 'book') {
-        return tool.scope === 'book' || tool.scope === 'hybrid';
-      }
-      return true;
-    });
-  }
-  
-  // Filter by category
-  if (category && category !== 'all') {
-    filtered = filtered.filter(tool => tool.category === category);
-  }
-  
-  return filtered;
-}
-
-export function getToolIconBg(tool: AITool): string {
-  const colorMap: Record<string, string> = {
-    teal: 'bg-teal-100 dark:bg-teal-900/30',
-    violet: 'bg-violet-100 dark:bg-violet-900/30',
-    blue: 'bg-blue-100 dark:bg-blue-900/30',
-    amber: 'bg-amber-100 dark:bg-amber-900/30',
-    rose: 'bg-rose-100 dark:bg-rose-900/30',
-    red: 'bg-red-100 dark:bg-red-900/30',
-    purple: 'bg-purple-100 dark:bg-purple-900/30',
-    emerald: 'bg-emerald-100 dark:bg-emerald-900/30',
-    orange: 'bg-orange-100 dark:bg-orange-900/30',
-    cyan: 'bg-cyan-100 dark:bg-cyan-900/30',
-    pink: 'bg-pink-100 dark:bg-pink-900/30',
-    indigo: 'bg-indigo-100 dark:bg-indigo-900/30',
-    lime: 'bg-lime-100 dark:bg-lime-900/30',
-    sky: 'bg-sky-100 dark:bg-sky-900/30',
-  };
-  return colorMap[tool.color] || 'bg-gray-100 dark:bg-gray-800';
-}
-
-export function getToolColorClass(tool: AITool): string {
-  const colorMap: Record<string, string> = {
-    teal: 'text-teal-600 dark:text-teal-400',
-    violet: 'text-violet-600 dark:text-violet-400',
-    blue: 'text-blue-600 dark:text-blue-400',
-    amber: 'text-amber-600 dark:text-amber-400',
-    rose: 'text-rose-600 dark:text-rose-400',
-    red: 'text-red-600 dark:text-red-400',
-    purple: 'text-purple-600 dark:text-purple-400',
-    emerald: 'text-emerald-600 dark:text-emerald-400',
-    orange: 'text-orange-600 dark:text-orange-400',
-    cyan: 'text-cyan-600 dark:text-cyan-400',
-    pink: 'text-pink-600 dark:text-pink-400',
-    indigo: 'text-indigo-600 dark:text-indigo-400',
-    lime: 'text-lime-600 dark:text-lime-400',
-    sky: 'text-sky-600 dark:text-sky-400',
-  };
-  return colorMap[tool.color] || 'text-gray-600 dark:text-gray-400';
-}
-
-export function getScopeBadgeClass(scope: ToolScope): string {
-  const scopeMap: Record<ToolScope, string> = {
-    scene: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
-    chapter: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-    book: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-    hybrid: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-  };
-  return scopeMap[scope] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-}
-
-export function getScopeLabel(scope: ToolScope): string {
-  const labelMap: Record<ToolScope, string> = {
-    scene: 'Scene',
-    chapter: 'Chapter',
-    book: 'Book',
-    hybrid: 'Flexible',
-  };
-  return labelMap[scope] || scope;
-}
-
-export function getQuickActions(scope: ScopeViewId): AITool[] {
-  // Return popular tools for quick access based on current scope
-  const quickActionIds: Record<ScopeViewId, string[]> = {
-    scene: ['continue-writing', 'improve-prose', 'write-dialogue', 'add-tension'],
-    book: ['plot-holes', 'character-arc-analysis', 'pacing-analysis', 'readability-score'],
-    all: ['continue-writing', 'improve-prose', 'plot-holes', 'brainstorm-ideas']
-  };
-  
-  const ids = quickActionIds[scope] || quickActionIds.all;
-  return ids.map(id => getToolById(id)).filter(Boolean) as AITool[];
-}
