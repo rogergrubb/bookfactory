@@ -202,7 +202,7 @@ export function AIStudioWorkspace() {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {cat.name}
+                  {cat.label}
                 </button>
               );
             })}
