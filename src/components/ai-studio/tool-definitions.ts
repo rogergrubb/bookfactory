@@ -1375,3 +1375,154 @@ export const toolCategories = TOOL_CATEGORIES;
 
 // Export AuthorMode type
 export type AuthorMode = AuthorInspiration;
+
+// ============================================================================
+// SCOPE VIEWS - For AI Studio scope switching UI
+// ============================================================================
+
+export interface ScopeViewDefinition {
+  id: 'scene' | 'book' | 'all';
+  name: string;
+  description: string;
+  icon: string;
+}
+
+export const SCOPE_VIEWS: ScopeViewDefinition[] = [
+  {
+    id: 'scene',
+    name: 'Scene/Chapter',
+    description: 'Tools for working with individual scenes and chapters',
+    icon: 'FileText'
+  },
+  {
+    id: 'book',
+    name: 'Whole Book',
+    description: 'Tools for analyzing and working with your entire book',
+    icon: 'BookOpen'
+  },
+  {
+    id: 'all',
+    name: 'All Tools',
+    description: 'Browse all available AI writing tools',
+    icon: 'Grid3X3'
+  }
+];
+
+// ============================================================================
+// HELPER FUNCTIONS - For AI Studio UI
+// ============================================================================
+
+/**
+ * Get tools filtered by scope and optionally by category
+ */
+export function getToolsByScopeAndCategory(
+  scope: 'scene' | 'book' | 'all',
+  category?: string
+): AITool[] {
+  let filtered = AI_TOOLS;
+  
+  // Filter by scope
+  if (scope !== 'all') {
+    filtered = filtered.filter(tool => {
+      if (scope === 'scene') {
+        return tool.scope === 'scene' || tool.scope === 'hybrid';
+      } else if (scope === 'book') {
+        return tool.scope === 'book' || tool.scope === 'hybrid';
+      }
+      return true;
+    });
+  }
+  
+  // Filter by category if provided
+  if (category && category !== 'all') {
+    filtered = filtered.filter(tool => tool.category === category);
+  }
+  
+  return filtered;
+}
+
+/**
+ * Get background color class for tool icon
+ */
+export function getToolIconBg(tool: AITool): string {
+  const bgMap: Record<string, string> = {
+    generate: 'bg-teal-100 dark:bg-teal-900/30',
+    enhance: 'bg-violet-100 dark:bg-violet-900/30',
+    analyze: 'bg-amber-100 dark:bg-amber-900/30',
+    brainstorm: 'bg-rose-100 dark:bg-rose-900/30',
+    transform: 'bg-blue-100 dark:bg-blue-900/30'
+  };
+  return bgMap[tool.category] || 'bg-gray-100 dark:bg-gray-900/30';
+}
+
+/**
+ * Get text color class for tool
+ */
+export function getToolColorClass(tool: AITool): string {
+  const colorMap: Record<string, string> = {
+    generate: 'text-teal-600 dark:text-teal-400',
+    enhance: 'text-violet-600 dark:text-violet-400',
+    analyze: 'text-amber-600 dark:text-amber-400',
+    brainstorm: 'text-rose-600 dark:text-rose-400',
+    transform: 'text-blue-600 dark:text-blue-400'
+  };
+  return colorMap[tool.category] || 'text-gray-600 dark:text-gray-400';
+}
+
+/**
+ * Get badge styling class for scope
+ */
+export function getScopeBadgeClass(scope: 'scene' | 'book' | 'hybrid'): string {
+  const badgeMap: Record<string, string> = {
+    scene: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    book: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    hybrid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+  };
+  return badgeMap[scope] || 'bg-gray-100 text-gray-700';
+}
+
+/**
+ * Get human-readable label for scope
+ */
+export function getScopeLabel(scope: 'scene' | 'book' | 'hybrid'): string {
+  const labelMap: Record<string, string> = {
+    scene: 'Scene/Chapter',
+    book: 'Whole Book',
+    hybrid: 'Both'
+  };
+  return labelMap[scope] || scope;
+}
+
+/**
+ * Get quick action tools for a given scope
+ */
+export function getQuickActions(scope: 'scene' | 'book' | 'all'): AITool[] {
+  const popularToolIds = [
+    'first-draft-generator',
+    'prose-enhancer',
+    'dialogue-generator',
+    'plot-analyzer',
+    'character-developer',
+    'scene-expander'
+  ];
+  
+  const tools = getToolsByScopeAndCategory(scope);
+  return tools.filter(tool => popularToolIds.includes(tool.id)).slice(0, 6);
+}
+
+/**
+ * Get chainable tools that can follow a given tool
+ */
+export function getChainableTools(currentToolId: string): AITool[] {
+  // Define logical tool chains
+  const chainMap: Record<string, string[]> = {
+    'first-draft-generator': ['dialogue-generator', 'prose-enhancer', 'tension-amplifier'],
+    'dialogue-generator': ['prose-enhancer', 'emotion-deepener', 'subtext-weaver'],
+    'prose-enhancer': ['tension-amplifier', 'sensory-enricher', 'pacing-optimizer'],
+    'scene-expander': ['dialogue-generator', 'prose-enhancer', 'sensory-enricher'],
+    'character-developer': ['dialogue-generator', 'backstory-generator', 'voice-crafter']
+  };
+  
+  const chainableIds = chainMap[currentToolId] || [];
+  return AI_TOOLS.filter(tool => chainableIds.includes(tool.id));
+}
