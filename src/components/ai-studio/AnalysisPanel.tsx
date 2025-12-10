@@ -275,9 +275,9 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
         'pacing': {
           score: 72,
           issues: [
-            { type: 'warning', message: 'Middle section (paragraphs 4-6) moves slowly', suggestion: 'Consider adding more action or dialogue' },
-            { type: 'info', message: 'Strong opening hook', suggestion: undefined },
-            { type: 'warning', message: 'Ending feels rushed', suggestion: 'Expand the final scene for better resolution' }
+            { id: '1', type: 'warning', message: 'Middle section (paragraphs 4-6) moves slowly', suggestion: 'Consider adding more action or dialogue' },
+            { id: '2', type: 'info', message: 'Strong opening hook', suggestion: undefined },
+            { id: '3', type: 'warning', message: 'Ending feels rushed', suggestion: 'Expand the final scene for better resolution' }
           ],
           suggestions: ['Add a beat of tension before the reveal', 'Break up the long exposition in paragraph 5'],
           highlights: [],
