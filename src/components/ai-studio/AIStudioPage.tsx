@@ -292,7 +292,7 @@ function ToolCategorySection({
       animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
     >
-      <div className={`p-4 ${category.bgColor} border-b border-gray-100 dark:border-gray-800`}>
+      <div className={`p-4 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800`}>
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${category.gradient}`}>
             <Icon className="w-5 h-5 text-white" />
