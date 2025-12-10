@@ -471,7 +471,8 @@ export function AIStudioPage() {
     const context: ToolContext = {
       userId: 'current-user', // Will be replaced with actual user ID
       bookId: selectedBookId || '',
-      documentId: selectedDocumentId || undefined
+      documentId: selectedDocumentId || undefined,
+      scope: scopeView === 'all' ? 'scene' : scopeView as 'scene' | 'book'
     };
 
     const validation = validateToolExecution(tool, context);
