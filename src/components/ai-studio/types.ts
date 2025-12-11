@@ -1128,7 +1128,9 @@ export interface ToolOptions {
   style?: string;
   tone?: string;
   format?: string;
-  [key: string]: string | undefined;
+  intensity?: number;
+  customInstructions?: string;
+  [key: string]: string | number | undefined;
 }
 
 
