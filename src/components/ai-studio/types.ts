@@ -886,59 +886,6 @@ export interface JourneyState {
 // Note: ToolCategory, ToolScope, and AITool are defined in tool-definitions.ts
 
 // ============================================================================
-// EXPORT ALL
-// ============================================================================
-
-export type {
-  // Core
-  Book,
-  Chapter,
-  Scene,
-  
-  // Version Control
-  VersionState,
-  VersionStack,
-  
-  // Story Bible
-  Character,
-  Relationship,
-  Location,
-  WorldRule,
-  TimelineEvent,
-  Theme,
-  ResearchNote,
-  
-  // Continuity
-  ContinuityAlert,
-  
-  // Narrative
-  NarrativeThread,
-  Clue,
-  
-  // Magic
-  MagicSystem,
-  
-  // Author Modes
-  WritingSession,
-  WritingStreak,
-  DetailedOutline,
-  ChapterHookAnalysis,
-  Series,
-  ChapterMatrix,
-  ReaderAvatar,
-  
-  // Workspace
-  CanvasState,
-  ChatMessage,
-  
-  // User
-  UserProfile,
-  JourneyState,
-  
-  // Tools - AITool is imported from tool-definitions.ts
-};
-
-// ============================================================================
 // SECTION: AI STUDIO TOOL TYPES (for AIStudioPage)
 // ============================================================================
 
