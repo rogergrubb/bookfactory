@@ -182,7 +182,7 @@ function SaveBar({ result, tool, onSave, onSaveAndSend, onDownload, onCopy, isSa
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const chainableTools = useMemo(() => getChainableTools(tool), [tool]);
+  const chainableTools = useMemo(() => getChainableTools(tool.id), [tool]);
 
   const handleCopy = () => {
     onCopy();
@@ -749,3 +749,4 @@ export function ToolExecutionPanel({
 }
 
 export default ToolExecutionPanel;
+
