@@ -1363,6 +1363,28 @@ export const AUTHOR_STYLE_CONFIG: Record<AuthorInspiration, {
 };
 
 // ============================================================================
+// GENRE DEFINITIONS
+// ============================================================================
+
+export const GENRES: { id: string; name: string }[] = [
+  { id: 'romance', name: 'Romance' },
+  { id: 'mystery', name: 'Mystery' },
+  { id: 'thriller', name: 'Thriller' },
+  { id: 'fantasy', name: 'Fantasy' },
+  { id: 'scifi', name: 'Science Fiction' },
+  { id: 'literary', name: 'Literary Fiction' },
+  { id: 'horror', name: 'Horror' },
+  { id: 'ya', name: 'Young Adult' },
+  { id: 'historical', name: 'Historical Fiction' },
+  { id: 'contemporary', name: 'Contemporary' },
+  { id: 'crime', name: 'Crime' },
+  { id: 'adventure', name: 'Adventure' },
+  { id: 'dystopian', name: 'Dystopian' },
+  { id: 'paranormal', name: 'Paranormal' },
+  { id: 'other', name: 'Other' },
+];
+
+// ============================================================================
 // COMPATIBILITY EXPORTS (for existing code)
 // ============================================================================
 
@@ -1511,3 +1533,4 @@ export function getQuickActions(scope: 'scene' | 'book' | 'all'): AITool[] {
   const tools = getToolsByScopeAndCategory(scope);
   return tools.filter(tool => popularToolIds.includes(tool.id)).slice(0, 6);
 }
+
