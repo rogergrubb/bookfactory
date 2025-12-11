@@ -1097,13 +1097,21 @@ export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | '
 
 export interface ToolResultMetadata {
   toolRunId: string;
-  toolId: ToolId;
+  toolId?: ToolId;
   tokensUsed: number;
   executionTime?: number;
   processingTime?: number;
-  bookId: string;
+  bookId?: string;
   chapterId?: string;
   sceneId?: string;
+  scope?: ToolScope;
+  appliedTo?: {
+    bookId: string;
+    documentId?: string;
+    chapterIds?: string[];
+  };
+  suggestions?: string[];
+  warnings?: string[];
 }
 
 export interface ToolResult {
