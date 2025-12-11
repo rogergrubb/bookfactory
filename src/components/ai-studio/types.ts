@@ -914,7 +914,7 @@ export interface AITool {
   estimatedTokens: number;
   
   // Master author alignment
-  inspiredBy?: ('king' | 'sanderson' | 'rowling' | 'patterson')[];
+  inspiredBy?: ('king' | 'sanderson' | 'rowling' | 'patterson' | 'collins')[];
 }
 
 // ============================================================================
@@ -1127,6 +1127,7 @@ export interface ToolOptions {
   format?: string;
   [key: string]: string | undefined;
 }
+
 
 
 
