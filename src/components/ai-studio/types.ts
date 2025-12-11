@@ -1086,8 +1086,7 @@ export function validateToolExecution(
   return { valid: true };
 }
 
-// Define ToolCategory directly to avoid circular imports
-export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
+// ToolCategory is already defined above
 
 
 
@@ -1152,6 +1151,7 @@ export interface ToolOptions {
   customInstructions?: string;
   [key: string]: string | number | undefined;
 }
+
 
 
 
