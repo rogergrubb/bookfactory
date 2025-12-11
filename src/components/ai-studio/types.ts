@@ -1021,6 +1021,8 @@ export interface ToolContext {
   documentId?: string;
   sceneId?: string;
   chapterIds?: string[];
+  characterIds?: string[];
+  genre?: Genre;
   content?: string;
   selection?: string;
   scope: ToolScope;
@@ -1128,6 +1130,7 @@ export interface ToolOptions {
   format?: string;
   [key: string]: string | undefined;
 }
+
 
 
 
