@@ -1056,6 +1056,7 @@ export interface StructuredItem {
   title: string;
   description: string;
   selected?: boolean;
+  details?: Record<string, string>;
 }
 
 
