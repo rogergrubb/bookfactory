@@ -184,52 +184,6 @@ export default function LandingPage() {
               Free forever plan available · No credit card required
             </p>
           </div>
-
-          {/* App Preview */}
-          <div className="relative mt-12 md:mt-16">
-            <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xl shadow-stone-900/10">
-              <div className="flex items-center gap-1.5 border-b border-stone-100 bg-stone-50 px-4 py-3">
-                <div className="h-3 w-3 rounded-full bg-stone-300" />
-                <div className="h-3 w-3 rounded-full bg-stone-300" />
-                <div className="h-3 w-3 rounded-full bg-stone-300" />
-              </div>
-              <div className="aspect-[16/9] bg-gradient-to-br from-stone-100 to-stone-50 p-8">
-                <div className="flex h-full gap-6">
-                  {/* Sidebar mock */}
-                  <div className="hidden w-48 flex-col gap-2 md:flex">
-                    <div className="h-8 w-full rounded bg-stone-200" />
-                    <div className="h-6 w-3/4 rounded bg-stone-100" />
-                    <div className="h-6 w-full rounded bg-stone-100" />
-                    <div className="h-6 w-2/3 rounded bg-stone-100" />
-                  </div>
-                  {/* Editor mock */}
-                  <div className="flex-1 rounded-lg bg-white p-6 shadow-sm">
-                    <div className="mb-4 h-6 w-48 rounded bg-stone-200" />
-                    <div className="space-y-2">
-                      <div className="h-4 w-full rounded bg-stone-100" />
-                      <div className="h-4 w-5/6 rounded bg-stone-100" />
-                      <div className="h-4 w-full rounded bg-stone-100" />
-                      <div className="h-4 w-4/5 rounded bg-stone-100" />
-                      <div className="h-4 w-full rounded bg-stone-100" />
-                      <div className="h-4 w-3/4 rounded bg-stone-100" />
-                    </div>
-                  </div>
-                  {/* AI Panel mock */}
-                  <div className="hidden w-64 rounded-lg border border-amber-200 bg-amber-50 p-4 lg:block">
-                    <div className="mb-3 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-amber-600" />
-                      <div className="h-4 w-24 rounded bg-amber-200" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-3 w-full rounded bg-amber-100" />
-                      <div className="h-3 w-5/6 rounded bg-amber-100" />
-                      <div className="h-3 w-full rounded bg-amber-100" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
