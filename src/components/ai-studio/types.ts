@@ -998,7 +998,7 @@ export interface Document {
 
 export interface HybridScopeSelection {
   mode: 'this-scene' | 'selected-chapters' | 'whole-book';
-  scope: 'scene' | 'book';
+  scope?: 'scene' | 'book';
   bookId: string;
   documentId?: string;
   sceneId?: string;
@@ -1127,5 +1127,6 @@ export interface ToolOptions {
   format?: string;
   [key: string]: string | undefined;
 }
+
 
 
