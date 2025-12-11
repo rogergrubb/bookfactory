@@ -1127,6 +1127,10 @@ export interface ToolResult {
     summary?: string;
     metrics?: Record<string, unknown>;
   };
+  structured?: {
+    items: unknown[];
+    summary?: string;
+  };
 }
 
 export type SaveAction = 'save' | 'save-and-send';
