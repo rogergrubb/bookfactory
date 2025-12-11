@@ -222,7 +222,7 @@ export function CommandPalette({ isOpen, onClose, onSelectTool, selectedText }: 
                   {!search && category !== 'results' && (
                     <div className="px-4 py-2 bg-gray-50/80 sticky top-0 z-10">
                       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {TOOL_CATEGORIES.find(c => c.id === category)?.name || category}
+                        {TOOL_CATEGORIES.find(c => c.id === category)?.label || category}
                       </span>
                     </div>
                   )}
@@ -333,3 +333,4 @@ export function CommandPalette({ isOpen, onClose, onSelectTool, selectedText }: 
 }
 
 export default CommandPalette;
+
