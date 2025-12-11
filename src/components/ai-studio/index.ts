@@ -1,14 +1,19 @@
 // AI Studio Components - Export all components
 export * from './types';
 
-// Export tool-definitions but exclude AITool which is already in types
+// Export types and utilities from tool-definitions
 export { 
   TOOL_CATEGORIES, 
   AI_TOOLS, 
   getToolById, 
   getToolsByCategory, 
   getChainableTools,
-  GENRES
+  GENRES,
+  // Also export types that were removed from types.ts to avoid duplicates
+  type ToolCategory,
+  type ToolScope,
+  type AuthorInspiration,
+  type AITool
 } from './tool-definitions';
 
 // Export from hooks
@@ -24,3 +29,4 @@ export { AnalysisPanel } from './AnalysisPanel';
 export { BrainstormPanel } from './BrainstormPanel';
 export { VoiceProfilePanel } from './VoiceProfilePanel';
 export { StoryBiblePanel } from './StoryBiblePanel';
+
