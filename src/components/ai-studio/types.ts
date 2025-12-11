@@ -3,13 +3,21 @@
 // The Master Storyteller's Toolkit
 // ============================================================================
 
-// Re-export types from tool-definitions for backward compatibility
-export { 
+// Import types from tool-definitions for local use
+import { 
   type ToolCategory,
   type ToolScope,
   type AuthorInspiration,
   type AITool
 } from './tool-definitions';
+
+// Re-export for backward compatibility
+export { 
+  ToolCategory,
+  ToolScope,
+  AuthorInspiration,
+  AITool
+};
 
 // ============================================================================
 // SECTION 1: CORE BOOK & PROJECT TYPES
