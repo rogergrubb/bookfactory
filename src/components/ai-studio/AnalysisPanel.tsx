@@ -250,7 +250,8 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
       const response = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: '1',           type: toolId,
+        body: JSON.stringify({
+          type: toolId,
           content: input
         })
       });
@@ -279,38 +280,34 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
             { id: '3', type: 'warning', message: 'Ending feels rushed', suggestion: 'Expand the final scene for better resolution' }
           ],
           suggestions: ['Add a beat of tension before the reveal', 'Break up the long exposition in paragraph 5'],
-          
-          metrics: { fast: 35, medium: 45, slow: 20 }
+                    metrics: { fast: 35, medium: 45, slow: 20 }
         },
         'character-voice': {
           score: 68,
           issues: [
-            { id: '2', type: 'error', message: 'Character voice inconsistent in lines 12-15', suggestion: 'Marcus uses formal language here but casual elsewhere' },
-            { id: '3', type: 'warning', message: 'Sarah\'s dialogue lacks her usual wit', suggestion: 'Add sardonic undertones to her responses' }
+            { id: '1', type: 'error', message: 'Character voice inconsistent in lines 12-15', suggestion: 'Marcus uses formal language here but casual elsewhere' },
+            { id: '2', type: 'warning', message: 'Sarah\'s dialogue lacks her usual wit', suggestion: 'Add sardonic undertones to her responses' }
           ],
           suggestions: ['Each character should have unique speech patterns', 'Consider their background and education'],
-          
-          metrics: { consistency: 68, uniqueness: 75, authenticity: 71 }
+                    metrics: { consistency: 68, uniqueness: 75, authenticity: 71 }
         },
         'readability': {
           score: 85,
           issues: [
-            { id: '4', type: 'info', message: 'Reading level: Grade 8-9', suggestion: 'Appropriate for general adult fiction' }
+            { id: '3', type: 'info', message: 'Reading level: Grade 8-9', suggestion: 'Appropriate for general adult fiction' }
           ],
           suggestions: ['Vary sentence length more for rhythm'],
-          
-          metrics: { fleschKincaid: 72, gradeLevel: 8.5, complexity: 6, diversity: 78 }
+                    metrics: { fleschKincaid: 72, gradeLevel: 8.5, complexity: 6, diversity: 78 }
         },
         'word-frequency': {
           score: 0,
           issues: [
-            { id: '5', type: 'warning', message: '"just" appears 12 times', suggestion: 'Often a filler word - consider removing' },
-            { id: '6', type: 'warning', message: '"looked" appears 8 times', suggestion: 'Try alternatives: glanced, gazed, studied, noticed' },
-            { id: '7', type: 'info', message: '"suddenly" appears 4 times', suggestion: 'Overuse can weaken impact' }
+            { id: '4', type: 'warning', message: '"just" appears 12 times', suggestion: 'Often a filler word - consider removing' },
+            { id: '5', type: 'warning', message: '"looked" appears 8 times', suggestion: 'Try alternatives: glanced, gazed, studied, noticed' },
+            { id: '6', type: 'info', message: '"suddenly" appears 4 times', suggestion: 'Overuse can weaken impact' }
           ],
           suggestions: [],
-          
-          metrics: { 
+                    metrics: { 
             just: 12, looked: 8, said: 7, that: 15, was: 11,
             suddenly: 4, really: 5, very: 6, eyes: 4, walked: 3,
             thought: 5, seemed: 4, started: 3, began: 3, felt: 4
@@ -319,12 +316,11 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
         'emotional-arc': {
           score: 78,
           issues: [
-            { id: '8', type: 'info', message: 'Strong emotional range detected' },
-            { id: '9', type: 'warning', message: 'Emotional dip in middle third', suggestion: 'Consider adding a small win or moment of connection' }
+            { id: '7', type: 'info', message: 'Strong emotional range detected' },
+            { id: '8', type: 'warning', message: 'Emotional dip in middle third', suggestion: 'Consider adding a small win or moment of connection' }
           ],
           suggestions: ['The ending could use more emotional payoff'],
-          
-          metrics: {
+                    metrics: {
             open: 0.2, rising: 0.6, mid: -0.3, 
             crisis: -0.8, turn: 0.1, close: 0.7
           }
@@ -332,13 +328,12 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
         'plot-holes': {
           score: 65,
           issues: [
-            { id: '10', type: 'error', message: 'Timeline inconsistency: Sarah arrives at 3pm but it\'s already dark', suggestion: 'Either change the time or the lighting description' },
-            { id: '11', type: 'warning', message: 'Character motivation unclear: Why does Marcus stay after the argument?', suggestion: 'Add internal reasoning or dialogue' },
-            { id: '12', type: 'warning', message: 'Unresolved setup: The letter mentioned in chapter 2 is never addressed', suggestion: 'Either resolve or remove this thread' }
+            { id: '9', type: 'error', message: 'Timeline inconsistency: Sarah arrives at 3pm but it\'s already dark', suggestion: 'Either change the time or the lighting description' },
+            { id: '10', type: 'warning', message: 'Character motivation unclear: Why does Marcus stay after the argument?', suggestion: 'Add internal reasoning or dialogue' },
+            { id: '11', type: 'warning', message: 'Unresolved setup: The letter mentioned in chapter 2 is never addressed', suggestion: 'Either resolve or remove this thread' }
           ],
           suggestions: ['Create a timeline document to track events', 'List character motivations for each scene'],
-          
-          metrics: {}
+                    metrics: {}
         }
       };
 
