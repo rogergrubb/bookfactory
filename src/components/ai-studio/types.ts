@@ -1082,3 +1082,43 @@ export function validateToolExecution(
 // Define ToolCategory directly to avoid circular imports
 export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
 
+
+
+// ============================================================================
+// TOOL RESULT AND SAVE TYPES
+// ============================================================================
+
+export interface ToolResultMetadata {
+  toolRunId: string;
+  toolId: ToolId;
+  tokensUsed: number;
+  executionTime?: number;
+  bookId: string;
+  chapterId?: string;
+  sceneId?: string;
+}
+
+export interface ToolResult {
+  content: string;
+  metadata: ToolResultMetadata;
+  success: boolean;
+  error?: string;
+}
+
+export type SaveAction = 'save' | 'save-and-send';
+
+export interface SaveRequest {
+  action: SaveAction;
+  toolRunId: string;
+  content: string;
+  metadata: ToolResultMetadata;
+  nextToolId?: ToolId;
+}
+
+export interface ToolOptions {
+  length?: 'short' | 'medium' | 'long';
+  style?: string;
+  tone?: string;
+  format?: string;
+  [key: string]: string | undefined;
+}
