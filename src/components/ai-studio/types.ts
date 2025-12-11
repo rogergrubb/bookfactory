@@ -997,9 +997,12 @@ export interface Document {
 }
 
 export interface HybridScopeSelection {
+  mode: 'this-scene' | 'selected-chapters' | 'full-book';
   scope: 'scene' | 'book';
   bookId: string;
   documentId?: string;
+  sceneId?: string;
+  chapterIds?: string[];
 }
 
 export interface AIStudioState {
@@ -1016,6 +1019,8 @@ export interface ToolContext {
   userId?: string;
   bookId: string;
   documentId?: string;
+  sceneId?: string;
+  chapterIds?: string[];
   content?: string;
   selection?: string;
   scope: ToolScope;
@@ -1122,3 +1127,4 @@ export interface ToolOptions {
   format?: string;
   [key: string]: string | undefined;
 }
+
