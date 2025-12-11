@@ -1123,6 +1123,7 @@ export interface ToolResult {
     score?: number;
     issues: Array<{ id?: string; type: string; message: string; suggestion?: string }>;
     suggestions: string[];
+    highlights?: unknown[];
     summary?: string;
     metrics?: Record<string, unknown>;
   };
