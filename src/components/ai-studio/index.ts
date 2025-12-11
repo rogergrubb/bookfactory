@@ -1,6 +1,17 @@
 // AI Studio Components - Export all components
 export * from './types';
-export * from './tool-definitions';
+
+// Export tool-definitions but exclude AITool which is already in types
+export { 
+  TOOL_CATEGORIES, 
+  AI_TOOLS, 
+  getToolById, 
+  getToolsByCategory, 
+  getChainableTools,
+  GENRES
+} from './tool-definitions';
+
+// Export from hooks
 export * from './hooks';
 
 // Component exports - using named exports where available
