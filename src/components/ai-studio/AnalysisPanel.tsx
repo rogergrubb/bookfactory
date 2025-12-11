@@ -450,7 +450,6 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
                       </div>
                     )}
 
-                    {/* Visualizations based on tool type */}
                     {toolId === 'pacing' && result.metrics && (
                       <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-3">Pacing Distribution</h3>
