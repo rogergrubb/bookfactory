@@ -192,7 +192,7 @@ export function CommandPalette({ isOpen, onClose, onSelectTool, selectedText }: 
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
-                      {cat.name}
+                      {cat.label}
                     </button>
                   );
                 })}
