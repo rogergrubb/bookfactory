@@ -1119,6 +1119,13 @@ export interface ToolResult {
   metadata: ToolResultMetadata;
   success: boolean;
   error?: string;
+  analysis?: {
+    score?: number;
+    issues: Array<{ id?: string; type: string; message: string; suggestion?: string }>;
+    suggestions: string[];
+    summary?: string;
+    metrics?: Record<string, unknown>;
+  };
 }
 
 export type SaveAction = 'save' | 'save-and-send';
