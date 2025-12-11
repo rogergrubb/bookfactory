@@ -873,49 +873,9 @@ export interface JourneyState {
 }
 
 // ============================================================================
-// SECTION 11: TOOL SYSTEM (Extended)
+// SECTION 11: TOOL SYSTEM - Types imported from tool-definitions.ts
 // ============================================================================
-
-export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
-
-export type ToolScope = 'scene' | 'chapter' | 'book' | 'hybrid';
-
-export interface AITool {
-  id: string;
-  category: ToolCategory;
-  scope: ToolScope;
-  
-  name: string;
-  description: string;
-  icon: string;
-  shortcut?: string;
-  color: string;
-  
-  // Requirements
-  requiresSelection: boolean;
-  requiresStoryBible?: boolean;
-  
-  // Input/Output
-  inputType: 'text' | 'selection' | 'context' | 'none';
-  outputType: 'text' | 'suggestions' | 'analysis' | 'data';
-  
-  // Placeholders
-  placeholders: {
-    input: string;
-    output: string;
-  };
-  
-  // Chaining
-  canChainTo: string[];
-  
-  // Constraints
-  minInputLength?: number;
-  maxInputLength?: number;
-  estimatedTokens: number;
-  
-  // Master author alignment
-  inspiredBy?: ('king' | 'sanderson' | 'rowling' | 'patterson' | 'collins')[];
-}
+// Note: ToolCategory, ToolScope, and AITool are defined in tool-definitions.ts
 
 // ============================================================================
 // EXPORT ALL
@@ -967,8 +927,7 @@ export type {
   UserProfile,
   JourneyState,
   
-  // Tools
-  AITool,
+  // Tools - AITool is imported from tool-definitions.ts
 };
 
 // ============================================================================
@@ -977,7 +936,7 @@ export type {
 
 export type ToolId = string;
 
-export type ToolScope = 'scene' | 'chapter' | 'book' | 'hybrid';
+// ToolScope is imported from tool-definitions.ts
 
 export type ScopeView = 'scene' | 'book' | 'all';
 
@@ -1151,6 +1110,7 @@ export interface ToolOptions {
   customInstructions?: string;
   [key: string]: string | number | undefined;
 }
+
 
 
 
