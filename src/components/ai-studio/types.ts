@@ -1046,6 +1046,19 @@ export interface AnalysisResult {
 }
 
 
+
+// ============================================================================
+// BRAINSTORM TYPES
+// ============================================================================
+
+export interface StructuredItem {
+  id: string;
+  title: string;
+  description: string;
+  selected?: boolean;
+}
+
+
 export function validateToolExecution(
   toolId: ToolId, 
   context: ToolContext
@@ -1067,3 +1080,4 @@ export function validateToolExecution(
 
 // Define ToolCategory directly to avoid circular imports
 export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'craft';
+
