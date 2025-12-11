@@ -5,7 +5,7 @@
 
 import { 
   Wand2, Sparkles, MessageSquare, Eye, Zap, Brain, 
-  TrendingUp, Heart, Gauge, FileText, BarChart2, 
+  TrendingUp, Heart, Gauge, FileText, BarChart2, User, 
   Lightbulb, Shuffle, Users, Globe, Swords, GitBranch,
   Layout, Skull, Flame, Clock, BookOpen, Target,
   AlertTriangle, Palette, Map, Edit3, CheckCircle,
@@ -1533,4 +1533,5 @@ export function getQuickActions(scope: 'scene' | 'book' | 'all'): AITool[] {
   const tools = getToolsByScopeAndCategory(scope);
   return tools.filter(tool => popularToolIds.includes(tool.id)).slice(0, 6);
 }
+
 
