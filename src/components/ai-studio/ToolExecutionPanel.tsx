@@ -454,7 +454,7 @@ export function ToolExecutionPanel({
     }
 
     // Validate input length
-    if (input.length < tool.minInputLength) {
+    if (tool.minInputLength && input.length < tool.minInputLength) {
       setError(`Input must be at least ${tool.minInputLength} characters`);
       return;
     }
@@ -749,4 +749,5 @@ export function ToolExecutionPanel({
 }
 
 export default ToolExecutionPanel;
+
 
