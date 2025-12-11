@@ -455,28 +455,28 @@ export function AnalysisPanel({ toolId, isOpen, onClose, initialInput = '' }: An
                         <h3 className="text-sm font-medium text-gray-700 mb-3">Pacing Distribution</h3>
                         <PacingChart data={[65, 70, 45, 30, 35, 55, 80, 90, 75, 60]} />
                       </div>
-                    ): null}
+                    ) : null}
 
                     {toolId === 'emotional-arc' && !!result.metrics?.arc ? (
                       <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-3">Emotional Journey</h3>
                         <EmotionalArcChart data={result.metrics.arc as any} />
                       </div>
-                    ): null}
+                    ) : null}
 
                     {toolId === 'word-frequency' && !!result.metrics?.words ? (
                       <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-3">Word Cloud</h3>
                         <WordFrequencyCloud words={result.metrics.words as any} />
                       </div>
-                    ): null}
+                    ) : null}
 
                     {toolId === 'readability' && result.metrics ? (
                       <div>
                         <h3 className="text-sm font-medium text-gray-700 mb-3">Readability Metrics</h3>
                         <ReadabilityGauges metrics={result.metrics as any} />
                       </div>
-                    ): null}
+                    ) : null}
 
                     {/* Issues */}
                     {result.issues.length > 0 && (
