@@ -726,7 +726,7 @@ export function ToolExecutionPanel({
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  {(result.metadata.processingTime / 1000).toFixed(1)}s
+                  {((result.metadata.processingTime ?? 0) / 1000).toFixed(1)}s
                 </span>
               </div>
             )}
@@ -749,5 +749,6 @@ export function ToolExecutionPanel({
 }
 
 export default ToolExecutionPanel;
+
 
 
