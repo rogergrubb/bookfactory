@@ -3,6 +3,14 @@
 // The Master Storyteller's Toolkit
 // ============================================================================
 
+// Re-export types from tool-definitions for backward compatibility
+export { 
+  type ToolCategory,
+  type ToolScope,
+  type AuthorInspiration,
+  type AITool
+} from './tool-definitions';
+
 // ============================================================================
 // SECTION 1: CORE BOOK & PROJECT TYPES
 // ============================================================================
@@ -1110,6 +1118,7 @@ export interface ToolOptions {
   customInstructions?: string;
   [key: string]: string | number | undefined;
 }
+
 
 
 
