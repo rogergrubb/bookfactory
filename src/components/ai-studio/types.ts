@@ -1098,6 +1098,7 @@ export interface ToolResultMetadata {
   toolId: ToolId;
   tokensUsed: number;
   executionTime?: number;
+  processingTime?: number;
   bookId: string;
   chapterId?: string;
   sceneId?: string;
@@ -1127,6 +1128,7 @@ export interface ToolOptions {
   format?: string;
   [key: string]: string | undefined;
 }
+
 
 
 
