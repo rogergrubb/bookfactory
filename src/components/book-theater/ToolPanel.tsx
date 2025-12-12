@@ -216,7 +216,7 @@ export function ToolPanel({
 
       {/* Progress Bar */}
       {isGenerating && (
-        <GenerationProgressBar progress={progress} color={meta.color} />
+        <GenerationProgressBar progress={progress} />
       )}
 
       {/* Content Area */}
