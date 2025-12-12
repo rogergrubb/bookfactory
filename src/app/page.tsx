@@ -100,12 +100,7 @@ const plans = [
   },
 ];
 
-const stats = [
-  { value: '12,000+', label: 'Authors writing' },
-  { value: '2.4M', label: 'Words written daily' },
-  { value: '850+', label: 'Books published' },
-  { value: '4.9/5', label: 'Average rating' },
-];
+
 
 export default function LandingPage() {
   return (
@@ -183,20 +178,6 @@ export default function LandingPage() {
             <p className="text-sm text-stone-500">
               Free forever plan available · No credit card required
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof Stats */}
-      <section className="border-y border-stone-200 bg-white px-4 py-12">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-3xl font-bold text-stone-900 md:text-4xl">{stat.value}</p>
-                <p className="mt-1 text-sm text-stone-500">{stat.label}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
