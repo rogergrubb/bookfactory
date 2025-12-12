@@ -232,7 +232,7 @@ export default function NewBookPage() {
                   <p className="mb-6 text-stone-500 dark:text-stone-400">This helps us customize your writing experience</p>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {bookTypes.map((type) => (
-                      <button key={type.id} onClick={() => setBookType(type.id as BookType)} className={cn(
+                      <button key={type.id} onClick={() => { setBookType(type.id as BookType); setCurrentStep(1); }} className={cn(
                         'flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all',
                         bookType === type.id ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/30' : 'border-stone-200 hover:border-stone-300 dark:border-stone-700'
                       )}>
@@ -254,7 +254,7 @@ export default function NewBookPage() {
                   <p className="mb-6 text-stone-500 dark:text-stone-400">This helps set appropriate word count targets and structure</p>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {getGenresForType().map((g) => (
-                      <button key={g.id} onClick={() => { setGenre(g.id); setFormData(prev => ({ ...prev, targetWordCount: Math.round((g.wordCountRange[0] + g.wordCountRange[1]) / 2) })); }} className={cn(
+                      <button key={g.id} onClick={() => { setGenre(g.id); setFormData(prev => ({ ...prev, targetWordCount: Math.round((g.wordCountRange[0] + g.wordCountRange[1]) / 2) })); setCurrentStep(2); }} className={cn(
                         'flex flex-col items-start rounded-xl border-2 p-4 text-left transition-all',
                         genre === g.id ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/30' : 'border-stone-200 hover:border-stone-300 dark:border-stone-700'
                       )}>
@@ -276,7 +276,7 @@ export default function NewBookPage() {
                   <p className="mb-6 text-stone-500 dark:text-stone-400">Choose your preferred approach to begin writing</p>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {creationMethods.map((method) => (
-                      <button key={method.id} onClick={() => setCreationMethod(method.id as CreationMethod)} className={cn(
+                      <button key={method.id} onClick={() => { setCreationMethod(method.id as CreationMethod); if (method.id !== 'template') setCurrentStep(3); }} className={cn(
                         'flex items-start gap-4 rounded-xl border-2 p-4 text-left transition-all',
                         creationMethod === method.id ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/30' : 'border-stone-200 hover:border-stone-300 dark:border-stone-700'
                       )}>
@@ -296,7 +296,7 @@ export default function NewBookPage() {
                       <h3 className="mb-4 font-medium text-stone-900 dark:text-white">Choose a template</h3>
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {templates.map((t) => (
-                          <button key={t.id} onClick={() => setTemplate(t.id)} className={cn(
+                          <button key={t.id} onClick={() => { setTemplate(t.id); setCurrentStep(3); }} className={cn(
                             'rounded-xl border-2 p-3 text-left transition-all',
                             template === t.id ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/30' : 'border-stone-200 hover:border-stone-300 dark:border-stone-700'
                           )}>
