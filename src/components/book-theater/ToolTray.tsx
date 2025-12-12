@@ -7,19 +7,23 @@ import { Tool, SubOption, SceneContext, ToolCategory } from './types';
 import { tools, categoryMeta, getToolsByCategory } from './tool-definitions';
 
 interface ToolTrayProps {
-  onToolSelect: (tool: Tool, subOption?: SubOption) => void;
+  onSelectTool: (tool: Tool, subOption?: SubOption) => void;
   activeTool: Tool | null;
-  activeSceneContext: SceneContext | null;
-  onSceneContextClick: () => void;
+  hasSelection: boolean;
   characters?: { id: string; name: string }[];
+  sceneContexts: SceneContext[];
+  activeSceneContext: SceneContext | null;
+  onSceneContextChange: (context: SceneContext | null) => void;
 }
 
 export function ToolTray({
-  onToolSelect,
+  onSelectTool,
   activeTool,
-  activeSceneContext,
-  onSceneContextClick,
+  hasSelection,
   characters = [],
+  sceneContexts,
+  activeSceneContext,
+  onSceneContextChange,
 }: ToolTrayProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<ToolCategory>>(
     new Set(['generate'])
@@ -113,16 +117,16 @@ export function ToolTray({
                       >
                         <button
                           onClick={() => {
-                            if (tool.id === 'scene-contexts') {
-                              onSceneContextClick();
-                            } else if (!hasSubmenu) {
-                              onToolSelect(tool);
+                            if (!hasSubmenu) {
+                              onSelectTool(tool);
                             }
                           }}
+                          disabled={tool.requiresSelection && !hasSelection}
                           className={cn(
                             'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-all',
                             'text-stone-400 hover:text-stone-200',
-                            isActive && `${colors.bg} ${colors.text}`
+                            isActive && `${colors.bg} ${colors.text}`,
+                            tool.requiresSelection && !hasSelection && 'opacity-50 cursor-not-allowed'
                           )}
                         >
                           <tool.icon className="w-4 h-4 shrink-0" />
@@ -138,7 +142,7 @@ export function ToolTray({
                             {subOptions.map((sub) => (
                               <button
                                 key={sub.id}
-                                onClick={() => onToolSelect(tool, sub)}
+                                onClick={() => onSelectTool(tool, sub)}
                                 className="w-full px-3 py-1.5 text-sm text-left text-stone-300 hover:bg-stone-700 hover:text-stone-100"
                               >
                                 {sub.name}
