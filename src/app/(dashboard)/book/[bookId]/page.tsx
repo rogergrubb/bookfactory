@@ -769,6 +769,7 @@ export default function BookTheaterPage() {
         {/* Writing Canvas */}
         <div className="flex-1 overflow-hidden">
           <WritingCanvas
+            chapter={currentChapter}
             content={content}
             onChange={(newContent) => {
               if (newContent !== content) {
@@ -776,15 +777,21 @@ export default function BookTheaterPage() {
                 setHasUnsavedChanges(true);
               }
             }}
-            onSelectionChange={setSelection}
+            onSelect={setSelection}
             onCursorChange={setCursorPosition}
-            chapterTitle={currentChapter?.title || ''}
-            wordCount={wordCount}
-            activeSceneContext={activeSceneContext}
-            hasUnsavedChanges={hasUnsavedChanges}
-            onChapterTitleChange={(title) => {
-              renameChapter(activeChapterIndex, title);
+            onCreateNextChapter={() => createChapter(activeChapterIndex)}
+            onGoToNextChapter={() => {
+              if (activeChapterIndex < book.chapters.length - 1) {
+                handleChapterChange(activeChapterIndex + 1);
+              }
             }}
+            hasNextChapter={activeChapterIndex < book.chapters.length - 1}
+            sceneContext={activeSceneContext}
+            isSaving={isSaving}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onSave={saveChapter}
+            wordCount={wordCount}
+            isFirstChapter={activeChapterIndex === 0}
           />
         </div>
 
