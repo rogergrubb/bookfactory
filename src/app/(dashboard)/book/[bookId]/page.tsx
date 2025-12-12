@@ -16,6 +16,7 @@ import { WritingCanvas } from '@/components/book-theater/WritingCanvas';
 import { ToolPanel } from '@/components/book-theater/ToolPanel';
 import { UndoStack } from '@/components/book-theater/UndoStack';
 import { SceneContextPanel } from '@/components/book-theater/SceneContextPanel';
+import { CommandPalette } from '@/components/book-theater/CommandPalette';
 
 // Types
 import { 
@@ -77,6 +78,10 @@ export default function BookTheaterPage() {
   // Tool History
   const [toolHistory, setToolHistory] = useState<ToolRunRecord[]>([]);
   const [showToolHistory, setShowToolHistory] = useState(false);
+
+  // Command Palette
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [recentToolIds, setRecentToolIds] = useState<string[]>([]);
 
   // Scene Contexts (will be loaded from book metadata)
   const [sceneContexts, setSceneContexts] = useState<SceneContext[]>([]);
@@ -257,6 +262,11 @@ export default function BookTheaterPage() {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         saveChapter();
+      }
+      // Command palette shortcut
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
       }
     };
 
@@ -474,6 +484,12 @@ export default function BookTheaterPage() {
 
     setActiveTool(tool);
     setActiveSubOption(subOption || null);
+
+    // Track recent tools (max 5)
+    setRecentToolIds(prev => {
+      const filtered = prev.filter(id => id !== tool.id);
+      return [tool.id, ...filtered].slice(0, 5);
+    });
   }, []);
 
   const handleToolClose = useCallback(() => {
@@ -878,6 +894,18 @@ export default function BookTheaterPage() {
         canUndo={undoStack.length > 0}
         canRedo={redoStack.length > 0}
         onRedo={redo}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onSelectTool={(tool, subOption) => {
+          handleToolSelect(tool, subOption);
+          setShowCommandPalette(false);
+        }}
+        hasSelection={!!selection}
+        recentTools={recentToolIds}
       />
     </div>
   );
