@@ -309,8 +309,11 @@ export default function BookTheaterPage() {
     }
   }, [book, bookId]);
 
-  const deleteChapter = useCallback(async (chapterId: string) => {
+  const deleteChapter = useCallback(async (index: number) => {
     if (!book || book.chapters.length <= 1) return;
+
+    const chapterId = book.chapters[index]?.id;
+    if (!chapterId) return;
 
     try {
       const response = await fetch(`/api/chapters/${chapterId}`, {
@@ -336,8 +339,11 @@ export default function BookTheaterPage() {
     }
   }, [book, activeChapterIndex]);
 
-  const renameChapter = useCallback(async (chapterId: string, newTitle: string) => {
+  const renameChapter = useCallback(async (index: number, newTitle: string) => {
     if (!book) return;
+
+    const chapterId = book.chapters[index]?.id;
+    if (!chapterId) return;
 
     try {
       const response = await fetch(`/api/chapters/${chapterId}`, {
@@ -348,8 +354,8 @@ export default function BookTheaterPage() {
 
       if (!response.ok) throw new Error('Failed to rename chapter');
 
-      const updatedChapters = book.chapters.map(c =>
-        c.id === chapterId ? { ...c, title: newTitle } : c
+      const updatedChapters = book.chapters.map((c, i) =>
+        i === index ? { ...c, title: newTitle } : c
       );
 
       setBook({ ...book, chapters: updatedChapters });
@@ -358,6 +364,40 @@ export default function BookTheaterPage() {
       console.error('Failed to rename chapter:', err);
     }
   }, [book]);
+
+  const reorderChapter = useCallback(async (fromIndex: number, toIndex: number) => {
+    if (!book) return;
+
+    const updatedChapters = [...book.chapters];
+    const [moved] = updatedChapters.splice(fromIndex, 1);
+    updatedChapters.splice(toIndex, 0, moved);
+
+    // Update order values
+    const reorderedChapters = updatedChapters.map((c, i) => ({ ...c, order: i }));
+    setBook({ ...book, chapters: reorderedChapters });
+
+    // Adjust active index if needed
+    if (activeChapterIndex === fromIndex) {
+      setActiveChapterIndex(toIndex);
+    } else if (fromIndex < activeChapterIndex && toIndex >= activeChapterIndex) {
+      setActiveChapterIndex(activeChapterIndex - 1);
+    } else if (fromIndex > activeChapterIndex && toIndex <= activeChapterIndex) {
+      setActiveChapterIndex(activeChapterIndex + 1);
+    }
+
+    // Persist to server
+    try {
+      await Promise.all(reorderedChapters.map(c =>
+        fetch(`/api/chapters/${c.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: c.order }),
+        })
+      ));
+    } catch (err) {
+      console.error('Failed to reorder chapters:', err);
+    }
+  }, [book, activeChapterIndex]);
 
   // -------------------------------------------------------------------------
   // UNDO/REDO
@@ -704,11 +744,13 @@ export default function BookTheaterPage() {
       {/* Chapter Timeline */}
       <ChapterTimeline
         chapters={book.chapters}
-        activeIndex={activeChapterIndex}
+        activeChapterIndex={activeChapterIndex}
         onChapterSelect={handleChapterChange}
         onChapterCreate={createChapter}
         onChapterDelete={deleteChapter}
         onChapterRename={renameChapter}
+        onChapterReorder={reorderChapter}
+        hasUnsavedChanges={hasUnsavedChanges}
       />
 
       {/* Main Content Area */}
@@ -739,9 +781,7 @@ export default function BookTheaterPage() {
             activeSceneContext={activeSceneContext}
             hasUnsavedChanges={hasUnsavedChanges}
             onChapterTitleChange={(title) => {
-              if (currentChapter) {
-                renameChapter(currentChapter.id, title);
-              }
+              renameChapter(activeChapterIndex, title);
             }}
           />
         </div>
