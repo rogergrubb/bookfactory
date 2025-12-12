@@ -86,7 +86,7 @@ const demoSceneContexts: SceneContext[] = [
     name: 'Storm Night',
     icon: '⛈️',
     mood: { primary: 'tense', secondary: 'mysterious' },
-    sensoryPalette: {
+    sensory: {
       sight: 'Lightning flashes, deep shadows, rain-slicked cobblestones',
       sound: 'Thunder, howling wind, rain on stone',
       smell: 'Ozone, wet earth, old stone',
