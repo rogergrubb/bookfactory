@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ChevronLeft, Sparkles, ArrowRight, Command
@@ -39,8 +39,6 @@ A flash of lightning illuminated the alley, and Maya saw it: a shadow that moved
     bookId: 'demo-book',
     wordCount: 156,
     status: 'draft',
-    wordCount: 0,
-    status: 'draft',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -60,8 +58,6 @@ Maya spun, her pendant flaring. An old man stood in the doorway, his eyes reflec
     bookId: 'demo-book',
     wordCount: 112,
     status: 'draft',
-    wordCount: 0,
-    status: 'draft',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -72,8 +68,6 @@ Maya spun, her pendant flaring. An old man stood in the doorway, his eyes reflec
     order: 3,
     bookId: 'demo-book',
     wordCount: 6,
-    status: 'draft',
-    wordCount: 0,
     status: 'draft',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -143,7 +137,6 @@ export default function DemoTheaterPage() {
 
   // Handle chapter change
   const handleChapterChange = useCallback((index: number) => {
-    // Save current content
     setChapters(prev => prev.map((ch, i) => 
       i === activeChapterIndex ? { ...ch, content: chapterContent } : ch
     ));
@@ -170,7 +163,7 @@ export default function DemoTheaterPage() {
   }, []);
 
   // Mock AI generation
-  const handleGenerate = useCallback(async (instruction?: string): Promise<string> => {
+  const handleGenerate = useCallback(async (): Promise<string> => {
     await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
     
     const mockResponses: Record<string, string[]> = {
