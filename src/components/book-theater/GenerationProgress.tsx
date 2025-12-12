@@ -3,7 +3,7 @@
 import React from 'react';
 import { Sparkles, Loader2, Check, AlertCircle, PenTool, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { GenerationProgress, GenerationPhase } from '../hooks/useMicroInteractions';
+import { GenerationProgress, GenerationPhase } from './hooks/useMicroInteractions';
 
 interface GenerationProgressBarProps {
   progress: GenerationProgress;
