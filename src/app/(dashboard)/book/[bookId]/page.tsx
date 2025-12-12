@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Settings, Download, Loader2 } from 'lucide-react';
+import { 
+  ChevronLeft, Settings, Download, Loader2, Save, Check, 
+  Clock, History, X, AlertCircle
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Components
@@ -14,11 +17,25 @@ import { ToolPanel } from '@/components/book-theater/ToolPanel';
 import { UndoStack } from '@/components/book-theater/UndoStack';
 import { SceneContextPanel } from '@/components/book-theater/SceneContextPanel';
 
-// Types & Tools
+// Types
 import { 
   Book, Chapter, Tool, SubOption, Selection, 
   UndoItem, SceneContext 
 } from '@/components/book-theater/types';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface ToolRunRecord {
+  id: string;
+  toolId: string;
+  toolName: string;
+  input: string;
+  output: string;
+  createdAt: string;
+  status: string;
+}
 
 // ============================================================================
 // MAIN PAGE COMPONENT
@@ -28,6 +45,7 @@ export default function BookTheaterPage() {
   const params = useParams();
   const router = useRouter();
   const bookId = params.bookId as string;
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // -------------------------------------------------------------------------
   // STATE
@@ -39,8 +57,12 @@ export default function BookTheaterPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [content, setContent] = useState('');
+  
+  // Save State
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Editor State
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -50,25 +72,14 @@ export default function BookTheaterPage() {
   const [activeTool, setActiveTool] = useState<Tool | null>(null);
   const [activeSubOption, setActiveSubOption] = useState<SubOption | null>(null);
   const [showSceneContextPanel, setShowSceneContextPanel] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Scene Contexts
-  const [sceneContexts, setSceneContexts] = useState<SceneContext[]>([
-    {
-      id: 'haunted-house',
-      name: 'Haunted House',
-      icon: '🏚️',
-      sensory: {
-        sight: 'Cobwebs in corners, dust motes in pale light, shadows that move',
-        sound: 'Creaking floorboards, distant whispers, settling wood',
-        smell: 'Musty decay, old wood, something rotting',
-        touch: 'Cold spots, rough peeling wallpaper, sticky door handles',
-        taste: 'Dust on the tongue, metallic fear',
-      },
-      mood: { primary: 'Dread', secondary: 'Curiosity' },
-      props: ['Creaking stairs', 'Flickering candles', 'Dusty portraits', 'Locked doors'],
-      aiNotes: 'Build tension slowly. Characters should feel watched. Every sound is amplified.',
-    },
-  ]);
+  // Tool History
+  const [toolHistory, setToolHistory] = useState<ToolRunRecord[]>([]);
+  const [showToolHistory, setShowToolHistory] = useState(false);
+
+  // Scene Contexts (will be loaded from book metadata)
+  const [sceneContexts, setSceneContexts] = useState<SceneContext[]>([]);
   const [activeSceneContext, setActiveSceneContext] = useState<SceneContext | null>(null);
 
   // Undo/Redo
@@ -86,9 +97,11 @@ export default function BookTheaterPage() {
   // DATA FETCHING
   // -------------------------------------------------------------------------
 
+  // Load book data
   useEffect(() => {
     async function fetchBook() {
       try {
+        setLoading(true);
         const response = await fetch(`/api/books/${bookId}`);
         if (!response.ok) throw new Error('Book not found');
         
@@ -96,83 +109,175 @@ export default function BookTheaterPage() {
         const bookData = data.book || data;
         setBook(bookData);
 
+        // Load scene contexts from book metadata
+        if (bookData.metadata?.sceneContexts) {
+          setSceneContexts(bookData.metadata.sceneContexts);
+        }
+
+        // Load characters
+        if (bookData.characters) {
+          setCharacters(bookData.characters.map((c: any) => ({ id: c.id, name: c.name })));
+        }
+
+        // Set initial chapter content
         if (bookData.chapters?.length > 0) {
           const sorted = [...bookData.chapters].sort((a: Chapter, b: Chapter) => a.order - b.order);
-          setBook({ ...bookData, chapters: sorted });
-          setContent(sorted[0]?.content || '');
+          bookData.chapters = sorted;
+          setContent(sorted[0].content || '');
+          setLastSaved(new Date(sorted[0].updatedAt));
         }
+
+        setError(null);
       } catch (err) {
+        console.error('Failed to load book:', err);
         setError(err instanceof Error ? err.message : 'Failed to load book');
       } finally {
         setLoading(false);
       }
     }
 
-    if (bookId) fetchBook();
+    if (bookId) {
+      fetchBook();
+    }
+  }, [bookId]);
+
+  // Load tool history
+  useEffect(() => {
+    async function fetchToolHistory() {
+      try {
+        const response = await fetch(`/api/books/${bookId}/tool-runs?limit=20`);
+        if (response.ok) {
+          const data = await response.json();
+          setToolHistory(data.toolRuns || []);
+        }
+      } catch (err) {
+        console.error('Failed to load tool history:', err);
+      }
+    }
+
+    if (bookId) {
+      fetchToolHistory();
+    }
   }, [bookId]);
 
   // -------------------------------------------------------------------------
-  // CHAPTER MANAGEMENT
+  // SAVE FUNCTIONALITY
   // -------------------------------------------------------------------------
 
   const saveChapter = useCallback(async () => {
-    if (!currentChapter || !book) return;
+    if (!currentChapter || isSaving) return;
 
     setIsSaving(true);
+    setSaveError(null);
+
     try {
       const response = await fetch(`/api/chapters/${currentChapter.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, wordCount }),
+        body: JSON.stringify({
+          content,
+          wordCount,
+        }),
       });
 
-      if (!response.ok) throw new Error('Failed to save');
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to save');
+      }
 
-      setBook(prev => prev ? {
-        ...prev,
-        chapters: prev.chapters.map((ch, i) =>
-          i === activeChapterIndex ? { ...ch, content, wordCount } : ch
-        ),
-      } : null);
+      // Update local book state
+      if (book) {
+        const updatedChapters = [...book.chapters];
+        updatedChapters[activeChapterIndex] = {
+          ...updatedChapters[activeChapterIndex],
+          content,
+          wordCount,
+          updatedAt: new Date().toISOString(),
+        };
+        setBook({ ...book, chapters: updatedChapters });
+      }
 
       setHasUnsavedChanges(false);
+      setLastSaved(new Date());
     } catch (err) {
       console.error('Save failed:', err);
+      setSaveError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setIsSaving(false);
     }
-  }, [currentChapter, book, content, wordCount, activeChapterIndex]);
+  }, [currentChapter, content, wordCount, book, activeChapterIndex, isSaving]);
 
-  const switchChapter = useCallback(async (index: number) => {
-    if (!book || index === activeChapterIndex) return;
+  // Auto-save effect
+  useEffect(() => {
+    if (hasUnsavedChanges && currentChapter) {
+      // Clear existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
 
+      // Set new timeout for auto-save (5 seconds)
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        saveChapter();
+      }, 5000);
+    }
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [hasUnsavedChanges, currentChapter, saveChapter]);
+
+  // Save on chapter switch
+  const handleChapterChange = useCallback(async (index: number) => {
     if (hasUnsavedChanges && currentChapter) {
       await saveChapter();
     }
 
     setActiveChapterIndex(index);
-    setContent(book.chapters[index]?.content || '');
+
+    if (book?.chapters[index]) {
+      setContent(book.chapters[index].content || '');
+      setLastSaved(new Date(book.chapters[index].updatedAt));
+    }
+
     setHasUnsavedChanges(false);
-    setActiveTool(null);
-    setActiveSubOption(null);
+    setUndoStack([]);
+    setRedoStack([]);
     setSelection(null);
-  }, [book, activeChapterIndex, hasUnsavedChanges, currentChapter, saveChapter]);
+  }, [book, hasUnsavedChanges, currentChapter, saveChapter]);
+
+  // Keyboard shortcut for save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        saveChapter();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveChapter]);
+
+  // -------------------------------------------------------------------------
+  // CHAPTER MANAGEMENT
+  // -------------------------------------------------------------------------
 
   const createChapter = useCallback(async (insertAfterIndex?: number) => {
     if (!book) return;
 
     try {
-      const newOrder = insertAfterIndex !== undefined
-        ? book.chapters[insertAfterIndex].order + 1
-        : (book.chapters.length > 0 
-            ? Math.max(...book.chapters.map(c => c.order)) + 1 
-            : 1);
+      const newOrder = insertAfterIndex !== undefined 
+        ? insertAfterIndex + 1.5 
+        : book.chapters.length;
 
-      const response = await fetch(`/api/books/${bookId}/chapters`, {
+      const response = await fetch('/api/chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `Chapter ${newOrder}`,
+          bookId,
+          title: `Chapter ${book.chapters.length + 1}`,
           content: '',
           order: newOrder,
         }),
@@ -180,92 +285,74 @@ export default function BookTheaterPage() {
 
       if (!response.ok) throw new Error('Failed to create chapter');
 
-      const newChapter = await response.json();
+      const { chapter } = await response.json();
 
-      setBook(prev => {
-        if (!prev) return null;
+      // Update local state
+      const updatedChapters = [...book.chapters, chapter]
+        .sort((a, b) => a.order - b.order)
+        .map((c, i) => ({ ...c, order: i }));
 
-        let updatedChapters = [...prev.chapters];
+      setBook({ ...book, chapters: updatedChapters });
 
-        if (insertAfterIndex !== undefined) {
-          updatedChapters = updatedChapters.map(ch => 
-            ch.order >= newOrder ? { ...ch, order: ch.order + 1 } : ch
-          );
-        }
-
-        updatedChapters.push(newChapter);
-        updatedChapters.sort((a, b) => a.order - b.order);
-
-        return { ...prev, chapters: updatedChapters };
-      });
-
-      const newIndex = insertAfterIndex !== undefined 
-        ? insertAfterIndex + 1 
-        : (book.chapters.length);
-      
+      // Switch to new chapter
+      const newIndex = updatedChapters.findIndex(c => c.id === chapter.id);
       setActiveChapterIndex(newIndex);
       setContent('');
       setHasUnsavedChanges(false);
+
     } catch (err) {
       console.error('Failed to create chapter:', err);
     }
   }, [book, bookId]);
 
-  const renameChapter = useCallback(async (index: number, newTitle: string) => {
-    if (!book) return;
-
-    const chapter = book.chapters[index];
-    if (!chapter) return;
-
-    try {
-      await fetch(`/api/chapters/${chapter.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle }),
-      });
-
-      setBook(prev => prev ? {
-        ...prev,
-        chapters: prev.chapters.map((ch, i) =>
-          i === index ? { ...ch, title: newTitle } : ch
-        ),
-      } : null);
-    } catch (err) {
-      console.error('Failed to rename chapter:', err);
-    }
-  }, [book]);
-
-  const deleteChapter = useCallback(async (index: number) => {
+  const deleteChapter = useCallback(async (chapterId: string) => {
     if (!book || book.chapters.length <= 1) return;
 
-    const chapter = book.chapters[index];
-    if (!chapter) return;
-
     try {
-      await fetch(`/api/chapters/${chapter.id}`, {
+      const response = await fetch(`/api/chapters/${chapterId}`, {
         method: 'DELETE',
       });
 
-      setBook(prev => {
-        if (!prev) return null;
-        const updated = prev.chapters.filter((_, i) => i !== index);
-        return { ...prev, chapters: updated };
-      });
+      if (!response.ok) throw new Error('Failed to delete chapter');
 
-      if (activeChapterIndex >= index && activeChapterIndex > 0) {
-        setActiveChapterIndex(prev => prev - 1);
+      const updatedChapters = book.chapters
+        .filter(c => c.id !== chapterId)
+        .map((c, i) => ({ ...c, order: i }));
+
+      setBook({ ...book, chapters: updatedChapters });
+
+      // Adjust active index if needed
+      if (activeChapterIndex >= updatedChapters.length) {
+        setActiveChapterIndex(updatedChapters.length - 1);
+        setContent(updatedChapters[updatedChapters.length - 1].content || '');
       }
 
-      const newIndex = Math.min(activeChapterIndex, book.chapters.length - 2);
-      setContent(book.chapters[newIndex === index ? newIndex + 1 : newIndex]?.content || '');
     } catch (err) {
       console.error('Failed to delete chapter:', err);
     }
   }, [book, activeChapterIndex]);
 
-  const reorderChapter = useCallback(async (fromIndex: number, toIndex: number) => {
+  const renameChapter = useCallback(async (chapterId: string, newTitle: string) => {
     if (!book) return;
-    console.log('Reorder from', fromIndex, 'to', toIndex);
+
+    try {
+      const response = await fetch(`/api/chapters/${chapterId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!response.ok) throw new Error('Failed to rename chapter');
+
+      const updatedChapters = book.chapters.map(c =>
+        c.id === chapterId ? { ...c, title: newTitle } : c
+      );
+
+      setBook({ ...book, chapters: updatedChapters });
+
+    } catch (err) {
+      console.error('Failed to rename chapter:', err);
+    }
   }, [book]);
 
   // -------------------------------------------------------------------------
@@ -275,7 +362,7 @@ export default function BookTheaterPage() {
   const pushUndo = useCallback((label: string, toolName: string) => {
     if (!currentChapter) return;
 
-    const item: UndoItem = {
+    setUndoStack(prev => [{
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       content,
       label,
@@ -283,9 +370,8 @@ export default function BookTheaterPage() {
       timestamp: new Date(),
       chapterId: currentChapter.id,
       wordCount,
-    };
+    }, ...prev.slice(0, 4)]);
 
-    setUndoStack(prev => [item, ...prev.slice(0, 4)]);
     setRedoStack([]);
   }, [currentChapter, content, wordCount]);
 
@@ -356,29 +442,49 @@ export default function BookTheaterPage() {
       throw new Error('No tool or chapter selected');
     }
 
-    const response = await fetch('/api/ai/theater', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        toolId: activeTool.id,
-        subOptionId: activeSubOption?.id,
-        chapterContent: content,
-        selectedText: selection?.text,
-        cursorPosition,
-        sceneContext: activeSceneContext,
-        customInstruction,
-        bookId,
-        chapterId: currentChapter.id,
-      }),
-    });
+    setIsGenerating(true);
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Generation failed');
+    try {
+      const response = await fetch('/api/ai/theater', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolId: activeTool.id,
+          subOptionId: activeSubOption?.id,
+          chapterContent: content,
+          selectedText: selection?.text,
+          cursorPosition,
+          sceneContext: activeSceneContext,
+          customInstruction,
+          bookId,
+          chapterId: currentChapter.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Generation failed');
+      }
+
+      const data = await response.json();
+
+      // Add to tool history
+      if (data.toolRunId) {
+        setToolHistory(prev => [{
+          id: data.toolRunId,
+          toolId: activeTool.id,
+          toolName: activeTool.name,
+          input: selection?.text || content.slice(Math.max(0, cursorPosition - 200), cursorPosition + 200),
+          output: data.result,
+          createdAt: new Date().toISOString(),
+          status: 'completed',
+        }, ...prev.slice(0, 19)]);
+      }
+
+      return data.result;
+    } finally {
+      setIsGenerating(false);
     }
-
-    const data = await response.json();
-    return data.result;
   }, [activeTool, activeSubOption, content, selection, cursorPosition, activeSceneContext, bookId, currentChapter]);
 
   const handleInsertAfter = useCallback((text: string) => {
@@ -427,106 +533,166 @@ export default function BookTheaterPage() {
   // SCENE CONTEXT HANDLERS
   // -------------------------------------------------------------------------
 
-  const handleCreateSceneContext = useCallback((context: Omit<SceneContext, 'id'>) => {
+  const handleCreateSceneContext = useCallback(async (context: Omit<SceneContext, 'id'>) => {
     const newContext: SceneContext = {
       ...context,
       id: `ctx-${Date.now()}`,
     };
-    setSceneContexts(prev => [...prev, newContext]);
-  }, []);
+    const updated = [...sceneContexts, newContext];
+    setSceneContexts(updated);
 
-  const handleUpdateSceneContext = useCallback((context: SceneContext) => {
-    setSceneContexts(prev => prev.map(c => c.id === context.id ? context : c));
+    // Persist to book metadata
+    if (book) {
+      await fetch(`/api/books/${bookId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata: { ...book.metadata, sceneContexts: updated },
+        }),
+      });
+    }
+  }, [sceneContexts, book, bookId]);
+
+  const handleUpdateSceneContext = useCallback(async (context: SceneContext) => {
+    const updated = sceneContexts.map(c => c.id === context.id ? context : c);
+    setSceneContexts(updated);
+
     if (activeSceneContext?.id === context.id) {
       setActiveSceneContext(context);
     }
-  }, [activeSceneContext]);
 
-  const handleDeleteSceneContext = useCallback((id: string) => {
-    setSceneContexts(prev => prev.filter(c => c.id !== id));
+    // Persist to book metadata
+    if (book) {
+      await fetch(`/api/books/${bookId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata: { ...book.metadata, sceneContexts: updated },
+        }),
+      });
+    }
+  }, [sceneContexts, activeSceneContext, book, bookId]);
+
+  const handleDeleteSceneContext = useCallback(async (id: string) => {
+    const updated = sceneContexts.filter(c => c.id !== id);
+    setSceneContexts(updated);
+
     if (activeSceneContext?.id === id) {
       setActiveSceneContext(null);
     }
-  }, [activeSceneContext]);
+
+    // Persist to book metadata
+    if (book) {
+      await fetch(`/api/books/${bookId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata: { ...book.metadata, sceneContexts: updated },
+        }),
+      });
+    }
+  }, [sceneContexts, activeSceneContext, book, bookId]);
 
   // -------------------------------------------------------------------------
-  // KEYBOARD SHORTCUTS
-  // -------------------------------------------------------------------------
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo(0);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        redo();
-      }
-      if (e.key === 'Escape') {
-        handleToolClose();
-        setShowSceneContextPanel(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, handleToolClose]);
-
-  // -------------------------------------------------------------------------
-  // RENDER: LOADING / ERROR
+  // RENDER
   // -------------------------------------------------------------------------
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-stone-950">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
       </div>
     );
   }
 
   if (error || !book) {
     return (
-      <div className="min-h-screen bg-stone-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{error || 'Book not found'}</p>
-          <Link href="/books" className="text-teal-400 hover:underline">
-            Back to Books
-          </Link>
-        </div>
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-stone-950 text-white">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+        <h1 className="text-xl font-semibold">{error || 'Book not found'}</h1>
+        <Link href="/books" className="text-teal-500 hover:underline">
+          ← Back to Books
+        </Link>
       </div>
     );
   }
 
-  // -------------------------------------------------------------------------
-  // RENDER: MAIN LAYOUT
-  // -------------------------------------------------------------------------
-
   return (
-    <div className="h-screen flex flex-col bg-stone-950 overflow-hidden">
-      {/* Top Header */}
-      <header className="flex items-center justify-between px-4 py-2 bg-stone-900 border-b border-stone-800">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/books"
-            className="flex items-center gap-1 text-stone-400 hover:text-stone-200 transition-colors"
+    <div className="flex h-screen flex-col bg-stone-950 text-white">
+      {/* Header */}
+      <header className="flex h-14 items-center justify-between border-b border-stone-800 px-4">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/books" 
+            className="flex items-center gap-1 text-stone-400 hover:text-white transition-colors"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="h-4 w-4" />
             <span className="text-sm">Books</span>
           </Link>
-          <div className="w-px h-5 bg-stone-700" />
-          <h1 className="text-lg font-medium text-stone-100">{book.title}</h1>
-          {book.subtitle && (
-            <span className="text-sm text-stone-500">{book.subtitle}</span>
-          )}
+          <div className="h-4 w-px bg-stone-700" />
+          <h1 className="font-medium text-white">{book.title}</h1>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="p-2 rounded hover:bg-stone-800 text-stone-400 hover:text-stone-200">
-            <Settings className="w-5 h-5" />
+        <div className="flex items-center gap-3">
+          {/* Save Status */}
+          <div className="flex items-center gap-2 text-sm">
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
+                <span className="text-stone-400">Saving...</span>
+              </>
+            ) : saveError ? (
+              <>
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span className="text-red-400">Save failed</span>
+              </>
+            ) : hasUnsavedChanges ? (
+              <>
+                <div className="h-2 w-2 rounded-full bg-amber-500" />
+                <span className="text-stone-400">Unsaved changes</span>
+              </>
+            ) : lastSaved ? (
+              <>
+                <Check className="h-4 w-4 text-emerald-500" />
+                <span className="text-stone-500">
+                  Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </>
+            ) : null}
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={saveChapter}
+            disabled={!hasUnsavedChanges || isSaving}
+            className={cn(
+              'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+              hasUnsavedChanges && !isSaving
+                ? 'bg-teal-600 text-white hover:bg-teal-500'
+                : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+            )}
+          >
+            <Save className="h-4 w-4" />
+            Save
           </button>
-          <button className="p-2 rounded hover:bg-stone-800 text-stone-400 hover:text-stone-200">
-            <Download className="w-5 h-5" />
+
+          {/* Tool History */}
+          <button
+            onClick={() => setShowToolHistory(!showToolHistory)}
+            className="flex items-center gap-2 rounded-lg bg-stone-800 px-3 py-1.5 text-sm text-stone-300 hover:bg-stone-700 transition-colors"
+          >
+            <History className="h-4 w-4" />
+            History
+          </button>
+
+          {/* Settings */}
+          <button className="rounded-lg p-2 text-stone-400 hover:bg-stone-800 hover:text-white transition-colors">
+            <Settings className="h-5 w-5" />
+          </button>
+
+          {/* Export */}
+          <button className="rounded-lg p-2 text-stone-400 hover:bg-stone-800 hover:text-white transition-colors">
+            <Download className="h-5 w-5" />
           </button>
         </div>
       </header>
@@ -534,91 +700,127 @@ export default function BookTheaterPage() {
       {/* Chapter Timeline */}
       <ChapterTimeline
         chapters={book.chapters}
-        activeChapterIndex={activeChapterIndex}
-        onChapterSelect={switchChapter}
+        activeIndex={activeChapterIndex}
+        onChapterSelect={handleChapterChange}
         onChapterCreate={createChapter}
-        onChapterRename={renameChapter}
         onChapterDelete={deleteChapter}
-        onChapterReorder={reorderChapter}
-        hasUnsavedChanges={hasUnsavedChanges}
+        onChapterRename={renameChapter}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Tool Tray (Left) */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Tool Tray */}
         <ToolTray
-          onSelectTool={handleToolSelect}
+          onToolSelect={handleToolSelect}
           activeTool={activeTool}
-          hasSelection={!!selection}
-          characters={characters}
-          sceneContexts={sceneContexts}
           activeSceneContext={activeSceneContext}
-          onSceneContextChange={setActiveSceneContext}
+          onSceneContextClick={() => setShowSceneContextPanel(true)}
+          characters={characters}
         />
 
-        {/* Writing Canvas (Center) */}
-        <WritingCanvas
-          chapter={currentChapter}
-          content={content}
-          onChange={(newContent) => {
-            setContent(newContent);
-            setHasUnsavedChanges(true);
-          }}
-          onSelect={setSelection}
-          onCursorChange={setCursorPosition}
-          onCreateNextChapter={() => createChapter(activeChapterIndex)}
-          onGoToNextChapter={() => switchChapter(activeChapterIndex + 1)}
-          hasNextChapter={activeChapterIndex < book.chapters.length - 1}
-          sceneContext={activeSceneContext}
-          isSaving={isSaving}
-          hasUnsavedChanges={hasUnsavedChanges}
-          onSave={saveChapter}
-          wordCount={wordCount}
-          isFirstChapter={book.chapters.length === 0}
-        />
+        {/* Writing Canvas */}
+        <div className="flex-1 overflow-hidden">
+          <WritingCanvas
+            content={content}
+            onChange={(newContent) => {
+              if (newContent !== content) {
+                setContent(newContent);
+                setHasUnsavedChanges(true);
+              }
+            }}
+            onSelectionChange={setSelection}
+            onCursorChange={setCursorPosition}
+            chapterTitle={currentChapter?.title || ''}
+            wordCount={wordCount}
+            activeSceneContext={activeSceneContext}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onChapterTitleChange={(title) => {
+              if (currentChapter) {
+                renameChapter(currentChapter.id, title);
+              }
+            }}
+          />
+        </div>
 
-        {/* Tool Panel (Right) - Conditional */}
-        {activeTool && !showSceneContextPanel && (
+        {/* Tool Panel */}
+        {activeTool && (
           <ToolPanel
             tool={activeTool}
             subOption={activeSubOption}
             selection={selection}
-            sceneContext={activeSceneContext}
-            chapterContent={content}
-            cursorPosition={cursorPosition}
             onClose={handleToolClose}
             onGenerate={handleGenerate}
             onInsertAfter={handleInsertAfter}
             onReplace={handleReplace}
             onInsertAtCursor={handleInsertAtCursor}
+            isGenerating={isGenerating}
           />
         )}
 
-        {/* Scene Context Panel (Right) - Conditional */}
+        {/* Scene Context Panel */}
         {showSceneContextPanel && (
           <SceneContextPanel
             contexts={sceneContexts}
             activeContext={activeSceneContext}
-            onSelect={(ctx) => {
-              setActiveSceneContext(ctx);
-              setShowSceneContextPanel(false);
-            }}
+            onSelect={setActiveSceneContext}
             onCreate={handleCreateSceneContext}
             onUpdate={handleUpdateSceneContext}
             onDelete={handleDeleteSceneContext}
             onClose={() => setShowSceneContextPanel(false)}
           />
         )}
+
+        {/* Tool History Panel */}
+        {showToolHistory && (
+          <div className="w-80 border-l border-stone-800 bg-stone-900 p-4 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-white">Tool History</h3>
+              <button 
+                onClick={() => setShowToolHistory(false)}
+                className="p-1 rounded hover:bg-stone-800"
+              >
+                <X className="h-4 w-4 text-stone-400" />
+              </button>
+            </div>
+
+            {toolHistory.length === 0 ? (
+              <p className="text-sm text-stone-500">No tool runs yet. Use a tool to see history.</p>
+            ) : (
+              <div className="space-y-3">
+                {toolHistory.map((run) => (
+                  <div key={run.id} className="rounded-lg bg-stone-800 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white">{run.toolName}</span>
+                      <span className="text-xs text-stone-500">
+                        {new Date(run.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-400 line-clamp-2">
+                      {run.output?.slice(0, 100)}...
+                    </p>
+                    <button
+                      onClick={() => {
+                        pushUndo('Reuse from history', run.toolName);
+                        handleInsertAtCursor(run.output);
+                      }}
+                      className="mt-2 text-xs text-teal-500 hover:text-teal-400"
+                    >
+                      Insert this result
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Undo Stack (Bottom) */}
+      {/* Undo Stack */}
       <UndoStack
         items={undoStack}
         onUndo={undo}
-        onUndoLatest={() => undo(0)}
-        canUndo={undoStack.length > 0}
-        canRedo={redoStack.length > 0}
         onRedo={redo}
+        canRedo={redoStack.length > 0}
       />
     </div>
   );
