@@ -1,98 +1,169 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { z } from 'zod';
-import { prisma, getChapterById, updateChapter, deleteChapter, logActivity, recordWritingSession } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 
-type RouteParams = { params: Promise<{ chapterId: string }> };
-
-export async function GET(req: NextRequest, { params }: RouteParams) {
+// GET /api/chapters/[chapterId] - Get a single chapter
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ chapterId: string }> }
+) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { chapterId } = await params;
-    const chapter = await getChapterById(chapterId, userId);
-    if (!chapter) return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: {
+        book: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!chapter) {
+      return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+    }
+
+    // Verify ownership
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user || chapter.book.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     return NextResponse.json(chapter);
   } catch (error) {
-    console.error('GET /api/chapters/[chapterId] error:', error);
+    console.error('Error fetching chapter:', error);
     return NextResponse.json({ error: 'Failed to fetch chapter' }, { status: 500 });
   }
 }
 
-const updateChapterSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  content: z.string().optional(),
-  status: z.enum(['DRAFT', 'COMPLETE', 'REVISION']).optional(),
-  order: z.number().int().positive().optional(),
-});
-
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
+// PATCH /api/chapters/[chapterId] - Update a chapter
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ chapterId: string }> }
+) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { chapterId } = await params;
-    const body = await req.json();
-    const data = updateChapterSchema.parse(body);
+    const body = await request.json();
+    const { title, content, wordCount, status, order } = body;
 
-    // Get existing chapter for word count comparison
-    const existingChapter = await getChapterById(chapterId, userId);
-    if (!existingChapter) return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+    // Get chapter with book info
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: {
+        book: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
 
-    const chapter = await updateChapter(chapterId, userId, data);
-    if (!chapter) return NextResponse.json({ error: 'Failed to update chapter' }, { status: 500 });
-
-    // Track writing session if content changed
-    if (data.content !== undefined) {
-      const oldWordCount = existingChapter.wordCount;
-      const newWordCount = chapter.wordCount;
-      const wordsDiff = newWordCount - oldWordCount;
-
-      if (wordsDiff > 0) {
-        await recordWritingSession({
-          userId,
-          wordsWritten: wordsDiff,
-          bookId: existingChapter.bookId,
-          chapterId: chapter.id,
-        });
-      }
+    if (!chapter) {
+      return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
     }
 
-    // Log activity if status changed to COMPLETE
-    if (data.status === 'COMPLETE' && existingChapter.status !== 'COMPLETE') {
-      await logActivity({
-        userId,
-        type: 'CHAPTER_COMPLETED',
-        message: `Completed chapter "${chapter.title}"`,
-        bookId: existingChapter.bookId,
-        chapterId: chapter.id,
-      });
+    // Verify ownership
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user || chapter.book.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    return NextResponse.json(chapter);
+    // Build update data
+    const updateData: Record<string, unknown> = {};
+    if (title !== undefined) updateData.title = title;
+    if (content !== undefined) updateData.content = content;
+    if (wordCount !== undefined) updateData.wordCount = wordCount;
+    if (status !== undefined) updateData.status = status;
+    if (order !== undefined) updateData.order = order;
+
+    // Update chapter
+    const updatedChapter = await prisma.chapter.update({
+      where: { id: chapterId },
+      data: updateData,
+    });
+
+    return NextResponse.json(updatedChapter);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
-    }
-    console.error('PATCH /api/chapters/[chapterId] error:', error);
+    console.error('Error updating chapter:', error);
     return NextResponse.json({ error: 'Failed to update chapter' }, { status: 500 });
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: RouteParams) {
+// DELETE /api/chapters/[chapterId] - Delete a chapter
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ chapterId: string }> }
+) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { chapterId } = await params;
-    const result = await deleteChapter(chapterId, userId);
-    if (!result) return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+
+    // Get chapter with book info
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: {
+        book: {
+          select: {
+            userId: true,
+            chapters: {
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!chapter) {
+      return NextResponse.json({ error: 'Chapter not found' }, { status: 404 });
+    }
+
+    // Verify ownership
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user || chapter.book.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Don't allow deleting the last chapter
+    if (chapter.book.chapters.length <= 1) {
+      return NextResponse.json(
+        { error: 'Cannot delete the last chapter' },
+        { status: 400 }
+      );
+    }
+
+    // Delete chapter
+    await prisma.chapter.delete({
+      where: { id: chapterId },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('DELETE /api/chapters/[chapterId] error:', error);
+    console.error('Error deleting chapter:', error);
     return NextResponse.json({ error: 'Failed to delete chapter' }, { status: 500 });
   }
 }
