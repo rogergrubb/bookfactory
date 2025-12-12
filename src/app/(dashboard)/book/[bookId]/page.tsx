@@ -801,12 +801,14 @@ export default function BookTheaterPage() {
             tool={activeTool}
             subOption={activeSubOption}
             selection={selection}
+            sceneContext={activeSceneContext}
+            chapterContent={content}
+            cursorPosition={cursorPosition}
             onClose={handleToolClose}
             onGenerate={handleGenerate}
             onInsertAfter={handleInsertAfter}
             onReplace={handleReplace}
             onInsertAtCursor={handleInsertAtCursor}
-            isGenerating={isGenerating}
           />
         )}
 
