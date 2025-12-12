@@ -3,7 +3,32 @@ import {
   Maximize2, Minimize2, PenTool, Sparkles, Dumbbell, Waves, MessageCircle, Eye,
   BarChart3, Mic, TrendingUp, Users, RefreshCw, Search, BookOpen, Gauge, Heart,
   Lightbulb, UserPlus, MessagesSquare, ArrowRightLeft, Flame, Shuffle, HelpCircle,
-  Globe, GitBranch, Clock, Layers, BookMarked, Theater, Volume2, FileText
+  Globe, GitBranch, Clock, Layers, BookMarked, Theater, Volume2, FileText,
+  Feather, Quote, Bomb, Target, Glasses, Scale, Compass, Anchor, 
+  Footprints, Wind, Sunrise, Moon, Coffee, Ghost, Skull, Crown,
+  Gem, Lock, Key, Map, Scroll, Wand2, Star, Flashlight,
+  Camera, Film, Music, Paintbrush, Shapes, Building, Mountain, TreePine,
+  CloudRain, Snowflake, Sun, Thermometer, Droplet, Leaf, Flower2, Bug,
+  Bird, Cat, Dog, Fish, Rabbit, Squirrel, Shield, Sword,
+  Axe, Hammer, Wrench, Settings, CircleDot, Crosshair, AlertTriangle, Info,
+  CheckCircle2, XCircle, Hourglass, Timer, Calendar, Bell, Mail, Phone,
+  MessageSquarePlus, UserMinus, UserCheck, HeartHandshake, HeartCrack, Angry, Frown, Smile,
+  Laugh, Meh, PartyPopper, Rocket, Plane, Car, Train, Ship,
+  Bike, PersonStanding, Baby, GraduationCap, Briefcase, Stethoscope, Gavel, BadgeDollarSign,
+  Languages, Type, AlignLeft, List, ListOrdered, Hash, AtSign, Link2,
+  Unlink, Copy, ClipboardCheck, Download, Upload, Share2, ExternalLink, Bookmark,
+  Tag, Tags, Archive, FolderOpen, FileQuestion, FilePlus, FileEdit, Trash2,
+  RotateCcw, History, GitMerge, GitPullRequest, Diff, Replace, Scissors, Combine,
+  Split, Filter, SortAsc, SortDesc, ArrowUpDown, Move, LayoutGrid, LayoutList,
+  Columns, Rows, Table, PieChart, LineChart, Activity, Percent, Binary,
+  Code, Terminal, Database, Server, Cloud, Wifi, Signal, Power,
+  ToggleLeft, ToggleRight, Sliders, SlidersHorizontal, CircleOff, Circle, Square, Triangle,
+  Pentagon, Hexagon, Octagon, Diamond, Award, Trophy, Medal, Ribbon,
+  Gift, Cake, Balloon, Confetti, Candy, Cookie, Pizza, Apple,
+  Banana, Cherry, Grape, Lemon, Citrus, Carrot, Salad, Sandwich,
+  Soup, UtensilsCrossed, ChefHat, Wine, Beer, Martini, GlassWater, Milk,
+  Focus, ZoomIn, ZoomOut, Scan, ScanLine, QrCode, Barcode, Fingerprint,
+  EyeOff, Ear, EarOff, Hand, HandMetal, ThumbsUp, ThumbsDown, Pointer
 } from 'lucide-react';
 import { Tool, ToolCategory, CategoryMeta } from './types';
 
@@ -20,11 +45,13 @@ export const categoryMeta: Record<ToolCategory, CategoryMeta> = {
 };
 
 // ============================================================================
-// ALL 44 TOOLS
+// EXPANDED TOOLS - 50+ WITH FULL SUBMENUS
 // ============================================================================
 
 export const tools: Tool[] = [
-  // GENERATE TOOLS (6)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GENERATE TOOLS (12)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: 'continue',
     name: 'Continue Writing',
@@ -32,6 +59,14 @@ export const tools: Tool[] = [
     icon: Play,
     category: 'generate',
     description: 'Continue the story from where you left off',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'auto', name: 'Auto-continue', description: 'Let AI decide the best direction' },
+      { id: 'short', name: 'Short (~100 words)', description: 'Brief continuation' },
+      { id: 'medium', name: 'Medium (~250 words)', description: 'Standard continuation' },
+      { id: 'long', name: 'Long (~500 words)', description: 'Extended continuation' },
+      { id: 'chapter-end', name: 'Write to Chapter End', description: 'Continue until natural chapter break' },
+    ],
   },
   {
     id: 'firstdraft',
@@ -40,6 +75,13 @@ export const tools: Tool[] = [
     icon: Zap,
     category: 'generate',
     description: 'Generate a quick first draft from an outline or idea',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'from-outline', name: 'From Outline', description: 'Expand bullet points into prose' },
+      { id: 'from-summary', name: 'From Summary', description: 'Expand a summary into full scene' },
+      { id: 'from-beats', name: 'From Scene Beats', description: 'Convert beats into narrative' },
+      { id: 'freewrite', name: 'Freewrite Mode', description: 'Just get words on the page' },
+    ],
   },
   {
     id: 'dialogue',
@@ -51,6 +93,14 @@ export const tools: Tool[] = [
     isDynamic: true,
     dynamicSource: 'characters',
     hasSubMenu: true,
+    subOptions: [
+      { id: 'conversation', name: 'Conversation', description: 'Back-and-forth dialogue' },
+      { id: 'argument', name: 'Argument/Conflict', description: 'Heated exchange' },
+      { id: 'interrogation', name: 'Interrogation', description: 'Question and answer' },
+      { id: 'flirtation', name: 'Romantic/Flirtatious', description: 'Romantic tension' },
+      { id: 'exposition', name: 'Exposition Dialogue', description: 'Information delivery' },
+      { id: 'subtext', name: 'Heavy Subtext', description: 'Say one thing, mean another' },
+    ],
   },
   {
     id: 'description',
@@ -61,11 +111,14 @@ export const tools: Tool[] = [
     description: 'Add rich sensory details and descriptions',
     hasSubMenu: true,
     subOptions: [
-      { id: 'setting', name: 'Setting/Environment' },
-      { id: 'character', name: 'Character Appearance' },
-      { id: 'action', name: 'Action/Movement' },
-      { id: 'emotion', name: 'Emotional State' },
-      { id: 'sensory', name: 'Full Sensory (5 senses)' },
+      { id: 'setting', name: 'Setting/Environment', description: 'Places and surroundings' },
+      { id: 'character', name: 'Character Appearance', description: 'Physical description' },
+      { id: 'action', name: 'Action/Movement', description: 'Physical actions' },
+      { id: 'emotion', name: 'Emotional State', description: 'Internal feelings' },
+      { id: 'sensory-full', name: 'Full Sensory (5 senses)', description: 'Sight, sound, smell, touch, taste' },
+      { id: 'weather', name: 'Weather/Atmosphere', description: 'Environmental conditions' },
+      { id: 'object', name: 'Object/Item Detail', description: 'Significant objects' },
+      { id: 'crowd', name: 'Crowd/Background', description: 'Background activity' },
     ],
   },
   {
@@ -77,10 +130,15 @@ export const tools: Tool[] = [
     description: 'Write intense action sequences',
     hasSubMenu: true,
     subOptions: [
-      { id: 'fight', name: 'Fight/Combat' },
-      { id: 'chase', name: 'Chase Scene' },
-      { id: 'escape', name: 'Escape/Pursuit' },
-      { id: 'disaster', name: 'Disaster/Catastrophe' },
+      { id: 'fight-melee', name: 'Melee Combat', description: 'Close quarters fighting' },
+      { id: 'fight-ranged', name: 'Ranged Combat', description: 'Guns, bows, magic at distance' },
+      { id: 'chase-foot', name: 'Chase (On Foot)', description: 'Running pursuit' },
+      { id: 'chase-vehicle', name: 'Chase (Vehicle)', description: 'Cars, horses, ships' },
+      { id: 'escape', name: 'Escape/Stealth', description: 'Getting away unseen' },
+      { id: 'heist', name: 'Heist/Infiltration', description: 'Breaking in' },
+      { id: 'disaster', name: 'Disaster/Catastrophe', description: 'Natural or man-made chaos' },
+      { id: 'rescue', name: 'Rescue Mission', description: 'Saving someone' },
+      { id: 'duel', name: 'Duel/Showdown', description: 'One-on-one confrontation' },
     ],
   },
   {
@@ -93,9 +151,118 @@ export const tools: Tool[] = [
     isDynamic: true,
     dynamicSource: 'characters',
     hasSubMenu: true,
+    subOptions: [
+      { id: 'reflection', name: 'Reflection', description: 'Thinking about past events' },
+      { id: 'planning', name: 'Planning/Scheming', description: 'Figuring out next steps' },
+      { id: 'worry', name: 'Worry/Anxiety', description: 'Fearful thoughts' },
+      { id: 'desire', name: 'Desire/Longing', description: 'Wanting something' },
+      { id: 'realization', name: 'Realization/Epiphany', description: 'Understanding dawning' },
+      { id: 'memory', name: 'Memory/Flashback', description: 'Remembering the past' },
+      { id: 'judgment', name: 'Judgment/Assessment', description: 'Evaluating others/situations' },
+    ],
+  },
+  {
+    id: 'opening',
+    name: 'Opening Hook',
+    shortName: 'Hook',
+    icon: Anchor,
+    category: 'generate',
+    description: 'Write compelling opening lines and hooks',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'action-hook', name: 'Action Opening', description: 'Start with something happening' },
+      { id: 'dialogue-hook', name: 'Dialogue Opening', description: 'Start with speech' },
+      { id: 'mystery-hook', name: 'Mystery/Question', description: 'Start with intrigue' },
+      { id: 'setting-hook', name: 'Atmospheric Setting', description: 'Start with place' },
+      { id: 'character-hook', name: 'Character Introduction', description: 'Start with person' },
+      { id: 'statement-hook', name: 'Bold Statement', description: 'Start with declaration' },
+    ],
+  },
+  {
+    id: 'ending',
+    name: 'Chapter Ending',
+    shortName: 'End',
+    icon: Target,
+    category: 'generate',
+    description: 'Write satisfying or suspenseful chapter endings',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'cliffhanger', name: 'Cliffhanger', description: 'Leave them hanging' },
+      { id: 'revelation', name: 'Revelation', description: 'End with a discovery' },
+      { id: 'resolution', name: 'Mini-Resolution', description: 'Satisfy while leaving more' },
+      { id: 'question', name: 'Lingering Question', description: 'End with uncertainty' },
+      { id: 'quiet', name: 'Quiet Moment', description: 'Reflective ending' },
+      { id: 'transition', name: 'Transition Setup', description: 'Set up next chapter' },
+    ],
+  },
+  {
+    id: 'transition',
+    name: 'Write Transition',
+    shortName: 'Trans',
+    icon: ArrowRightLeft,
+    category: 'generate',
+    description: 'Bridge between scenes or time periods',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'time-skip', name: 'Time Skip', description: 'Move forward in time' },
+      { id: 'location-change', name: 'Location Change', description: 'Move to new place' },
+      { id: 'pov-shift', name: 'POV Shift', description: 'Change perspective' },
+      { id: 'mood-shift', name: 'Mood Shift', description: 'Change emotional tone' },
+      { id: 'seamless', name: 'Seamless Bridge', description: 'Subtle transition' },
+    ],
+  },
+  {
+    id: 'flashback',
+    name: 'Flashback/Memory',
+    shortName: 'Flash',
+    icon: History,
+    category: 'generate',
+    description: 'Write flashback sequences',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'full-scene', name: 'Full Scene Flashback', description: 'Complete past scene' },
+      { id: 'fragment', name: 'Memory Fragment', description: 'Brief flash of memory' },
+      { id: 'triggered', name: 'Triggered Memory', description: 'Something sparks recall' },
+      { id: 'dream', name: 'Dream Sequence', description: 'Memory in dream form' },
+    ],
+  },
+  {
+    id: 'monologue',
+    name: 'Monologue/Speech',
+    shortName: 'Mono',
+    icon: Mic,
+    category: 'generate',
+    description: 'Write extended speeches or monologues',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'inspirational', name: 'Inspirational Speech', description: 'Rally the troops' },
+      { id: 'villain', name: 'Villain Monologue', description: 'Explain the evil plan' },
+      { id: 'confession', name: 'Confession', description: 'Reveal truth' },
+      { id: 'farewell', name: 'Farewell/Goodbye', description: 'Parting words' },
+      { id: 'declaration', name: 'Declaration of Intent', description: 'State purpose' },
+    ],
+  },
+  {
+    id: 'letter',
+    name: 'Letter/Document',
+    shortName: 'Letr',
+    icon: Mail,
+    category: 'generate',
+    description: 'Write in-world documents',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'personal-letter', name: 'Personal Letter', description: 'Character to character' },
+      { id: 'official-doc', name: 'Official Document', description: 'Formal paperwork' },
+      { id: 'diary', name: 'Diary Entry', description: 'Personal journal' },
+      { id: 'news', name: 'News Article', description: 'In-world journalism' },
+      { id: 'note', name: 'Note/Message', description: 'Brief communication' },
+      { id: 'prophecy', name: 'Prophecy/Ancient Text', description: 'Mysterious writings' },
+    ],
   },
 
-  // ENHANCE TOOLS (8)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ENHANCE TOOLS (14)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: 'expand',
     name: 'Expand',
@@ -106,10 +273,12 @@ export const tools: Tool[] = [
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
-      { id: 'detail', name: 'Add Details' },
-      { id: 'emotion', name: 'Deepen Emotions' },
-      { id: 'sensory', name: 'Add Sensory' },
-      { id: 'backstory', name: 'Weave in Backstory' },
+      { id: 'detail', name: 'Add Details', description: 'More specific information' },
+      { id: 'emotion', name: 'Deepen Emotions', description: 'Richer emotional layer' },
+      { id: 'sensory', name: 'Add Sensory', description: 'Engage the senses' },
+      { id: 'backstory', name: 'Weave in Backstory', description: 'Add history/context' },
+      { id: 'tension', name: 'Increase Tension', description: 'Raise the stakes' },
+      { id: 'atmosphere', name: 'Build Atmosphere', description: 'Enhance mood' },
     ],
   },
   {
@@ -122,9 +291,10 @@ export const tools: Tool[] = [
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
-      { id: 'light', name: 'Light (10-20%)' },
-      { id: 'moderate', name: 'Moderate (30-40%)' },
-      { id: 'aggressive', name: 'Aggressive (50%+)' },
+      { id: 'light', name: 'Light (10-20%)', description: 'Gentle trimming' },
+      { id: 'moderate', name: 'Moderate (30-40%)', description: 'Significant tightening' },
+      { id: 'aggressive', name: 'Aggressive (50%+)', description: 'Major cuts' },
+      { id: 'summary', name: 'Summarize', description: 'Reduce to essence' },
     ],
   },
   {
@@ -137,21 +307,33 @@ export const tools: Tool[] = [
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
-      { id: 'dramatic', name: 'More Dramatic' },
-      { id: 'subtle', name: 'More Subtle' },
-      { id: 'faster', name: 'Faster Pace' },
-      { id: 'slower', name: 'Slower Pace' },
-      { id: 'custom', name: 'Custom Direction...' },
+      { id: 'dramatic', name: 'More Dramatic', description: 'Heighten intensity' },
+      { id: 'subtle', name: 'More Subtle', description: 'Tone down' },
+      { id: 'faster', name: 'Faster Pace', description: 'Quicken the rhythm' },
+      { id: 'slower', name: 'Slower Pace', description: 'Linger and savor' },
+      { id: 'literary', name: 'More Literary', description: 'Elevate the prose' },
+      { id: 'accessible', name: 'More Accessible', description: 'Simplify' },
+      { id: 'dark', name: 'Darker Tone', description: 'Add menace' },
+      { id: 'lighter', name: 'Lighter Tone', description: 'Add levity' },
+      { id: 'custom', name: 'Custom Direction...', description: 'Specify your own' },
     ],
   },
   {
     id: 'polish',
-    name: 'Polish',
+    name: 'Polish Prose',
     shortName: 'Pol',
     icon: Sparkles,
     category: 'enhance',
     description: 'Polish prose for better flow and word choice',
     requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'flow', name: 'Improve Flow', description: 'Smoother reading' },
+      { id: 'word-choice', name: 'Better Word Choice', description: 'More precise vocabulary' },
+      { id: 'rhythm', name: 'Improve Rhythm', description: 'Better sentence cadence' },
+      { id: 'clarity', name: 'Improve Clarity', description: 'Clearer meaning' },
+      { id: 'full-polish', name: 'Full Polish', description: 'All of the above' },
+    ],
   },
   {
     id: 'strengthen-verbs',
@@ -161,6 +343,13 @@ export const tools: Tool[] = [
     category: 'enhance',
     description: 'Replace weak verbs with stronger alternatives',
     requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'all', name: 'All Weak Verbs', description: 'Find and replace all' },
+      { id: 'being', name: 'Being Verbs Only', description: 'is/was/were/been' },
+      { id: 'said', name: 'Dialogue Tags', description: 'said/asked alternatives' },
+      { id: 'went', name: 'Movement Verbs', description: 'went/walked/moved' },
+    ],
   },
   {
     id: 'vary-sentences',
@@ -170,6 +359,13 @@ export const tools: Tool[] = [
     category: 'enhance',
     description: 'Improve sentence variety and rhythm',
     requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'length', name: 'Vary Length', description: 'Mix short and long' },
+      { id: 'structure', name: 'Vary Structure', description: 'Different openings' },
+      { id: 'rhythm', name: 'Improve Rhythm', description: 'Better flow' },
+      { id: 'all', name: 'Full Variety Pass', description: 'All of the above' },
+    ],
   },
   {
     id: 'fix-dialogue-tags',
@@ -179,6 +375,13 @@ export const tools: Tool[] = [
     category: 'enhance',
     description: 'Improve dialogue attribution and beats',
     requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'simplify', name: 'Simplify Tags', description: 'Remove fancy said-isms' },
+      { id: 'add-beats', name: 'Add Action Beats', description: 'Character actions' },
+      { id: 'remove-tags', name: 'Remove Redundant', description: 'Cut unnecessary tags' },
+      { id: 'balance', name: 'Balance Tags/Beats', description: 'Optimal mix' },
+    ],
   },
   {
     id: 'show-dont-tell',
@@ -188,9 +391,111 @@ export const tools: Tool[] = [
     category: 'enhance',
     description: 'Convert telling into showing',
     requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'emotion', name: 'Show Emotions', description: 'Replace emotion labels' },
+      { id: 'character', name: 'Show Character Traits', description: 'Demonstrate personality' },
+      { id: 'setting', name: 'Show Setting', description: 'Immersive description' },
+      { id: 'all', name: 'Full Show Pass', description: 'All of the above' },
+    ],
+  },
+  {
+    id: 'add-conflict',
+    name: 'Add Conflict',
+    shortName: 'Conf',
+    icon: Flame,
+    category: 'enhance',
+    description: 'Inject tension and conflict',
+    requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'internal', name: 'Internal Conflict', description: 'Inner struggle' },
+      { id: 'interpersonal', name: 'Interpersonal', description: 'Between characters' },
+      { id: 'external', name: 'External Obstacle', description: 'Outside forces' },
+      { id: 'subtle', name: 'Subtle Tension', description: 'Underlying unease' },
+    ],
+  },
+  {
+    id: 'add-subtext',
+    name: 'Add Subtext',
+    shortName: 'Sub',
+    icon: Layers,
+    category: 'enhance',
+    description: 'Layer meaning beneath the surface',
+    requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'dialogue', name: 'Dialogue Subtext', description: 'Hidden meaning in speech' },
+      { id: 'action', name: 'Action Subtext', description: 'Actions reveal truth' },
+      { id: 'description', name: 'Symbolic Description', description: 'Meaningful details' },
+    ],
+  },
+  {
+    id: 'adjust-pov',
+    name: 'Adjust POV',
+    shortName: 'POV',
+    icon: Glasses,
+    category: 'enhance',
+    description: 'Refine point of view consistency',
+    requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'deep-third', name: 'Deeper Third Person', description: 'More intimate' },
+      { id: 'distant-third', name: 'More Distant Third', description: 'Pull back' },
+      { id: 'first-person', name: 'Convert to First', description: 'I/me voice' },
+      { id: 'fix-slips', name: 'Fix POV Slips', description: 'Correct mistakes' },
+    ],
+  },
+  {
+    id: 'adjust-tense',
+    name: 'Adjust Tense',
+    shortName: 'Tense',
+    icon: Clock,
+    category: 'enhance',
+    description: 'Fix or change verb tense',
+    requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'to-past', name: 'Convert to Past', description: 'was/had/went' },
+      { id: 'to-present', name: 'Convert to Present', description: 'is/has/goes' },
+      { id: 'fix-consistency', name: 'Fix Inconsistencies', description: 'Make uniform' },
+    ],
+  },
+  {
+    id: 'punch-up',
+    name: 'Punch Up',
+    shortName: 'Punch',
+    icon: Bomb,
+    category: 'enhance',
+    description: 'Make prose more impactful',
+    requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'energy', name: 'Add Energy', description: 'More dynamic' },
+      { id: 'voice', name: 'Strengthen Voice', description: 'More distinctive' },
+      { id: 'hooks', name: 'Add Hooks', description: 'Keep readers engaged' },
+      { id: 'surprise', name: 'Add Surprises', description: 'Unexpected elements' },
+    ],
+  },
+  {
+    id: 'smooth-transitions',
+    name: 'Smooth Transitions',
+    shortName: 'Smth',
+    icon: Wind,
+    category: 'enhance',
+    description: 'Improve flow between paragraphs/scenes',
+    requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'paragraph', name: 'Between Paragraphs', description: 'Smooth paragraph flow' },
+      { id: 'scene', name: 'Between Scenes', description: 'Scene transitions' },
+      { id: 'time', name: 'Time Transitions', description: 'Time passage' },
+    ],
   },
 
-  // ANALYZE TOOLS (10)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANALYZE TOOLS (14)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: 'pacing',
     name: 'Pacing Analysis',
@@ -198,14 +503,26 @@ export const tools: Tool[] = [
     icon: BarChart3,
     category: 'analyze',
     description: 'Analyze chapter pacing and tension flow',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'chapter', name: 'This Chapter', description: 'Current chapter pacing' },
+      { id: 'book', name: 'Whole Book', description: 'Overall pacing' },
+      { id: 'comparison', name: 'Compare Chapters', description: 'Chapter by chapter' },
+    ],
   },
   {
     id: 'voice-check',
-    name: 'Voice Check',
+    name: 'Voice Consistency',
     shortName: 'Voice',
     icon: Mic,
     category: 'analyze',
     description: 'Check narrative voice consistency',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'narrator', name: 'Narrator Voice', description: 'Check narrative consistency' },
+      { id: 'character', name: 'Character Voice', description: 'Per-character analysis' },
+      { id: 'tone', name: 'Tone Consistency', description: 'Overall tone check' },
+    ],
   },
   {
     id: 'tension-map',
@@ -214,10 +531,17 @@ export const tools: Tool[] = [
     icon: TrendingUp,
     category: 'analyze',
     description: 'Map tension levels throughout the chapter',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'visual', name: 'Visual Map', description: 'See tension graph' },
+      { id: 'peaks', name: 'Find Peaks', description: 'High tension moments' },
+      { id: 'valleys', name: 'Find Valleys', description: 'Low tension moments' },
+      { id: 'suggestions', name: 'Get Suggestions', description: 'How to improve' },
+    ],
   },
   {
     id: 'character-voice',
-    name: 'Character Voice',
+    name: 'Character Voice Analysis',
     shortName: 'ChrV',
     icon: Users,
     category: 'analyze',
@@ -225,6 +549,11 @@ export const tools: Tool[] = [
     isDynamic: true,
     dynamicSource: 'characters',
     hasSubMenu: true,
+    subOptions: [
+      { id: 'dialogue-check', name: 'Dialogue Patterns', description: 'Speech analysis' },
+      { id: 'consistency', name: 'Consistency Check', description: 'Voice stability' },
+      { id: 'distinctiveness', name: 'Compare Characters', description: 'How different are they?' },
+    ],
   },
   {
     id: 'repetition',
@@ -233,6 +562,13 @@ export const tools: Tool[] = [
     icon: RefreshCw,
     category: 'analyze',
     description: 'Find repeated words and phrases',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'words', name: 'Repeated Words', description: 'Word frequency' },
+      { id: 'phrases', name: 'Repeated Phrases', description: 'Phrase patterns' },
+      { id: 'sentence-starts', name: 'Sentence Starts', description: 'Opening patterns' },
+      { id: 'all', name: 'Full Analysis', description: 'All repetition types' },
+    ],
   },
   {
     id: 'adverb-hunter',
@@ -241,22 +577,40 @@ export const tools: Tool[] = [
     icon: Search,
     category: 'analyze',
     description: 'Identify overused adverbs',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'ly-adverbs', name: '-ly Adverbs', description: 'Find -ly words' },
+      { id: 'all-adverbs', name: 'All Adverbs', description: 'Complete list' },
+      { id: 'with-suggestions', name: 'With Alternatives', description: 'Suggest replacements' },
+    ],
   },
   {
     id: 'passive-voice',
-    name: 'Passive Voice',
+    name: 'Passive Voice Finder',
     shortName: 'Pass',
     icon: Volume2,
     category: 'analyze',
     description: 'Find passive voice constructions',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'find-all', name: 'Find All', description: 'Highlight passive voice' },
+      { id: 'with-fixes', name: 'With Suggestions', description: 'How to make active' },
+      { id: 'by-severity', name: 'By Severity', description: 'Worst offenders first' },
+    ],
   },
   {
     id: 'readability',
-    name: 'Readability',
+    name: 'Readability Score',
     shortName: 'Read',
     icon: Gauge,
     category: 'analyze',
     description: 'Assess reading level and clarity',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'overview', name: 'Overview', description: 'General readability' },
+      { id: 'by-section', name: 'By Section', description: 'Section breakdown' },
+      { id: 'comparison', name: 'Genre Comparison', description: 'Compare to genre norms' },
+    ],
   },
   {
     id: 'emotional-arc',
@@ -265,6 +619,12 @@ export const tools: Tool[] = [
     icon: Heart,
     category: 'analyze',
     description: 'Track emotional journey through the chapter',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'map', name: 'Emotion Map', description: 'Visual emotional journey' },
+      { id: 'by-character', name: 'By Character', description: 'Per-character emotions' },
+      { id: 'suggestions', name: 'Arc Suggestions', description: 'Improve emotional flow' },
+    ],
   },
   {
     id: 'chapter-summary',
@@ -273,9 +633,76 @@ export const tools: Tool[] = [
     icon: FileText,
     category: 'analyze',
     description: 'Generate a concise chapter summary',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'short', name: 'One Sentence', description: 'Brief summary' },
+      { id: 'medium', name: 'Paragraph', description: 'Standard summary' },
+      { id: 'detailed', name: 'Detailed', description: 'Full breakdown' },
+      { id: 'beats', name: 'Beat Sheet', description: 'Scene by scene' },
+    ],
+  },
+  {
+    id: 'plot-holes',
+    name: 'Plot Hole Finder',
+    shortName: 'Hole',
+    icon: AlertTriangle,
+    category: 'analyze',
+    description: 'Find potential plot inconsistencies',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'timeline', name: 'Timeline Issues', description: 'Chronology problems' },
+      { id: 'character', name: 'Character Issues', description: 'Behavior inconsistencies' },
+      { id: 'logic', name: 'Logic Gaps', description: 'Things that don\'t add up' },
+      { id: 'all', name: 'Full Analysis', description: 'All potential issues' },
+    ],
+  },
+  {
+    id: 'dialogue-analysis',
+    name: 'Dialogue Analysis',
+    shortName: 'Dial',
+    icon: MessagesSquare,
+    category: 'analyze',
+    description: 'Analyze dialogue quality and patterns',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'balance', name: 'Balance Check', description: 'Dialogue vs narrative ratio' },
+      { id: 'tags', name: 'Tag Analysis', description: 'Dialogue tag usage' },
+      { id: 'realism', name: 'Realism Check', description: 'Natural speech patterns' },
+    ],
+  },
+  {
+    id: 'show-tell-ratio',
+    name: 'Show/Tell Ratio',
+    shortName: 'S/T',
+    icon: Scale,
+    category: 'analyze',
+    description: 'Analyze showing vs telling balance',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'ratio', name: 'Get Ratio', description: 'Show vs tell percentage' },
+      { id: 'highlights', name: 'Highlight Telling', description: 'Find telling passages' },
+      { id: 'suggestions', name: 'Get Suggestions', description: 'How to improve' },
+    ],
+  },
+  {
+    id: 'cliche-finder',
+    name: 'Cliché Finder',
+    shortName: 'Clic',
+    icon: Copy,
+    category: 'analyze',
+    description: 'Find clichés and overused phrases',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'phrases', name: 'Cliché Phrases', description: 'Common expressions' },
+      { id: 'descriptions', name: 'Cliché Descriptions', description: 'Overused imagery' },
+      { id: 'plot', name: 'Plot Clichés', description: 'Trope patterns' },
+      { id: 'all', name: 'Full Scan', description: 'All clichés' },
+    ],
   },
 
-  // BRAINSTORM TOOLS (8)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BRAINSTORM TOOLS (12)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: 'plot-ideas',
     name: 'Plot Ideas',
@@ -285,10 +712,12 @@ export const tools: Tool[] = [
     description: 'Generate plot ideas and directions',
     hasSubMenu: true,
     subOptions: [
-      { id: 'next', name: 'What happens next?' },
-      { id: 'conflict', name: 'Add conflict' },
-      { id: 'complication', name: 'Add complications' },
-      { id: 'resolution', name: 'Resolution ideas' },
+      { id: 'next', name: 'What Happens Next?', description: 'Continue from here' },
+      { id: 'conflict', name: 'Add Conflict', description: 'New obstacles' },
+      { id: 'complication', name: 'Add Complications', description: 'Make things worse' },
+      { id: 'resolution', name: 'Resolution Ideas', description: 'How to resolve' },
+      { id: 'subplot', name: 'Subplot Ideas', description: 'Secondary storylines' },
+      { id: 'reversal', name: 'Plot Reversals', description: 'Flip expectations' },
     ],
   },
   {
@@ -301,6 +730,14 @@ export const tools: Tool[] = [
     isDynamic: true,
     dynamicSource: 'characters',
     hasSubMenu: true,
+    subOptions: [
+      { id: 'growth', name: 'Growth Moment', description: 'Character development' },
+      { id: 'vulnerability', name: 'Vulnerability', description: 'Show weakness' },
+      { id: 'strength', name: 'Strength', description: 'Show capability' },
+      { id: 'connection', name: 'Connection', description: 'Bond with others' },
+      { id: 'conflict', name: 'Internal Conflict', description: 'Inner struggle' },
+      { id: 'decision', name: 'Key Decision', description: 'Defining choice' },
+    ],
   },
   {
     id: 'dialogue-options',
@@ -310,6 +747,13 @@ export const tools: Tool[] = [
     category: 'brainstorm',
     description: 'Generate dialogue alternatives',
     requiresSelection: true,
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'variations', name: '5 Variations', description: 'Different ways to say it' },
+      { id: 'subtext', name: 'Add Subtext', description: 'Hidden meaning options' },
+      { id: 'conflict', name: 'More Conflict', description: 'Heighten tension' },
+      { id: 'humor', name: 'Add Humor', description: 'Lighter alternatives' },
+    ],
   },
   {
     id: 'scene-transitions',
@@ -318,6 +762,13 @@ export const tools: Tool[] = [
     icon: ArrowRightLeft,
     category: 'brainstorm',
     description: 'Suggest scene transition approaches',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'cut', name: 'Hard Cut', description: 'Abrupt transition' },
+      { id: 'bridge', name: 'Bridge Scene', description: 'Connecting material' },
+      { id: 'parallel', name: 'Parallel Action', description: 'Meanwhile...' },
+      { id: 'echo', name: 'Echo/Mirror', description: 'Thematic connection' },
+    ],
   },
   {
     id: 'conflict-escalation',
@@ -326,6 +777,14 @@ export const tools: Tool[] = [
     icon: Flame,
     category: 'brainstorm',
     description: 'Ways to escalate conflict and tension',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'stakes', name: 'Raise Stakes', description: 'Make it matter more' },
+      { id: 'obstacles', name: 'Add Obstacles', description: 'New problems' },
+      { id: 'betrayal', name: 'Betrayal Options', description: 'Trust broken' },
+      { id: 'deadline', name: 'Add Deadline', description: 'Time pressure' },
+      { id: 'cost', name: 'Increase Cost', description: 'What they might lose' },
+    ],
   },
   {
     id: 'twist-generator',
@@ -336,10 +795,12 @@ export const tools: Tool[] = [
     description: 'Generate surprising plot twists',
     hasSubMenu: true,
     subOptions: [
-      { id: 'betrayal', name: 'Betrayal twist' },
-      { id: 'revelation', name: 'Hidden truth revealed' },
-      { id: 'reversal', name: 'Situation reversal' },
-      { id: 'unexpected', name: 'Unexpected ally/enemy' },
+      { id: 'betrayal', name: 'Betrayal Twist', description: 'Ally becomes enemy' },
+      { id: 'revelation', name: 'Hidden Truth', description: 'Secret revealed' },
+      { id: 'reversal', name: 'Situation Reversal', description: 'Tables turn' },
+      { id: 'ally-enemy', name: 'Ally/Enemy Swap', description: 'Switch allegiances' },
+      { id: 'identity', name: 'Identity Twist', description: 'Not who they seem' },
+      { id: 'reality', name: 'Reality Twist', description: 'World isn\'t what it seems' },
     ],
   },
   {
@@ -349,6 +810,14 @@ export const tools: Tool[] = [
     icon: HelpCircle,
     category: 'brainstorm',
     description: 'Explore "what if" scenarios',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'character', name: 'What If Character...', description: 'Character alternatives' },
+      { id: 'event', name: 'What If Event...', description: 'Event alternatives' },
+      { id: 'setting', name: 'What If Setting...', description: 'Location changes' },
+      { id: 'timeline', name: 'What If Timeline...', description: 'Time changes' },
+      { id: 'random', name: 'Random What If', description: 'Surprise me' },
+    ],
   },
   {
     id: 'stuck-help',
@@ -357,9 +826,83 @@ export const tools: Tool[] = [
     icon: HelpCircle,
     category: 'brainstorm',
     description: 'Get help when you are stuck',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'diagnose', name: 'Diagnose Problem', description: 'What\'s blocking you?' },
+      { id: 'skip-ahead', name: 'Skip Ahead Ideas', description: 'Jump to later scene' },
+      { id: 'different-angle', name: 'Different Angle', description: 'New approach' },
+      { id: 'freewrite', name: 'Freewrite Prompt', description: 'Just start writing' },
+      { id: 'talk-it-out', name: 'Talk It Out', description: 'Explain your story' },
+    ],
+  },
+  {
+    id: 'names-generator',
+    name: 'Name Generator',
+    shortName: 'Name',
+    icon: Tag,
+    category: 'brainstorm',
+    description: 'Generate character and place names',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'character-names', name: 'Character Names', description: 'People names' },
+      { id: 'place-names', name: 'Place Names', description: 'Location names' },
+      { id: 'fantasy', name: 'Fantasy Names', description: 'Made-up names' },
+      { id: 'historical', name: 'Historical Names', description: 'Period-appropriate' },
+      { id: 'nicknames', name: 'Nicknames', description: 'Casual names' },
+    ],
+  },
+  {
+    id: 'motivation-finder',
+    name: 'Motivation Finder',
+    shortName: 'Motiv',
+    icon: Target,
+    category: 'brainstorm',
+    description: 'Develop character motivations',
+    isDynamic: true,
+    dynamicSource: 'characters',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'wants', name: 'What They Want', description: 'Surface desires' },
+      { id: 'needs', name: 'What They Need', description: 'Deep needs' },
+      { id: 'fears', name: 'What They Fear', description: 'Deepest fears' },
+      { id: 'secrets', name: 'Hidden Secrets', description: 'What they hide' },
+    ],
+  },
+  {
+    id: 'theme-explorer',
+    name: 'Theme Explorer',
+    shortName: 'Theme',
+    icon: Compass,
+    category: 'brainstorm',
+    description: 'Explore and develop themes',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'identify', name: 'Identify Themes', description: 'What themes are present?' },
+      { id: 'deepen', name: 'Deepen Theme', description: 'Strengthen existing theme' },
+      { id: 'contrast', name: 'Add Contrast', description: 'Opposing viewpoints' },
+      { id: 'symbol', name: 'Symbolic Ideas', description: 'Objects and symbols' },
+    ],
+  },
+  {
+    id: 'ending-ideas',
+    name: 'Ending Ideas',
+    shortName: 'Ends',
+    icon: Target,
+    category: 'brainstorm',
+    description: 'Generate possible endings',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'happy', name: 'Happy Ending', description: 'Positive resolution' },
+      { id: 'tragic', name: 'Tragic Ending', description: 'Sad resolution' },
+      { id: 'bittersweet', name: 'Bittersweet', description: 'Mixed feelings' },
+      { id: 'ambiguous', name: 'Ambiguous', description: 'Open to interpretation' },
+      { id: 'twist', name: 'Twist Ending', description: 'Surprise finish' },
+    ],
   },
 
-  // WORLD TOOLS (6)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WORLD TOOLS (10)
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: 'characters',
     name: 'Characters',
@@ -367,6 +910,13 @@ export const tools: Tool[] = [
     icon: Users,
     category: 'world',
     description: 'Manage your story characters',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'view-all', name: 'View All', description: 'Character list' },
+      { id: 'create', name: 'Create New', description: 'Add character' },
+      { id: 'relationships', name: 'Relationships', description: 'Character connections' },
+      { id: 'arc', name: 'Character Arcs', description: 'Development tracking' },
+    ],
   },
   {
     id: 'locations',
@@ -375,6 +925,13 @@ export const tools: Tool[] = [
     icon: Globe,
     category: 'world',
     description: 'Manage story locations',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'view-all', name: 'View All', description: 'Location list' },
+      { id: 'create', name: 'Create New', description: 'Add location' },
+      { id: 'map', name: 'World Map', description: 'Visual layout' },
+      { id: 'details', name: 'Location Details', description: 'Sensory information' },
+    ],
   },
   {
     id: 'plot-threads',
@@ -383,6 +940,13 @@ export const tools: Tool[] = [
     icon: GitBranch,
     category: 'world',
     description: 'Track plot threads and subplots',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'main', name: 'Main Plot', description: 'Primary storyline' },
+      { id: 'subplots', name: 'Subplots', description: 'Secondary stories' },
+      { id: 'unresolved', name: 'Unresolved', description: 'Open threads' },
+      { id: 'timeline', name: 'Thread Timeline', description: 'When things happen' },
+    ],
   },
   {
     id: 'timeline',
@@ -391,6 +955,12 @@ export const tools: Tool[] = [
     icon: Clock,
     category: 'world',
     description: 'Story timeline and events',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'story-time', name: 'Story Timeline', description: 'Events in story' },
+      { id: 'backstory', name: 'Backstory Timeline', description: 'Past events' },
+      { id: 'chapter-time', name: 'By Chapter', description: 'When each chapter occurs' },
+    ],
   },
   {
     id: 'scene-contexts',
@@ -399,6 +969,12 @@ export const tools: Tool[] = [
     icon: Layers,
     category: 'world',
     description: 'Create sensory palettes for scenes',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'view-all', name: 'View All', description: 'All scene contexts' },
+      { id: 'create', name: 'Create New', description: 'New scene palette' },
+      { id: 'apply', name: 'Apply to Chapter', description: 'Set current context' },
+    ],
   },
   {
     id: 'story-bible',
@@ -407,6 +983,73 @@ export const tools: Tool[] = [
     icon: BookMarked,
     category: 'world',
     description: 'Your complete story reference',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'overview', name: 'Overview', description: 'Story summary' },
+      { id: 'rules', name: 'World Rules', description: 'How things work' },
+      { id: 'history', name: 'History', description: 'World backstory' },
+      { id: 'culture', name: 'Culture/Society', description: 'Social structures' },
+    ],
+  },
+  {
+    id: 'magic-system',
+    name: 'Magic/Tech System',
+    shortName: 'Magic',
+    icon: Wand2,
+    category: 'world',
+    description: 'Define supernatural or tech rules',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'rules', name: 'Rules & Limits', description: 'How it works' },
+      { id: 'costs', name: 'Costs & Consequences', description: 'What it takes' },
+      { id: 'users', name: 'Who Can Use It', description: 'Access and training' },
+      { id: 'history', name: 'Origin/History', description: 'Where it came from' },
+    ],
+  },
+  {
+    id: 'factions',
+    name: 'Factions/Groups',
+    shortName: 'Fact',
+    icon: Shield,
+    category: 'world',
+    description: 'Organizations and groups',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'view-all', name: 'View All', description: 'All factions' },
+      { id: 'create', name: 'Create New', description: 'Add faction' },
+      { id: 'relationships', name: 'Faction Relations', description: 'Allies and enemies' },
+      { id: 'hierarchy', name: 'Power Structure', description: 'Who\'s in charge' },
+    ],
+  },
+  {
+    id: 'items',
+    name: 'Important Items',
+    shortName: 'Item',
+    icon: Gem,
+    category: 'world',
+    description: 'Track significant objects',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'view-all', name: 'View All', description: 'All items' },
+      { id: 'create', name: 'Create New', description: 'Add item' },
+      { id: 'macguffins', name: 'MacGuffins', description: 'Plot-driving objects' },
+      { id: 'weapons', name: 'Weapons/Tools', description: 'Equipment' },
+    ],
+  },
+  {
+    id: 'research',
+    name: 'Research Notes',
+    shortName: 'Rsch',
+    icon: BookOpen,
+    category: 'world',
+    description: 'Store research and references',
+    hasSubMenu: true,
+    subOptions: [
+      { id: 'view-all', name: 'View All', description: 'All notes' },
+      { id: 'add', name: 'Add Note', description: 'New research' },
+      { id: 'by-topic', name: 'By Topic', description: 'Organized notes' },
+      { id: 'sources', name: 'Sources', description: 'Reference links' },
+    ],
   },
 ];
 
@@ -418,4 +1061,15 @@ export const getToolsByCategory = (category: ToolCategory): Tool[] => {
 // Helper to get a tool by ID
 export const getToolById = (id: string): Tool | undefined => {
   return tools.find(t => t.id === id);
+};
+
+// Get total tool count by category
+export const getToolCountByCategory = (): Record<ToolCategory, number> => {
+  return {
+    generate: getToolsByCategory('generate').length,
+    enhance: getToolsByCategory('enhance').length,
+    analyze: getToolsByCategory('analyze').length,
+    brainstorm: getToolsByCategory('brainstorm').length,
+    world: getToolsByCategory('world').length,
+  };
 };
