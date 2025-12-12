@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { 
   ChevronLeft, Sparkles, ArrowRight, Command
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 // Components
 import { ToolTray } from '@/components/book-theater/ToolTray';
@@ -117,6 +116,7 @@ export default function DemoTheaterPage() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [recentToolIds, setRecentToolIds] = useState<string[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const currentChapter = chapters[activeChapterIndex];
 
@@ -162,34 +162,42 @@ export default function DemoTheaterPage() {
     });
   }, []);
 
-  // Mock AI generation
-  const handleGenerate = useCallback(async (): Promise<string> => {
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+  // REAL AI generation via API
+  const handleGenerate = useCallback(async (customInstruction?: string): Promise<string> => {
+    if (!activeTool) throw new Error('No tool selected');
     
-    const mockResponses: Record<string, string[]> = {
-      continue: [
-        `The shadow lunged. Maya raised her pendant, and light erupted from it like a small sun, casting the creature back with a shriek that seemed to come from everywhere and nowhere at once.
+    setIsGenerating(true);
+    
+    try {
+      const response = await fetch('/api/ai/theater', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-demo-mode': 'true', // Allow demo without auth
+        },
+        body: JSON.stringify({
+          toolId: activeTool.id,
+          subOptionId: activeSubOption?.id,
+          chapterContent,
+          selectedText: selection?.text,
+          cursorPosition,
+          sceneContext: activeSceneContext,
+          customInstruction,
+          characters: demoCharacters,
+        }),
+      });
 
-"You cannot hide forever, child of the Veil," it hissed, its voice like wind through dead leaves. "We know what you carry. We know what you are."
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Generation failed');
+      }
 
-Maya's grandmother had never mentioned this. She had never said the shadows could speak.`,
-        `She ran. There was no shame in it—only survival instinct honed by years of her grandmother's training. The creature gave chase, flowing over walls and through cracks like liquid darkness.
-
-The library. If she could reach the library before dawn, she might find answers. She might find weapons. She might find out why her pendant chose tonight, of all nights, to awaken.`,
-      ],
-      expand: [
-        `The wind howled through the narrow streets of Ashwick like a living thing, hungry and searching. It carried with it not just the promise of rain, but something else—a charge in the air that made Maya's teeth ache and her pendant grow warm against her chest. The cobblestones beneath her feet were already slick with the storm's first offerings, and somewhere in the distance, a church bell tolled a warning that no one else seemed to hear.`,
-      ],
-      dialogue: [
-        `"You're one of them," Maya said, her voice steadier than she felt. "The Keepers. My grandmother told me you were all gone."
-
-The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waiting. As we have waited for three hundred years." He stepped closer, and the shadows seemed to part for him. "As we have waited for you."`,
-      ],
-    };
-
-    const toolResponses = mockResponses[activeTool?.id || 'continue'] || mockResponses.continue;
-    return toolResponses[Math.floor(Math.random() * toolResponses.length)];
-  }, [activeTool]);
+      const data = await response.json();
+      return data.result;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [activeTool, activeSubOption, chapterContent, selection, cursorPosition, activeSceneContext]);
 
   // Insert handlers
   const handleInsertAfter = useCallback((text: string) => {
@@ -208,6 +216,7 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
     
     setChapterContent(newContent);
     setActiveTool(null);
+    setActiveSubOption(null);
     setSelection(null);
     setHasUnsavedChanges(true);
   }, [chapterContent, selection, cursorPosition, activeTool]);
@@ -228,6 +237,7 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
     
     setChapterContent(newContent);
     setActiveTool(null);
+    setActiveSubOption(null);
     setSelection(null);
     setHasUnsavedChanges(true);
   }, [chapterContent, selection, activeTool]);
@@ -247,6 +257,7 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
     
     setChapterContent(newContent);
     setActiveTool(null);
+    setActiveSubOption(null);
     setHasUnsavedChanges(true);
   }, [chapterContent, cursorPosition, activeTool]);
 
@@ -258,9 +269,9 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
     const item = undoStack[itemIndex];
     setRedoStack(prev => [...prev, {
       ...item,
-      content: chapterContent, // Store current as redo point
+      content: chapterContent,
     }]);
-    setChapterContent(item.content); // Restore to previous
+    setChapterContent(item.content);
     setUndoStack(prev => prev.slice(0, itemIndex));
     setHasUnsavedChanges(true);
   }, [undoStack, chapterContent]);
@@ -270,12 +281,12 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
     const item = redoStack[redoStack.length - 1];
     setUndoStack(prev => [...prev, {
       ...item,
-      content: chapterContent, // Store current as undo point
+      content: chapterContent,
     }]);
-    setChapterContent(item.content); // Restore to redo content
+    setChapterContent(item.content);
     setRedoStack(prev => prev.slice(0, -1));
     setHasUnsavedChanges(true);
-  }, [redoStack]);
+  }, [redoStack, chapterContent]);
 
   return (
     <div className="flex h-screen flex-col bg-stone-950 text-stone-100">
@@ -380,7 +391,10 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
             sceneContext={activeSceneContext}
             chapterContent={chapterContent}
             cursorPosition={cursorPosition}
-            onClose={() => setActiveTool(null)}
+            onClose={() => {
+              setActiveTool(null);
+              setActiveSubOption(null);
+            }}
             onGenerate={handleGenerate}
             onInsertAfter={handleInsertAfter}
             onReplace={handleReplace}
