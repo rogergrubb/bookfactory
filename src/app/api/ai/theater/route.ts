@@ -9,88 +9,73 @@ const anthropic = new Anthropic();
 const toolPrompts: Record<string, string> = {
   // GENERATE TOOLS
   'continue': `You are a skilled fiction writer. Continue the story naturally from where it left off. Match the existing tone, style, and pacing. Write 150-300 words of new content that flows seamlessly.`,
-  'firstdraft': `You are a prolific fiction writer. Write a rough first draft based on the context. Focus on momentum. Write 200-400 words.`,
-  'dialogue': `You are a master of dialogue. Create natural, character-appropriate dialogue with distinct voices. Include beats and action tags.`,
+  'firstdraft': `You are a prolific fiction writer. Write a rough first draft based on the context provided. Focus on momentum. Write 200-400 words.`,
+  'dialogue': `You are a master of dialogue writing. Create natural, character-appropriate dialogue with distinct voices. Include beats and action tags.`,
   'description': `You are a sensory-focused writer. Add rich, evocative descriptions using specific sensory details. Show, don't tell.`,
-  'action': `You are an action scene specialist. Write dynamic, fast-paced sequences with short sentences and visceral prose.`,
-  'thoughts': `You are skilled at internal monologue. Capture the character's unique thought patterns and inner voice authentically.`,
-
+  'action': `You are an action scene specialist. Write dynamic, fast-paced sequences with short sentences for intensity.`,
+  'thoughts': `You are skilled at writing internal monologue. Capture the character's unique thought patterns and inner voice.`,
   // ENHANCE TOOLS
-  'expand': `You are an editor who enriches prose. Expand the text by adding depth, nuance, and sensory details while maintaining voice.`,
-  'condense': `You are a ruthless editor. Tighten prose by removing unnecessary words and redundancies. Keep core meaning but make it sharper.`,
-  'rewrite': `You are a versatile writer. Rewrite this passage according to the specified direction while preserving core meaning.`,
-  'polish': `You are a prose stylist. Polish text by improving word choices, sentence flow, and rhythm. Fix awkward phrases.`,
+  'expand': `You are an editor who enriches prose. Expand the text by adding depth, nuance, and sensory details.`,
+  'condense': `You are a ruthless editor. Tighten this prose by removing unnecessary words and redundancies.`,
+  'rewrite': `You are a versatile writer. Rewrite this passage according to the specified direction.`,
+  'polish': `You are a prose stylist. Polish this text by improving word choices, sentence flow, and rhythm.`,
   'strengthen-verbs': `You are an editor focused on verb power. Replace weak verbs with stronger, more specific action verbs.`,
-  'vary-sentences': `You are a prose rhythm specialist. Improve sentence variety - mix short and long sentences. Create better rhythm.`,
-  'fix-dialogue-tags': `You are a dialogue specialist. Improve dialogue tags - add action beats, remove unnecessary tags.`,
+  'vary-sentences': `You are a prose rhythm specialist. Improve sentence variety and reading rhythm.`,
+  'fix-dialogue-tags': `You are a dialogue specialist. Improve dialogue tags with action beats. Make conversations flow naturally.`,
   'show-dont-tell': `You are an expert at transforming telling into showing. Convert abstract statements into concrete scenes.`,
-
   // ANALYZE TOOLS
-  'pacing': `Analyze the pacing. Identify fast/slow sections, tension build-up/release. Suggest improvements.`,
-  'voice-check': `Analyze narrative voice for consistency. Note shifts in POV, tense, or tone.`,
-  'tension-map': `Map tension levels throughout. Identify peaks and valleys. Suggest improvements.`,
+  'pacing': `Analyze the pacing of this chapter. Identify fast and slow sections, tension build-up and release.`,
+  'voice-check': `Analyze the narrative voice for consistency. Note any shifts in POV, tense, or tone.`,
+  'tension-map': `Map the tension levels throughout this passage. Identify peaks and valleys.`,
   'character-voice': `Analyze how distinctly this character speaks/thinks. Note speech patterns and vocabulary.`,
-  'repetition': `Find repeated words, phrases, and structures. Suggest variations and alternatives.`,
-  'adverb-hunter': `Identify adverbs, especially those weakening strong verbs. Suggest stronger alternatives.`,
-  'passive-voice': `Find passive voice constructions. Suggest active alternatives where appropriate.`,
-  'readability': `Assess reading level, sentence complexity, and clarity. Suggest improvements.`,
+  'repetition': `Find repeated words, phrases, and sentence structures. Suggest variations.`,
+  'adverb-hunter': `Identify adverbs, especially those weakening strong verbs. Suggest alternatives.`,
+  'passive-voice': `Find passive voice constructions. Suggest active alternatives.`,
+  'readability': `Assess reading level, sentence complexity, and clarity.`,
   'emotional-arc': `Track the emotional arc. What emotions should readers feel? Where are the beats?`,
   'chapter-summary': `Provide a concise summary: main events, character developments, plot advancement.`,
-
   // BRAINSTORM TOOLS
-  'plot-ideas': `Generate creative plot ideas that fit naturally with the existing story.`,
-  'character-moments': `Suggest meaningful character moments - revelations, growth opportunities, relationship beats.`,
-  'dialogue-options': `Generate multiple dialogue options for this situation. Vary tone, subtext, and approach.`,
-  'scene-transitions': `Suggest smooth ways to transition between scenes. Consider time jumps and mood shifts.`,
-  'conflict-escalation': `Suggest ways to escalate conflict. Consider obstacles, complications, raised stakes.`,
-  'twist-generator': `Generate surprising but logical plot twists that fit the story.`,
-  'what-if': `Explore this "what if" scenario thoroughly. Consider implications and possibilities.`,
-  'stuck-help': `Help the writer get unstuck. Analyze the situation and suggest concrete ways forward.`,
+  'plot-ideas': `Generate plot ideas that fit naturally with the existing story.`,
+  'character-moments': `Suggest meaningful character moments - revelations, growth opportunities.`,
+  'dialogue-options': `Generate multiple dialogue options for this situation. Vary tone and approach.`,
+  'scene-transitions': `Suggest smooth ways to transition between scenes.`,
+  'conflict-escalation': `Suggest ways to escalate the conflict. Consider obstacles and stakes.`,
+  'twist-generator': `Generate surprising but logical plot twists.`,
+  'what-if': `Explore this "what if" scenario thoroughly. Consider implications.`,
+  'stuck-help': `Help the writer get unstuck. Identify the block and suggest concrete ways forward.`,
 };
 
 // Sub-option modifiers
 const subOptionModifiers: Record<string, Record<string, string>> = {
   'description': {
-    'setting': 'Focus on environment and setting - architecture, landscape, atmosphere.',
-    'character': 'Focus on character appearance - physical details, clothing, expressions.',
-    'action': 'Focus on movement and action - how things happen physically.',
-    'emotion': 'Focus on emotional atmosphere - mood, tension, feeling.',
-    'sensory': 'Include all five senses - sight, sound, smell, touch, taste.',
+    'setting': 'Focus on environment and setting.',
+    'character': 'Focus on character appearance.',
+    'action': 'Focus on movement and action.',
+    'emotion': 'Focus on emotional atmosphere.',
+    'sensory': 'Include all five senses.',
   },
   'action': {
-    'fight': 'Write intense physical combat with clear choreography.',
-    'chase': 'Write a fast-paced chase with mounting tension.',
-    'escape': 'Write a desperate escape sequence with obstacles.',
-    'disaster': 'Write a catastrophic event with chaos and urgency.',
+    'fight': 'Write intense physical combat.',
+    'chase': 'Write a fast-paced chase scene.',
+    'escape': 'Write a desperate escape sequence.',
+    'disaster': 'Write a catastrophic event scene.',
   },
   'expand': {
-    'detail': 'Add specific, concrete details to enrich the scene.',
-    'emotion': 'Deepen the emotional content and character interiority.',
-    'sensory': 'Add sensory details across multiple senses.',
-    'backstory': 'Weave in relevant backstory and context.',
+    'detail': 'Add specific, concrete details.',
+    'emotion': 'Deepen the emotional content.',
+    'sensory': 'Add sensory details.',
+    'backstory': 'Weave in relevant backstory.',
   },
   'condense': {
-    'light': 'Trim 10-20% - remove obvious redundancies only.',
-    'moderate': 'Cut 30-40% - tighten significantly.',
-    'aggressive': 'Cut 50%+ - reduce to essential elements only.',
+    'light': 'Trim 10-20%.',
+    'moderate': 'Cut 30-40%.',
+    'aggressive': 'Cut 50%+.',
   },
   'rewrite': {
-    'dramatic': 'Make it more dramatic and emotionally heightened.',
-    'subtle': 'Make it more subtle and nuanced.',
-    'faster': 'Increase the pace - shorter sentences, more urgency.',
-    'slower': 'Slow the pace - more detail, deeper moments.',
-  },
-  'plot-ideas': {
-    'next': 'What should happen next in this story?',
-    'conflict': 'How can conflict be introduced or heightened?',
-    'complication': 'What complications could arise?',
-    'resolution': 'How might this situation resolve?',
-  },
-  'twist-generator': {
-    'betrayal': 'Generate a betrayal twist.',
-    'revelation': 'Generate a revelation twist - hidden information comes to light.',
-    'reversal': 'Generate a reversal twist - situation flips.',
-    'surprise': 'Generate a surprise about the world or setting.',
+    'dramatic': 'Make it more dramatic.',
+    'subtle': 'Make it more subtle.',
+    'faster': 'Increase the pace.',
+    'slower': 'Slow the pace.',
   },
 };
 
@@ -104,7 +89,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database
     const user = await prisma.user.findUnique({ where: { clerkId } });
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -147,7 +131,7 @@ export async function POST(request: NextRequest) {
       systemPrompt += `\n\n--- SCENE CONTEXT ---
 Setting: ${sceneContext.name}
 Mood: ${sceneContext.mood?.primary || ''} ${sceneContext.mood?.secondary ? `/ ${sceneContext.mood.secondary}` : ''}
-Sensory: Sight: ${sceneContext.sensory?.sight || 'N/A'} | Sound: ${sceneContext.sensory?.sound || 'N/A'} | Smell: ${sceneContext.sensory?.smell || 'N/A'}
+Sensory: Sight: ${sceneContext.sensory?.sight || '-'}, Sound: ${sceneContext.sensory?.sound || '-'}, Smell: ${sceneContext.sensory?.smell || '-'}
 Props: ${sceneContext.props?.join(', ') || 'None'}
 ${sceneContext.aiNotes ? `Notes: ${sceneContext.aiNotes}` : ''}`;
     }
@@ -180,7 +164,7 @@ ${sceneContext.aiNotes ? `Notes: ${sceneContext.aiNotes}` : ''}`;
         scope: selectedText ? 'selection' : 'chapter',
         input: userMessage.slice(0, 10000),
         status: 'running',
-        options: { subOptionId, customInstruction, sceneContextId: sceneContext?.id } as any,
+        options: { subOptionId, customInstruction, sceneContextId: sceneContext?.id },
       },
     });
 
@@ -213,7 +197,6 @@ ${sceneContext.aiNotes ? `Notes: ${sceneContext.aiNotes}` : ''}`;
       },
     });
 
-    // Increment credits used
     await prisma.user.update({
       where: { id: user.id },
       data: { aiCreditsUsed: { increment: 1 } },
