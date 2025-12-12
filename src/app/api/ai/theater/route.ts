@@ -1,127 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { prisma } from '@/lib/db';
 
 const anthropic = new Anthropic();
 
 // Tool-specific system prompts
 const toolPrompts: Record<string, string> = {
   // GENERATE TOOLS
-  'continue': `You are a skilled fiction writer. Continue the story naturally from where it left off. 
-Match the existing tone, style, and pacing. Write 150-300 words of new content that flows seamlessly.`,
-  
-  'firstdraft': `You are a prolific fiction writer known for getting words on the page quickly.
-Write a rough first draft based on the context provided. Don't worry about perfection - focus on momentum and getting the story moving. Write 200-400 words.`,
-  
-  'dialogue': `You are a master of dialogue writing. Create natural, character-appropriate dialogue.
-Each character should have a distinct voice. Include beats and action tags where appropriate. Make the dialogue reveal character and advance the story.`,
-  
-  'description': `You are a sensory-focused writer who brings scenes to life.
-Add rich, evocative descriptions using specific sensory details. Avoid clichés. Show, don't tell. Make the reader feel present in the scene.`,
-  
-  'action': `You are an action scene specialist. Write dynamic, fast-paced sequences.
-Use short sentences for intensity. Vary rhythm. Make every word count. Create visceral, immediate prose that puts readers in the moment.`,
-  
-  'thoughts': `You are skilled at writing internal monologue and character interiority.
-Capture the character's unique thought patterns, concerns, and inner voice. Make thoughts feel authentic and revealing without being on-the-nose.`,
+  'continue': `You are a skilled fiction writer. Continue the story naturally from where it left off. Match the existing tone, style, and pacing. Write 150-300 words of new content that flows seamlessly.`,
+  'firstdraft': `You are a prolific fiction writer. Write a rough first draft based on the context. Focus on momentum. Write 200-400 words.`,
+  'dialogue': `You are a master of dialogue. Create natural, character-appropriate dialogue with distinct voices. Include beats and action tags.`,
+  'description': `You are a sensory-focused writer. Add rich, evocative descriptions using specific sensory details. Show, don't tell.`,
+  'action': `You are an action scene specialist. Write dynamic, fast-paced sequences with short sentences and visceral prose.`,
+  'thoughts': `You are skilled at internal monologue. Capture the character's unique thought patterns and inner voice authentically.`,
 
   // ENHANCE TOOLS
-  'expand': `You are an editor who enriches prose with meaningful detail.
-Expand the selected text by adding depth, nuance, and sensory details. Maintain the original voice while making it more immersive.`,
-  
-  'condense': `You are a ruthless editor who cuts to the bone.
-Tighten this prose by removing unnecessary words, redundancies, and weak constructions. Keep the core meaning but make it sharper.`,
-  
-  'rewrite': `You are a versatile writer who can transform prose.
-Rewrite this passage according to the specified direction while preserving the core meaning and story information.`,
-  
-  'polish': `You are a skilled prose stylist and line editor.
-Polish this text by improving word choices, sentence flow, and rhythm. Fix awkward phrases. Elevate the writing quality while maintaining the author's voice.`,
-  
-  'strengthen-verbs': `You are an editor focused on verb power.
-Replace weak verbs (was, were, had, got, etc.) with stronger, more specific action verbs. Transform passive constructions into active ones.`,
-  
-  'vary-sentences': `You are a prose rhythm specialist.
-Improve sentence variety - mix short punchy sentences with longer flowing ones. Break up monotonous patterns. Create better reading rhythm.`,
-  
-  'fix-dialogue-tags': `You are a dialogue specialist focused on attribution.
-Improve dialogue tags - reduce "said" overuse, add action beats, remove unnecessary tags. Make conversations flow more naturally.`,
-  
-  'show-dont-tell': `You are an expert at transforming telling into showing.
-Convert abstract statements and telling into concrete scenes, actions, and sensory details that let readers experience rather than be told.`,
+  'expand': `You are an editor who enriches prose. Expand the text by adding depth, nuance, and sensory details while maintaining voice.`,
+  'condense': `You are a ruthless editor. Tighten prose by removing unnecessary words and redundancies. Keep core meaning but make it sharper.`,
+  'rewrite': `You are a versatile writer. Rewrite this passage according to the specified direction while preserving core meaning.`,
+  'polish': `You are a prose stylist. Polish text by improving word choices, sentence flow, and rhythm. Fix awkward phrases.`,
+  'strengthen-verbs': `You are an editor focused on verb power. Replace weak verbs with stronger, more specific action verbs.`,
+  'vary-sentences': `You are a prose rhythm specialist. Improve sentence variety - mix short and long sentences. Create better rhythm.`,
+  'fix-dialogue-tags': `You are a dialogue specialist. Improve dialogue tags - add action beats, remove unnecessary tags.`,
+  'show-dont-tell': `You are an expert at transforming telling into showing. Convert abstract statements into concrete scenes.`,
 
   // ANALYZE TOOLS
-  'pacing': `You are a story structure analyst. Analyze the pacing of this chapter.
-Identify fast and slow sections, tension build-up and release, and suggest where pacing could be improved. Be specific and constructive.`,
-  
-  'voice-check': `You are a narrative voice specialist.
-Analyze the narrative voice for consistency. Note any shifts in POV, tense, or tone. Identify where the voice is strongest and weakest.`,
-  
-  'tension-map': `You are a dramatic tension analyst.
-Map the tension levels throughout this passage. Identify peaks and valleys. Suggest where tension could be heightened or released.`,
-  
-  'character-voice': `You are a character voice analyst.
-Analyze how distinctly this character speaks/thinks. Note speech patterns, vocabulary, and unique expressions. Suggest improvements.`,
-  
-  'repetition': `You are an editor focused on word repetition.
-Find repeated words, phrases, and sentence structures. Note overused words. Suggest variations and alternatives.`,
-  
-  'adverb-hunter': `You are an adverb specialist editor.
-Identify adverbs, especially those modifying dialogue tags or weakening strong verbs. Suggest stronger alternatives.`,
-  
-  'passive-voice': `You are a voice construction analyst.
-Find passive voice constructions. Explain why each is passive and suggest active alternatives where appropriate.`,
-  
-  'readability': `You are a readability analyst.
-Assess reading level, sentence complexity, and clarity. Note any confusing passages. Suggest improvements for flow.`,
-  
-  'emotional-arc': `You are an emotional journey analyst.
-Track the emotional arc of this passage. What emotions should readers feel? Where are the emotional beats? What's missing?`,
-  
-  'chapter-summary': `You are a skilled summarizer.
-Provide a concise summary of this chapter including: main events, character developments, plot advancement, and key revelations.`,
+  'pacing': `Analyze the pacing. Identify fast/slow sections, tension build-up/release. Suggest improvements.`,
+  'voice-check': `Analyze narrative voice for consistency. Note shifts in POV, tense, or tone.`,
+  'tension-map': `Map tension levels throughout. Identify peaks and valleys. Suggest improvements.`,
+  'character-voice': `Analyze how distinctly this character speaks/thinks. Note speech patterns and vocabulary.`,
+  'repetition': `Find repeated words, phrases, and structures. Suggest variations and alternatives.`,
+  'adverb-hunter': `Identify adverbs, especially those weakening strong verbs. Suggest stronger alternatives.`,
+  'passive-voice': `Find passive voice constructions. Suggest active alternatives where appropriate.`,
+  'readability': `Assess reading level, sentence complexity, and clarity. Suggest improvements.`,
+  'emotional-arc': `Track the emotional arc. What emotions should readers feel? Where are the beats?`,
+  'chapter-summary': `Provide a concise summary: main events, character developments, plot advancement.`,
 
   // BRAINSTORM TOOLS
-  'plot-ideas': `You are a creative story consultant.
-Generate plot ideas that fit naturally with the existing story. Be creative but stay consistent with established elements.`,
-  
-  'character-moments': `You are a character development specialist.
-Suggest meaningful character moments - revelations, growth opportunities, relationship beats that would deepen the story.`,
-  
-  'dialogue-options': `You are a dialogue brainstormer.
-Generate multiple dialogue options for this situation. Vary tone, subtext, and approach. Show different ways the conversation could go.`,
-  
-  'scene-transitions': `You are a scene transition specialist.
-Suggest smooth ways to transition between scenes. Consider time jumps, location changes, and mood shifts.`,
-  
-  'conflict-escalation': `You are a conflict specialist.
-Suggest ways to escalate the conflict. Consider obstacles, complications, raised stakes, and unexpected turns.`,
-  
-  'twist-generator': `You are a plot twist specialist.
-Generate surprising but logical plot twists that fit the story. Each twist should be both unexpected and inevitable in retrospect.`,
-  
-  'what-if': `You are a creative scenario explorer.
-Explore this "what if" scenario thoroughly. Consider implications, character reactions, and story possibilities.`,
-  
-  'stuck-help': `You are a writer's block specialist.
-Help the writer get unstuck. Analyze the situation, identify the block, and suggest concrete ways forward.`,
+  'plot-ideas': `Generate creative plot ideas that fit naturally with the existing story.`,
+  'character-moments': `Suggest meaningful character moments - revelations, growth opportunities, relationship beats.`,
+  'dialogue-options': `Generate multiple dialogue options for this situation. Vary tone, subtext, and approach.`,
+  'scene-transitions': `Suggest smooth ways to transition between scenes. Consider time jumps and mood shifts.`,
+  'conflict-escalation': `Suggest ways to escalate conflict. Consider obstacles, complications, raised stakes.`,
+  'twist-generator': `Generate surprising but logical plot twists that fit the story.`,
+  'what-if': `Explore this "what if" scenario thoroughly. Consider implications and possibilities.`,
+  'stuck-help': `Help the writer get unstuck. Analyze the situation and suggest concrete ways forward.`,
 };
 
 // Sub-option modifiers
 const subOptionModifiers: Record<string, Record<string, string>> = {
   'description': {
-    'setting': 'Focus on the environment and setting - architecture, landscape, atmosphere.',
-    'character': 'Focus on character appearance - physical details, clothing, expressions, body language.',
-    'action': 'Focus on movement and action - how things happen, physical sequences.',
-    'emotion': 'Focus on emotional atmosphere - mood, tension, feeling in the air.',
+    'setting': 'Focus on environment and setting - architecture, landscape, atmosphere.',
+    'character': 'Focus on character appearance - physical details, clothing, expressions.',
+    'action': 'Focus on movement and action - how things happen physically.',
+    'emotion': 'Focus on emotional atmosphere - mood, tension, feeling.',
     'sensory': 'Include all five senses - sight, sound, smell, touch, taste.',
   },
   'action': {
-    'fight': 'Write an intense physical combat scene with clear choreography.',
-    'chase': 'Write a fast-paced chase scene with mounting tension.',
+    'fight': 'Write intense physical combat with clear choreography.',
+    'chase': 'Write a fast-paced chase with mounting tension.',
     'escape': 'Write a desperate escape sequence with obstacles.',
-    'disaster': 'Write a catastrophic event scene with chaos and urgency.',
-    'sports': 'Write a competitive sports/game scene with stakes.',
+    'disaster': 'Write a catastrophic event with chaos and urgency.',
   },
   'expand': {
     'detail': 'Add specific, concrete details to enrich the scene.',
@@ -131,13 +71,12 @@ const subOptionModifiers: Record<string, Record<string, string>> = {
   },
   'condense': {
     'light': 'Trim 10-20% - remove obvious redundancies only.',
-    'moderate': 'Cut 30-40% - tighten significantly while preserving key details.',
+    'moderate': 'Cut 30-40% - tighten significantly.',
     'aggressive': 'Cut 50%+ - reduce to essential elements only.',
   },
   'rewrite': {
-    'dramatic': 'Make it more dramatic, intense, and emotionally heightened.',
-    'subtle': 'Make it more subtle, understated, and nuanced.',
-    'pov': 'Rewrite from a different point of view.',
+    'dramatic': 'Make it more dramatic and emotionally heightened.',
+    'subtle': 'Make it more subtle and nuanced.',
     'faster': 'Increase the pace - shorter sentences, more urgency.',
     'slower': 'Slow the pace - more detail, deeper moments.',
   },
@@ -148,19 +87,27 @@ const subOptionModifiers: Record<string, Record<string, string>> = {
     'resolution': 'How might this situation resolve?',
   },
   'twist-generator': {
-    'betrayal': 'Generate a betrayal twist - someone is not who they seem.',
-    'revelation': 'Generate a hidden truth revelation.',
-    'reversal': 'Generate a reversal of fortune or expectations.',
-    'unexpected': 'Generate an unexpected ally or enemy.',
-    'surprise': 'Generate any type of surprising twist.',
+    'betrayal': 'Generate a betrayal twist.',
+    'revelation': 'Generate a revelation twist - hidden information comes to light.',
+    'reversal': 'Generate a reversal twist - situation flips.',
+    'surprise': 'Generate a surprise about the world or setting.',
   },
 };
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkId } = await auth();
+    
+    if (!clerkId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user from database
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -172,92 +119,109 @@ export async function POST(request: NextRequest) {
       cursorPosition,
       sceneContext,
       customInstruction,
+      bookId,
+      chapterId,
     } = body;
 
-    // Get base system prompt for tool
-    let systemPrompt = toolPrompts[toolId] || 'You are a helpful fiction writing assistant.';
+    if (!toolId) {
+      return NextResponse.json({ error: 'Tool ID is required' }, { status: 400 });
+    }
 
-    // Add sub-option modifier if applicable
+    const basePrompt = toolPrompts[toolId];
+    if (!basePrompt) {
+      return NextResponse.json({ error: 'Unknown tool' }, { status: 400 });
+    }
+
+    // Build system prompt
+    let systemPrompt = basePrompt;
+
     if (subOptionId && subOptionModifiers[toolId]?.[subOptionId]) {
-      systemPrompt += `\n\nSpecific direction: ${subOptionModifiers[toolId][subOptionId]}`;
+      systemPrompt += `\n\nSpecific focus: ${subOptionModifiers[toolId][subOptionId]}`;
     }
 
-    // Add custom instruction if provided
     if (customInstruction) {
-      systemPrompt += `\n\nUser's specific instruction: ${customInstruction}`;
+      systemPrompt += `\n\nAdditional instructions: ${customInstruction}`;
     }
 
-    // Add scene context if active
     if (sceneContext) {
-      systemPrompt += `\n\n--- SCENE CONTEXT: ${sceneContext.name} ---
-Sensory details to incorporate:
-- Sight: ${sceneContext.sensory.sight}
-- Sound: ${sceneContext.sensory.sound}
-- Smell: ${sceneContext.sensory.smell}
-- Touch: ${sceneContext.sensory.touch}
-- Taste: ${sceneContext.sensory.taste}
-
-Mood: ${sceneContext.mood.primary} with undertones of ${sceneContext.mood.secondary}
-
-Available props: ${sceneContext.props.join(', ')}
-
-Writing notes: ${sceneContext.aiNotes}`;
+      systemPrompt += `\n\n--- SCENE CONTEXT ---
+Setting: ${sceneContext.name}
+Mood: ${sceneContext.mood?.primary || ''} ${sceneContext.mood?.secondary ? `/ ${sceneContext.mood.secondary}` : ''}
+Sensory: Sight: ${sceneContext.sensory?.sight || 'N/A'} | Sound: ${sceneContext.sensory?.sound || 'N/A'} | Smell: ${sceneContext.sensory?.smell || 'N/A'}
+Props: ${sceneContext.props?.join(', ') || 'None'}
+${sceneContext.aiNotes ? `Notes: ${sceneContext.aiNotes}` : ''}`;
     }
 
-    // Build the user message
+    // Build user message
     let userMessage = '';
 
-    // For tools that work on selected text
     if (selectedText) {
-      userMessage = `Here is the selected text to work with:\n\n"${selectedText}"`;
-      
-      // Add surrounding context for better continuity
-      if (chapterContent) {
-        const contextStart = Math.max(0, chapterContent.indexOf(selectedText) - 500);
-        const contextEnd = Math.min(chapterContent.length, chapterContent.indexOf(selectedText) + selectedText.length + 500);
-        const context = chapterContent.slice(contextStart, contextEnd);
-        userMessage += `\n\nSurrounding context:\n${context}`;
-      }
-    } 
-    // For tools that continue or generate
-    else if (chapterContent) {
-      // Get last 1500 characters for context
-      const contextLength = Math.min(chapterContent.length, 1500);
-      const context = chapterContent.slice(-contextLength);
-      userMessage = `Here is the recent content from the chapter:\n\n${context}`;
-      
-      if (cursorPosition !== undefined && cursorPosition < chapterContent.length) {
-        userMessage += `\n\n[Note: The cursor is positioned in the middle of the text, not at the end.]`;
-      }
+      const contextBefore = chapterContent?.slice(Math.max(0, cursorPosition - 500), cursorPosition) || '';
+      const contextAfter = chapterContent?.slice(cursorPosition + selectedText.length, cursorPosition + selectedText.length + 500) || '';
+      userMessage = `Selected text:\n---\n${selectedText}\n---\n\nContext before:\n${contextBefore}\n\nContext after:\n${contextAfter}`;
+    } else if (toolId === 'continue' || toolId === 'firstdraft') {
+      const contextBefore = chapterContent?.slice(Math.max(0, cursorPosition - 1500), cursorPosition) || '';
+      userMessage = `Continue from here:\n\n${contextBefore}`;
+    } else if (['pacing', 'voice-check', 'tension-map', 'repetition', 'adverb-hunter', 'passive-voice', 'readability', 'emotional-arc', 'chapter-summary'].includes(toolId)) {
+      userMessage = `Analyze this chapter:\n\n${chapterContent || 'No content provided'}`;
+    } else {
+      const contextBefore = chapterContent?.slice(Math.max(0, cursorPosition - 800), cursorPosition) || '';
+      const contextAfter = chapterContent?.slice(cursorPosition, cursorPosition + 400) || '';
+      userMessage = `Current context:\n\n${contextBefore}[CURSOR]${contextAfter}`;
     }
-    // For tools that analyze the whole chapter
-    else {
-      userMessage = 'Please provide analysis or suggestions based on the tool description.';
-    }
+
+    // Create tool run record
+    const toolRun = await prisma.toolRun.create({
+      data: {
+        userId: user.id,
+        bookId: bookId || '',
+        documentId: chapterId,
+        toolId,
+        scope: selectedText ? 'selection' : 'chapter',
+        input: userMessage.slice(0, 10000),
+        status: 'running',
+        options: { subOptionId, customInstruction, sceneContextId: sceneContext?.id } as any,
+      },
+    });
 
     // Call Claude API
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
       system: systemPrompt,
-      messages: [
-        { role: 'user', content: userMessage }
-      ],
+      messages: [{ role: 'user', content: userMessage }],
     });
 
-    // Extract text from response
-    const result = response.content
-      .filter(block => block.type === 'text')
-      .map(block => block.type === 'text' ? block.text : '')
-      .join('\n');
+    const result = response.content[0].type === 'text' ? response.content[0].text : '';
+    const processingTime = Date.now() - startTime;
+    const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
 
-    return NextResponse.json({ result });
+    // Update tool run with result
+    await prisma.toolRun.update({
+      where: { id: toolRun.id },
+      data: { output: result, status: 'completed', processingTime, tokensUsed },
+    });
 
+    // Track AI usage
+    await prisma.aIUsage.create({
+      data: {
+        userId: user.id,
+        type: toolId,
+        inputTokens: response.usage?.input_tokens || 0,
+        outputTokens: response.usage?.output_tokens || 0,
+        bookId,
+      },
+    });
+
+    // Increment credits used
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { aiCreditsUsed: { increment: 1 } },
+    });
+
+    return NextResponse.json({ result, toolRunId: toolRun.id, tokensUsed, processingTime });
   } catch (error) {
-    console.error('AI Theater error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Generation failed' },
-      { status: 500 }
-    );
+    console.error('Theater API error:', error);
+    return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });
   }
 }
