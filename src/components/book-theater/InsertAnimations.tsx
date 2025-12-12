@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { InsertAnimation, Confetti } from '../hooks/useMicroInteractions';
+import { InsertAnimation, Confetti } from './hooks/useMicroInteractions';
 
 // ============================================================================
 // TEXT INSERTION POPUP
