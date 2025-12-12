@@ -757,11 +757,13 @@ export default function BookTheaterPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Tool Tray */}
         <ToolTray
-          onToolSelect={handleToolSelect}
+          onSelectTool={handleToolSelect}
           activeTool={activeTool}
-          activeSceneContext={activeSceneContext}
-          onSceneContextClick={() => setShowSceneContextPanel(true)}
+          hasSelection={!!selection}
           characters={characters}
+          sceneContexts={sceneContexts}
+          activeSceneContext={activeSceneContext}
+          onSceneContextChange={setActiveSceneContext}
         />
 
         {/* Writing Canvas */}
