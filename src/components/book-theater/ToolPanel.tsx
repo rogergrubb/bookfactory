@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2, Sparkles, Copy, Check, ArrowRight, Replace, Plus, Wand2, History, Coins } from 'lucide-react';
+import { X, Loader2, Sparkles, Copy, Check, ArrowRight, Replace, Plus, Wand2, History, TrendingUp, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tool, SubOption, Selection, SceneContext } from './types';
 import { categoryMeta } from './tool-definitions';
 import { GenerationProgressBar } from './GenerationProgress';
 import { useGenerationProgress, useSuccessCelebration, useTypewriter } from './hooks/useMicroInteractions';
 import { ConfettiOverlay, WordCountDelta, PulseRing, SuccessCheck } from './InsertAnimations';
-import { TokenEstimator } from './TokenEstimator';
+import { TokenEstimator, SessionUsageBadge } from './TokenEstimator';
 import { GenerationHistoryInline, GenerationRecord } from './GenerationHistory';
 
 interface ToolPanelProps {
@@ -45,7 +45,8 @@ export function ToolPanel({
   const [selectedSubOption, setSelectedSubOption] = useState<SubOption | null>(subOption || null);
   const [showInsertSuccess, setShowInsertSuccess] = useState(false);
   const [generationHistory, setGenerationHistory] = useState<GenerationRecord[]>([]);
-  const [tokensUsed, setTokensUsed] = useState<number>(0);
+  const [sessionStats, setSessionStats] = useState({ generations: 0, words: 0 });
+  const [generationTime, setGenerationTime] = useState<number>(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Micro-interaction hooks
@@ -58,7 +59,7 @@ export function ToolPanel({
   const hasResult = result.length > 0;
   const wordCount = result.split(/\s+/).filter(w => w.length > 0).length;
 
-  // Calculate input length for token estimation
+  // Calculate input length for estimation
   const inputLength = (selection?.text?.length || 0) + (chapterContent.length > 2000 ? 2000 : chapterContent.length);
 
   // Color mapping for Tailwind
@@ -90,14 +91,25 @@ export function ToolPanel({
   const handleGenerate = async () => {
     setError(null);
     setResult('');
+    const startTime = Date.now();
     startGeneration();
 
     try {
       const instruction = isCustomMode ? customInstruction : undefined;
       const generated = await onGenerate(instruction);
       setResult(generated);
+      
       const generatedWordCount = generated.split(/\s+/).filter(w => w.length > 0).length;
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      setGenerationTime(elapsed);
+      
       completeGeneration(generatedWordCount);
+
+      // Update session stats
+      setSessionStats(prev => ({
+        generations: prev.generations + 1,
+        words: prev.words + generatedWordCount
+      }));
 
       // Add to local generation history
       const newRecord: GenerationRecord = {
@@ -108,12 +120,11 @@ export function ToolPanel({
         subOptionName: selectedSubOption?.name,
         input: selection?.text || chapterContent.slice(Math.max(0, cursorPosition - 500), cursorPosition),
         output: generated,
-        tokensUsed: Math.round(generatedWordCount * 1.3 + 100), // Estimate
+        tokensUsed: Math.round(generatedWordCount * 1.3 + 100),
         timestamp: new Date(),
         isFavorite: false,
       };
       setGenerationHistory(prev => [newRecord, ...prev].slice(0, 10));
-      setTokensUsed(prev => prev + newRecord.tokensUsed);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
       setError(message);
@@ -168,7 +179,7 @@ export function ToolPanel({
         colors.border
       )}
     >
-      {/* Confetti Overlay - Fixed props */}
+      {/* Confetti Overlay */}
       <ConfettiOverlay confetti={confetti} showSuccess={showSuccess} />
 
       {/* Header */}
@@ -193,7 +204,7 @@ export function ToolPanel({
           </button>
         </div>
 
-        {/* Token Estimator - Show before generation */}
+        {/* Estimator - Show before generation */}
         {!hasResult && !isGenerating && (
           <TokenEstimator
             toolId={tool.id}
@@ -203,13 +214,22 @@ export function ToolPanel({
           />
         )}
 
-        {/* Tokens Used - Show after generation */}
-        {hasResult && tokensUsed > 0 && (
-          <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg bg-stone-800/50 text-xs">
-            <Coins className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-stone-400">Used:</span>
-            <span className="font-mono text-stone-300">{tokensUsed.toLocaleString()} tokens</span>
-            <span className="text-stone-500">this session</span>
+        {/* Generation Stats - Show after generation */}
+        {hasResult && (
+          <div className="flex items-center gap-3 mt-2 px-3 py-1.5 rounded-lg bg-stone-800/50 text-xs">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+{wordCount} words</span>
+            </div>
+            {generationTime > 0 && (
+              <>
+                <span className="text-stone-600">•</span>
+                <div className="flex items-center gap-1 text-stone-400">
+                  <Clock className="w-3 h-3" />
+                  <span>{generationTime}s</span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -329,6 +349,16 @@ export function ToolPanel({
           </div>
         )}
       </div>
+
+      {/* Session Stats */}
+      {sessionStats.generations > 0 && (
+        <div className="px-4 py-2 border-t border-stone-800/50">
+          <SessionUsageBadge 
+            generationCount={sessionStats.generations}
+            wordsGenerated={sessionStats.words}
+          />
+        </div>
+      )}
 
       {/* Footer Actions */}
       <div className="p-4 border-t border-stone-800 space-y-2">
