@@ -18,7 +18,22 @@ export interface Book {
   targetWordCount: number;
   targetChapters: number;
   chapters: Chapter[];
+  characters?: Character[];
+  metadata?: BookMetadata;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BookMetadata {
   sceneContexts?: SceneContext[];
+  [key: string]: unknown;
+}
+
+export interface Character {
+  id: string;
+  name: string;
+  role?: string;
+  description?: string;
 }
 
 export interface Chapter {
@@ -29,6 +44,8 @@ export interface Chapter {
   order: number;
   status: 'DRAFT' | 'REVISION' | 'COMPLETE';
   sceneContextId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SceneContext {
