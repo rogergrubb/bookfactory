@@ -3,31 +3,35 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Sparkles, Copy, Check, ArrowRight, Replace, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Tool, SubOption, Selection } from './types';
+import { Tool, SubOption, Selection, SceneContext } from './types';
 import { categoryMeta } from './tool-definitions';
 
 interface ToolPanelProps {
   tool: Tool;
   subOption?: SubOption | null;
   selection?: Selection | null;
+  sceneContext?: SceneContext | null;
+  chapterContent: string;
+  cursorPosition: number;
   onClose: () => void;
   onGenerate: (instruction?: string) => Promise<string>;
   onInsertAfter: (text: string) => void;
   onReplace: (text: string) => void;
   onInsertAtCursor: (text: string) => void;
-  isGenerating?: boolean;
 }
 
 export function ToolPanel({
   tool,
   subOption,
   selection,
+  sceneContext,
+  chapterContent,
+  cursorPosition,
   onClose,
   onGenerate,
   onInsertAfter,
   onReplace,
   onInsertAtCursor,
-  isGenerating: externalIsGenerating,
 }: ToolPanelProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState('');
@@ -39,15 +43,14 @@ export function ToolPanel({
   const meta = categoryMeta[tool.category];
   const isCustomMode = selectedSubOption?.id === 'custom';
   const hasResult = result.length > 0;
-  const loading = isGenerating || externalIsGenerating;
 
   // Color mapping for Tailwind
-  const colorStyles: Record<string, { button: string; border: string; bg: string }> = {
-    emerald: { button: 'bg-emerald-500 hover:bg-emerald-600', border: 'border-emerald-500/30', bg: 'bg-emerald-500/5' },
-    blue: { button: 'bg-blue-500 hover:bg-blue-600', border: 'border-blue-500/30', bg: 'bg-blue-500/5' },
-    amber: { button: 'bg-amber-500 hover:bg-amber-600', border: 'border-amber-500/30', bg: 'bg-amber-500/5' },
-    purple: { button: 'bg-purple-500 hover:bg-purple-600', border: 'border-purple-500/30', bg: 'bg-purple-500/5' },
-    rose: { button: 'bg-rose-500 hover:bg-rose-600', border: 'border-rose-500/30', bg: 'bg-rose-500/5' },
+  const colorStyles: Record<string, { button: string; border: string; bg: string; text: string }> = {
+    emerald: { button: 'bg-emerald-500 hover:bg-emerald-600', border: 'border-emerald-500/30', bg: 'bg-emerald-500/5', text: 'text-emerald-400' },
+    blue: { button: 'bg-blue-500 hover:bg-blue-600', border: 'border-blue-500/30', bg: 'bg-blue-500/5', text: 'text-blue-400' },
+    amber: { button: 'bg-amber-500 hover:bg-amber-600', border: 'border-amber-500/30', bg: 'bg-amber-500/5', text: 'text-amber-400' },
+    purple: { button: 'bg-purple-500 hover:bg-purple-600', border: 'border-purple-500/30', bg: 'bg-purple-500/5', text: 'text-purple-400' },
+    rose: { button: 'bg-rose-500 hover:bg-rose-600', border: 'border-rose-500/30', bg: 'bg-rose-500/5', text: 'text-rose-400' },
   };
 
   const colors = colorStyles[meta.color] || colorStyles.emerald;
@@ -103,7 +106,7 @@ export function ToolPanel({
     <div className="w-[380px] h-full flex flex-col bg-stone-900 border-l border-stone-800">
       {/* Header */}
       <div className={cn('flex items-center gap-3 px-4 py-3 border-b', colors.border, colors.bg)}>
-        <tool.icon className="w-5 h-5 text-stone-300" />
+        <tool.icon className={cn('w-5 h-5', colors.text)} />
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-stone-100">{tool.name}</h3>
           {selectedSubOption && (
@@ -135,6 +138,20 @@ export function ToolPanel({
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Scene Context Info */}
+        {sceneContext && (
+          <div className="px-4 py-3 border-b border-stone-800 bg-stone-800/30">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-lg">{sceneContext.icon}</span>
+              <span className="text-stone-400">Scene:</span>
+              <span className="text-stone-200">{sceneContext.name}</span>
+            </div>
+            <p className="text-xs text-stone-500 mt-1">
+              {sceneContext.mood?.primary} {sceneContext.mood?.secondary && `• ${sceneContext.mood.secondary}`}
+            </p>
           </div>
         )}
 
@@ -192,14 +209,14 @@ export function ToolPanel({
           <div className="px-4 py-3">
             <button
               onClick={handleGenerate}
-              disabled={loading || (tool.requiresSelection && !selection) || (isCustomMode && !customInstruction.trim())}
+              disabled={isGenerating || (tool.requiresSelection && !selection) || (isCustomMode && !customInstruction.trim())}
               className={cn(
                 'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all text-white',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 colors.button
               )}
             >
-              {loading ? (
+              {isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Generating...
@@ -273,10 +290,10 @@ export function ToolPanel({
             {/* Generate More */}
             <button
               onClick={handleGenerate}
-              disabled={loading}
+              disabled={isGenerating}
               className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-stone-700 hover:bg-stone-800 text-stone-400 text-sm"
             >
-              {loading ? (
+              {isGenerating ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
                 <Sparkles className="w-3 h-3" />
