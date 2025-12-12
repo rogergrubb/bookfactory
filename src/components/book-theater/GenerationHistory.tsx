@@ -3,11 +3,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   History, RotateCcw, Star, StarOff, Copy, Check, 
-  ChevronDown, ChevronRight, Trash2, Eye, Clock,
-  ArrowRight, Diff, X
+  ChevronDown, ChevronRight, Trash2, Clock,
+  ArrowRight, Diff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+
+// Simple time ago formatter (no external dependencies)
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
 
 export interface GenerationRecord {
   id: string;
@@ -78,7 +89,7 @@ export function GenerationHistory({
 
   const handleToggleFavorite = useCallback(async (record: GenerationRecord) => {
     try {
-      await fetch(`/api/ai/history/${record.id}/favorite`, {
+      await fetch(`/api/ai/history/${record.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFavorite: !record.isFavorite }),
@@ -160,7 +171,6 @@ export function GenerationHistory({
         </h3>
         
         <div className="flex items-center gap-2">
-          {/* Filter */}
           <div className="flex items-center gap-1 bg-stone-800 rounded-lg p-0.5">
             <button
               onClick={() => setFilter('all')}
@@ -182,7 +192,6 @@ export function GenerationHistory({
             </button>
           </div>
 
-          {/* Compare Mode Toggle */}
           <button
             onClick={() => {
               setCompareMode(!compareMode);
@@ -300,7 +309,7 @@ export function GenerationHistory({
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs text-stone-500 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(record.timestamp), { addSuffix: true })}
+                          {formatTimeAgo(new Date(record.timestamp))}
                         </span>
                         <span className="text-xs text-stone-600">•</span>
                         <span className="text-xs text-stone-500 font-mono">
@@ -326,13 +335,11 @@ export function GenerationHistory({
                   {/* Expanded Content */}
                   {isExpanded && !compareMode && (
                     <div className="px-4 pb-4 space-y-3">
-                      {/* Output Preview */}
                       <div className="relative">
                         <div className="p-3 bg-stone-900 rounded-lg border border-stone-700/50 text-sm text-stone-300 max-h-48 overflow-y-auto">
                           {record.output}
                         </div>
                         
-                        {/* Actions */}
                         <div className="absolute top-2 right-2 flex items-center gap-1">
                           <button
                             onClick={() => handleCopy(record)}
@@ -347,7 +354,6 @@ export function GenerationHistory({
                         </div>
                       </div>
 
-                      {/* Footer Actions */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleToggleFavorite(record)}
