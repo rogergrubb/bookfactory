@@ -8,21 +8,30 @@ import { UndoItem } from './types';
 interface UndoStackProps {
   items: UndoItem[];
   onUndo: (index?: number) => void;
-  onRedo: () => void;
+  onUndoLatest: () => void;
+  canUndo: boolean;
   canRedo: boolean;
+  onRedo: () => void;
 }
 
-export function UndoStack({ items, onUndo, onRedo, canRedo }: UndoStackProps) {
-  if (items.length === 0 && !canRedo) return null;
+export function UndoStack({ 
+  items, 
+  onUndo, 
+  onUndoLatest,
+  canUndo,
+  canRedo,
+  onRedo 
+}: UndoStackProps) {
+  if (!canUndo && !canRedo) return null;
 
   const formatTime = (date: Date) => {
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff = now.getTime() - new Date(date).getTime();
     const minutes = Math.floor(diff / 60000);
     
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -30,15 +39,15 @@ export function UndoStack({ items, onUndo, onRedo, canRedo }: UndoStackProps) {
       {/* Undo/Redo Buttons */}
       <div className="flex items-center gap-1">
         <button
-          onClick={() => onUndo(0)}
-          disabled={items.length === 0}
+          onClick={onUndoLatest}
+          disabled={!canUndo}
           className={cn(
             'p-1.5 rounded transition-colors',
-            items.length > 0
+            canUndo
               ? 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
               : 'text-stone-700 cursor-not-allowed'
           )}
-          title="Undo"
+          title="Undo (Cmd/Ctrl+Z)"
         >
           <Undo2 className="w-4 h-4" />
         </button>
@@ -51,7 +60,7 @@ export function UndoStack({ items, onUndo, onRedo, canRedo }: UndoStackProps) {
               ? 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
               : 'text-stone-700 cursor-not-allowed'
           )}
-          title="Redo"
+          title="Redo (Cmd/Ctrl+Shift+Z)"
         >
           <Redo2 className="w-4 h-4" />
         </button>
@@ -67,12 +76,15 @@ export function UndoStack({ items, onUndo, onRedo, canRedo }: UndoStackProps) {
             key={item.id}
             onClick={() => onUndo(index)}
             className="flex items-center gap-2 px-2 py-1 rounded bg-stone-800 hover:bg-stone-700 text-xs text-stone-400 hover:text-stone-200 transition-colors shrink-0"
+            title={`Undo to: ${item.label}`}
           >
             <Clock className="w-3 h-3 text-stone-500" />
             <span className="truncate max-w-[100px]">{item.toolName}</span>
-            <span className="text-stone-600">
-              {item.wordCount > 0 ? `${item.wordCount}w` : ''}
-            </span>
+            {item.wordCount > 0 && (
+              <span className="text-stone-600">
+                {item.wordCount > 0 ? `+${item.wordCount}w` : ''}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -80,7 +92,7 @@ export function UndoStack({ items, onUndo, onRedo, canRedo }: UndoStackProps) {
       {/* History Count */}
       {items.length > 0 && (
         <span className="text-xs text-stone-600 shrink-0">
-          {items.length} undo{items.length !== 1 ? 's' : ''} available
+          {items.length} undo{items.length !== 1 ? 's' : ''}
         </span>
       )}
     </div>
