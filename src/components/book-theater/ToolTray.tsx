@@ -164,13 +164,14 @@ export function ToolTray({
       {activeSceneContext && (
         <div className="border-t border-stone-800 px-3 py-2">
           <button
-            onClick={onSceneContextClick}
+            onClick={() => onSceneContextChange(null)}
             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 transition-colors"
+            title="Click to clear scene context"
           >
             <span className="text-lg">{activeSceneContext.icon}</span>
             <div className="flex-1 text-left">
               <p className="text-xs text-stone-300">{activeSceneContext.name}</p>
-              <p className="text-[10px] text-stone-500">{activeSceneContext.mood.primary}</p>
+              <p className="text-[10px] text-stone-500">{activeSceneContext.mood?.primary}</p>
             </div>
             <Layers className="w-4 h-4 text-stone-500" />
           </button>
