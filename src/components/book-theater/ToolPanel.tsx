@@ -394,7 +394,7 @@ export function ToolPanel({
       {/* Success Overlay */}
       {showInsertSuccess && (
         <div className="absolute inset-0 flex items-center justify-center bg-stone-900/80 backdrop-blur-sm">
-          <SuccessCheck />
+          <SuccessCheck show={showInsertSuccess} />
         </div>
       )}
     </div>
