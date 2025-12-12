@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { 
   ChevronLeft, Sparkles, ArrowRight, Command
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 // Components
 import { ToolTray } from '@/components/book-theater/ToolTray';
@@ -24,17 +23,29 @@ import {
 // DEMO DATA
 // ============================================================================
 
-const demoChapters: Chapter[] = [
-  {
-    id: 'demo-ch-1',
-    title: 'The Storm Arrives',
-    content: `The wind howled through the narrow streets of Ashwick, carrying with it the promise of something far worse than rain. Maya pressed her back against the cold stone wall, her heart pounding in rhythm with the thunder.
+const DEMO_CHAPTER_1 = `The wind howled through the narrow streets of Ashwick, carrying with it the promise of something far worse than rain. Maya pressed her back against the cold stone wall, her heart pounding in rhythm with the thunder.
 
 She had been warned about nights like this. Her grandmother's stories echoed in her mind—tales of the Veil thinning, of creatures that slipped through when the storms grew fierce enough to tear holes in reality itself.
 
 A flash of lightning illuminated the alley, and Maya saw it: a shadow that moved against the light, independent of anything that could cast it. It pooled at the far end of the passage, darker than the darkness around it, and began to rise.
 
-"Not tonight," she whispered, reaching for the pendant at her throat. The metal was warm—too warm—and pulsing with a light that matched her racing heartbeat.`,
+"Not tonight," she whispered, reaching for the pendant at her throat. The metal was warm—too warm—and pulsing with a light that matched her racing heartbeat.`;
+
+const DEMO_CHAPTER_2 = `The Ashwick Library had stood for three hundred years, its halls filled with knowledge both mundane and forbidden. Maya had spent countless hours here as a child, but she had never ventured into the Restricted Archives—until now.
+
+The door groaned as she pushed it open, revealing shelves that stretched into shadows no lantern could fully dispel. The air smelled of old paper and something else, something that made her skin prickle with awareness.
+
+"You shouldn't be here."
+
+Maya spun, her pendant flaring. An old man stood in the doorway, his eyes reflecting the blue light of her charm.
+
+"Neither should you," she replied, recognizing the symbol embroidered on his coat. "Not anymore."`;
+
+const demoChapters: Chapter[] = [
+  {
+    id: 'demo-ch-1',
+    title: 'The Storm Arrives',
+    content: DEMO_CHAPTER_1,
     order: 1,
     bookId: 'demo-book',
     wordCount: 156,
@@ -45,15 +56,7 @@ A flash of lightning illuminated the alley, and Maya saw it: a shadow that moved
   {
     id: 'demo-ch-2',
     title: 'Secrets in the Library',
-    content: `The Ashwick Library had stood for three hundred years, its halls filled with knowledge both mundane and forbidden. Maya had spent countless hours here as a child, but she had never ventured into the Restricted Archives—until now.
-
-The door groaned as she pushed it open, revealing shelves that stretched into shadows no lantern could fully dispel. The air smelled of old paper and something else, something that made her skin prickle with awareness.
-
-"You shouldn't be here."
-
-Maya spun, her pendant flaring. An old man stood in the doorway, his eyes reflecting the blue light of her charm.
-
-"Neither should you," she replied, recognizing the symbol embroidered on his coat. "Not anymore."`,
+    content: DEMO_CHAPTER_2,
     order: 2,
     bookId: 'demo-book',
     wordCount: 112,
@@ -64,7 +67,7 @@ Maya spun, her pendant flaring. An old man stood in the doorway, his eyes reflec
   {
     id: 'demo-ch-3',
     title: 'The Gathering Dark',
-    content: `Start writing your next chapter here...`,
+    content: 'Start writing your next chapter here...',
     order: 3,
     bookId: 'demo-book',
     wordCount: 6,
@@ -113,14 +116,11 @@ export default function DemoTheaterPage() {
   const [activeSubOption, setActiveSubOption] = useState<SubOption | null>(null);
   const [activeSceneContext, setActiveSceneContext] = useState<SceneContext | null>(demoSceneContexts[0]);
   const [undoStack, setUndoStack] = useState<UndoItem[]>([]);
-  const [redoStack, setRedoStack] = useState<UndoItem[]>([]);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [recentToolIds, setRecentToolIds] = useState<string[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const currentChapter = chapters[activeChapterIndex];
-
-  // Word count
   const wordCount = chapterContent.split(/\s+/).filter(w => w.length > 0).length;
 
   // Keyboard shortcuts
@@ -166,114 +166,74 @@ export default function DemoTheaterPage() {
   const handleGenerate = useCallback(async (): Promise<string> => {
     await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
     
-    const mockResponses: Record<string, string[]> = {
-      continue: [
-        `The shadow lunged. Maya raised her pendant, and light erupted from it like a small sun, casting the creature back with a shriek that seemed to come from everywhere and nowhere at once.
+    const responses = [
+      `The shadow lunged. Maya raised her pendant, and light erupted from it like a small sun, casting the creature back with a shriek that seemed to come from everywhere and nowhere at once.
 
-"You cannot hide forever, child of the Veil," it hissed, its voice like wind through dead leaves. "We know what you carry. We know what you are."
+"You cannot hide forever, child of the Veil," it hissed, its voice like wind through dead leaves. "We know what you carry. We know what you are."`,
+      `She ran. There was no shame in it—only survival instinct honed by years of her grandmother's training. The creature gave chase, flowing over walls and through cracks like liquid darkness.
 
-Maya's grandmother had never mentioned this. She had never said the shadows could speak.`,
-        `She ran. There was no shame in it—only survival instinct honed by years of her grandmother's training. The creature gave chase, flowing over walls and through cracks like liquid darkness.
+The library. If she could reach the library before dawn, she might find answers.`,
+      `"You're one of them," Maya said, her voice steadier than she felt. "The Keepers. My grandmother told me you were all gone."
 
-The library. If she could reach the library before dawn, she might find answers. She might find weapons. She might find out why her pendant chose tonight, of all nights, to awaken.`,
-      ],
-      expand: [
-        `The wind howled through the narrow streets of Ashwick like a living thing, hungry and searching. It carried with it not just the promise of rain, but something else—a charge in the air that made Maya's teeth ache and her pendant grow warm against her chest. The cobblestones beneath her feet were already slick with the storm's first offerings, and somewhere in the distance, a church bell tolled a warning that no one else seemed to hear.`,
-      ],
-      dialogue: [
-        `"You're one of them," Maya said, her voice steadier than she felt. "The Keepers. My grandmother told me you were all gone."
+The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waiting."`,
+    ];
 
-The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waiting. As we have waited for three hundred years." He stepped closer, and the shadows seemed to part for him. "As we have waited for you."`,
-      ],
-    };
+    return responses[Math.floor(Math.random() * responses.length)];
+  }, []);
 
-    const toolResponses = mockResponses[activeTool?.id || 'continue'] || mockResponses.continue;
-    return toolResponses[Math.floor(Math.random() * toolResponses.length)];
-  }, [activeTool]);
+  // Create undo item helper
+  const createUndoItem = useCallback((label: string, toolName: string): UndoItem => ({
+    id: Date.now().toString(),
+    content: chapterContent,
+    label,
+    toolName,
+    timestamp: new Date(),
+    chapterId: currentChapter.id,
+    wordCount,
+  }), [chapterContent, currentChapter.id, wordCount]);
 
   // Insert handlers
   const handleInsertAfter = useCallback((text: string) => {
     const insertPoint = selection ? selection.end : cursorPosition;
     const newContent = chapterContent.slice(0, insertPoint) + '\n\n' + text + chapterContent.slice(insertPoint);
     
-    setUndoStack(prev => [...prev, {
-      id: Date.now().toString(),
-      toolId: activeTool?.id || 'manual',
-      toolName: activeTool?.name || 'Insert',
-      previousContent: chapterContent,
-      newContent,
-      timestamp: new Date().toISOString(),
-      wordCountDelta: text.split(/\s+/).length,
-    }]);
-    
+    setUndoStack(prev => [...prev, createUndoItem('Insert text', activeTool?.name || 'Insert')]);
     setChapterContent(newContent);
     setActiveTool(null);
     setSelection(null);
     setHasUnsavedChanges(true);
-  }, [chapterContent, selection, cursorPosition, activeTool]);
+  }, [chapterContent, selection, cursorPosition, activeTool, createUndoItem]);
 
   const handleReplace = useCallback((text: string) => {
     if (!selection) return;
     const newContent = chapterContent.slice(0, selection.start) + text + chapterContent.slice(selection.end);
     
-    setUndoStack(prev => [...prev, {
-      id: Date.now().toString(),
-      toolId: activeTool?.id || 'manual',
-      toolName: activeTool?.name || 'Replace',
-      previousContent: chapterContent,
-      newContent,
-      timestamp: new Date().toISOString(),
-      wordCountDelta: text.split(/\s+/).length - selection.text.split(/\s+/).length,
-    }]);
-    
+    setUndoStack(prev => [...prev, createUndoItem('Replace text', activeTool?.name || 'Replace')]);
     setChapterContent(newContent);
     setActiveTool(null);
     setSelection(null);
     setHasUnsavedChanges(true);
-  }, [chapterContent, selection, activeTool]);
+  }, [chapterContent, selection, activeTool, createUndoItem]);
 
   const handleInsertAtCursor = useCallback((text: string) => {
     const newContent = chapterContent.slice(0, cursorPosition) + text + chapterContent.slice(cursorPosition);
     
-    setUndoStack(prev => [...prev, {
-      id: Date.now().toString(),
-      toolId: activeTool?.id || 'manual',
-      toolName: activeTool?.name || 'Insert',
-      previousContent: chapterContent,
-      newContent,
-      timestamp: new Date().toISOString(),
-      wordCountDelta: text.split(/\s+/).length,
-    }]);
-    
+    setUndoStack(prev => [...prev, createUndoItem('Insert at cursor', activeTool?.name || 'Insert')]);
     setChapterContent(newContent);
     setActiveTool(null);
     setHasUnsavedChanges(true);
-  }, [chapterContent, cursorPosition, activeTool]);
+  }, [chapterContent, cursorPosition, activeTool, createUndoItem]);
 
-  // Undo/Redo
-  const undo = useCallback((index?: number) => {
+  // Undo
+  const handleUndo = useCallback((index?: number) => {
     const itemIndex = index ?? undoStack.length - 1;
     if (itemIndex < 0 || itemIndex >= undoStack.length) return;
     
     const item = undoStack[itemIndex];
-    setRedoStack(prev => [...prev, {
-      ...item,
-      previousContent: chapterContent,
-      newContent: item.previousContent,
-    }]);
-    setChapterContent(item.previousContent);
+    setChapterContent(item.content);
     setUndoStack(prev => prev.slice(0, itemIndex));
     setHasUnsavedChanges(true);
-  }, [undoStack, chapterContent]);
-
-  const redo = useCallback(() => {
-    if (redoStack.length === 0) return;
-    const item = redoStack[redoStack.length - 1];
-    setUndoStack(prev => [...prev, item]);
-    setChapterContent(item.newContent);
-    setRedoStack(prev => prev.slice(0, -1));
-    setHasUnsavedChanges(true);
-  }, [redoStack]);
+  }, [undoStack]);
 
   return (
     <div className="flex h-screen flex-col bg-stone-950 text-stone-100">
@@ -285,7 +245,7 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
             You&apos;re exploring the Book Operating Theater demo
           </span>
           <span className="hidden text-sm opacity-75 sm:inline">
-            · Press <kbd className="mx-1 rounded bg-white/20 px-1.5 py-0.5 text-xs">⌘K</kbd> to open command palette
+            · Press <kbd className="mx-1 rounded bg-white/20 px-1.5 py-0.5 text-xs">⌘K</kbd> for command palette
           </span>
         </div>
         <Link 
@@ -312,16 +272,14 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowCommandPalette(true)}
-            className="flex items-center gap-2 rounded-lg bg-stone-800 px-3 py-1.5 text-sm text-stone-400 hover:bg-stone-700 hover:text-stone-200 transition-colors"
-          >
-            <Command className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Command</span>
-            <kbd className="rounded bg-stone-700 px-1.5 py-0.5 text-xs">⌘K</kbd>
-          </button>
-        </div>
+        <button
+          onClick={() => setShowCommandPalette(true)}
+          className="flex items-center gap-2 rounded-lg bg-stone-800 px-3 py-1.5 text-sm text-stone-400 hover:bg-stone-700 hover:text-stone-200 transition-colors"
+        >
+          <Command className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Command</span>
+          <kbd className="rounded bg-stone-700 px-1.5 py-0.5 text-xs">⌘K</kbd>
+        </button>
       </header>
 
       {/* Chapter Timeline */}
@@ -338,7 +296,6 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Tool Tray */}
         <ToolTray
           onSelectTool={handleToolSelect}
           activeTool={activeTool}
@@ -349,7 +306,6 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
           onSceneContextChange={setActiveSceneContext}
         />
 
-        {/* Writing Canvas */}
         <div className="flex-1 overflow-hidden">
           <WritingCanvas
             chapter={currentChapter}
@@ -369,7 +325,6 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
           />
         </div>
 
-        {/* Tool Panel */}
         {activeTool && (
           <ToolPanel
             tool={activeTool}
@@ -390,11 +345,11 @@ The old man's laugh was dry as autumn leaves. "Gone? No, child. Merely... waitin
       {/* Undo Stack */}
       <UndoStack
         items={undoStack}
-        onUndo={undo}
-        onUndoLatest={() => undo()}
+        onUndo={handleUndo}
+        onUndoLatest={() => handleUndo()}
         canUndo={undoStack.length > 0}
-        canRedo={redoStack.length > 0}
-        onRedo={redo}
+        canRedo={false}
+        onRedo={() => {}}
       />
 
       {/* Command Palette */}
