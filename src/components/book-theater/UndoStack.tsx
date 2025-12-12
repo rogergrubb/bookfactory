@@ -1,143 +1,87 @@
 'use client';
 
 import React from 'react';
-import { Undo2, Clock, Sparkles } from 'lucide-react';
+import { Undo2, Redo2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UndoItem } from './types';
 
 interface UndoStackProps {
   items: UndoItem[];
-  onUndo: (index: number) => void;
-  onUndoLatest: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
+  onUndo: (index?: number) => void;
   onRedo: () => void;
+  canRedo: boolean;
 }
 
-export function UndoStack({
-  items,
-  onUndo,
-  onUndoLatest,
-  canUndo,
-  canRedo,
-  onRedo,
-}: UndoStackProps) {
+export function UndoStack({ items, onUndo, onRedo, canRedo }: UndoStackProps) {
+  if (items.length === 0 && !canRedo) return null;
+
   const formatTime = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
     
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  };
-
-  const formatWordDiff = (item: UndoItem, prevItem?: UndoItem) => {
-    if (!prevItem) return null;
-    const diff = item.wordCount - prevItem.wordCount;
-    if (diff === 0) return null;
-    return diff > 0 ? `+${diff}` : `${diff}`;
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="bg-stone-900/80 backdrop-blur border-t border-stone-800">
-      {/* Quick Undo/Redo Bar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-stone-800/50">
+    <div className="flex items-center gap-2 px-4 py-2 border-t border-stone-800 bg-stone-900/80">
+      {/* Undo/Redo Buttons */}
+      <div className="flex items-center gap-1">
         <button
-          onClick={onUndoLatest}
-          disabled={!canUndo}
+          onClick={() => onUndo(0)}
+          disabled={items.length === 0}
           className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded text-sm transition-all',
-            canUndo
-              ? 'text-stone-300 hover:text-stone-100 hover:bg-stone-800'
-              : 'text-stone-600 cursor-not-allowed'
+            'p-1.5 rounded transition-colors',
+            items.length > 0
+              ? 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+              : 'text-stone-700 cursor-not-allowed'
           )}
+          title="Undo"
         >
-          <Undo2 className="w-3.5 h-3.5" />
-          <span>Undo</span>
-          <kbd className="text-[10px] text-stone-500 bg-stone-800 px-1 rounded">⌘Z</kbd>
+          <Undo2 className="w-4 h-4" />
         </button>
-        
         <button
           onClick={onRedo}
           disabled={!canRedo}
           className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded text-sm transition-all',
+            'p-1.5 rounded transition-colors',
             canRedo
-              ? 'text-stone-300 hover:text-stone-100 hover:bg-stone-800'
-              : 'text-stone-600 cursor-not-allowed'
+              ? 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+              : 'text-stone-700 cursor-not-allowed'
           )}
+          title="Redo"
         >
-          <Undo2 className="w-3.5 h-3.5 scale-x-[-1]" />
-          <span>Redo</span>
-          <kbd className="text-[10px] text-stone-500 bg-stone-800 px-1 rounded">⌘⇧Z</kbd>
+          <Redo2 className="w-4 h-4" />
         </button>
-
-        <div className="flex-1" />
-        
-        <span className="text-xs text-stone-600">
-          {items.length > 0 ? `${items.length} action${items.length !== 1 ? 's' : ''} in history` : 'No history yet'}
-        </span>
       </div>
 
-      {/* Action History */}
+      {/* Divider */}
+      {items.length > 0 && <div className="w-px h-4 bg-stone-700" />}
+
+      {/* Undo History */}
+      <div className="flex-1 flex items-center gap-2 overflow-x-auto">
+        {items.slice(0, 5).map((item, index) => (
+          <button
+            key={item.id}
+            onClick={() => onUndo(index)}
+            className="flex items-center gap-2 px-2 py-1 rounded bg-stone-800 hover:bg-stone-700 text-xs text-stone-400 hover:text-stone-200 transition-colors shrink-0"
+          >
+            <Clock className="w-3 h-3 text-stone-500" />
+            <span className="truncate max-w-[100px]">{item.toolName}</span>
+            <span className="text-stone-600">
+              {item.wordCount > 0 ? `${item.wordCount}w` : ''}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* History Count */}
       {items.length > 0 && (
-        <div className="max-h-[150px] overflow-y-auto">
-          {items.map((item, index) => {
-            const wordDiff = formatWordDiff(item, items[index + 1]);
-            
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 hover:bg-stone-800/50 group',
-                  index === 0 && 'bg-stone-800/30'
-                )}
-              >
-                {/* Undo this specific action */}
-                <button
-                  onClick={() => onUndo(index)}
-                  className="p-1 rounded hover:bg-stone-700 text-stone-500 hover:text-amber-400 transition-colors"
-                  title={`Undo back to: ${item.label}`}
-                >
-                  <Undo2 className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Tool indicator */}
-                <Sparkles className="w-3 h-3 text-stone-600" />
-
-                {/* Action label */}
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm text-stone-400 truncate block">
-                    {item.toolName}: {item.label}
-                  </span>
-                </div>
-
-                {/* Word diff */}
-                {wordDiff && (
-                  <span className={cn(
-                    'text-xs font-mono',
-                    wordDiff.startsWith('+') ? 'text-emerald-500' : 'text-red-400'
-                  )}>
-                    {wordDiff}
-                  </span>
-                )}
-
-                {/* Timestamp */}
-                <span className="text-xs text-stone-600 whitespace-nowrap">
-                  {formatTime(item.timestamp)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {items.length === 0 && (
-        <div className="px-3 py-4 text-center text-stone-600 text-sm">
-          <Clock className="w-5 h-5 mx-auto mb-1 opacity-50" />
-          Actions you take will appear here
-        </div>
+        <span className="text-xs text-stone-600 shrink-0">
+          {items.length} undo{items.length !== 1 ? 's' : ''} available
+        </span>
       )}
     </div>
   );
