@@ -874,8 +874,10 @@ export default function BookTheaterPage() {
       <UndoStack
         items={undoStack}
         onUndo={undo}
-        onRedo={redo}
+        onUndoLatest={() => undo(0)}
+        canUndo={undoStack.length > 0}
         canRedo={redoStack.length > 0}
+        onRedo={redo}
       />
     </div>
   );
