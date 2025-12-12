@@ -1,26 +1,30 @@
-// ============================================================================
-// TOOL DEFINITIONS - All 44 Tools with Sub-Options
-// ============================================================================
-
 import {
   Play, MessageSquare, Palette, Swords, Brain, Zap,
   Maximize2, Minimize2, PenTool, Sparkles, Dumbbell, Waves, MessageCircle, Eye,
   BarChart3, Mic, TrendingUp, Users, RefreshCw, Search, BookOpen, Gauge, Heart,
   Lightbulb, UserPlus, MessagesSquare, ArrowRightLeft, Flame, Shuffle, HelpCircle,
-  Globe, GitBranch, Clock, Layers, BookMarked,
-  Theater, Volume2, SwitchCamera, FastForward, FileText,
-  Scale, Crosshair, Compass
+  Globe, GitBranch, Clock, Layers, BookMarked, Theater, Volume2, FileText
 } from 'lucide-react';
-import { Tool, ToolCategory } from './types';
+import { Tool, ToolCategory, CategoryMeta } from './types';
 
-// We need to use alternative icons since Drama/Whisper don't exist in lucide
-const DramaIcon = Theater;
-const WhisperIcon = Volume2;
+// ============================================================================
+// CATEGORY METADATA
+// ============================================================================
+
+export const categoryMeta: Record<ToolCategory, CategoryMeta> = {
+  generate: { name: 'Generate', color: 'emerald', description: 'Create new content' },
+  enhance: { name: 'Enhance', color: 'blue', description: 'Improve existing text' },
+  analyze: { name: 'Analyze', color: 'amber', description: 'Get insights on your writing' },
+  brainstorm: { name: 'Brainstorm', color: 'purple', description: 'Generate ideas' },
+  world: { name: 'World', color: 'rose', description: 'Build your story world' },
+};
+
+// ============================================================================
+// ALL 44 TOOLS
+// ============================================================================
 
 export const tools: Tool[] = [
-  // ============================================================================
   // GENERATE TOOLS (6)
-  // ============================================================================
   {
     id: 'continue',
     name: 'Continue Writing',
@@ -77,7 +81,6 @@ export const tools: Tool[] = [
       { id: 'chase', name: 'Chase Scene' },
       { id: 'escape', name: 'Escape/Pursuit' },
       { id: 'disaster', name: 'Disaster/Catastrophe' },
-      { id: 'sports', name: 'Sports/Competition' },
     ],
   },
   {
@@ -92,23 +95,21 @@ export const tools: Tool[] = [
     hasSubMenu: true,
   },
 
-  // ============================================================================
   // ENHANCE TOOLS (8)
-  // ============================================================================
   {
     id: 'expand',
     name: 'Expand',
-    shortName: 'Expd',
+    shortName: 'Exp',
     icon: Maximize2,
     category: 'enhance',
-    description: 'Expand and add detail to selected text',
+    description: 'Expand selected text with more detail',
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
       { id: 'detail', name: 'Add Details' },
-      { id: 'emotion', name: 'Deepen Emotion' },
+      { id: 'emotion', name: 'Deepen Emotions' },
       { id: 'sensory', name: 'Add Sensory' },
-      { id: 'backstory', name: 'Add Backstory' },
+      { id: 'backstory', name: 'Weave in Backstory' },
     ],
   },
   {
@@ -117,11 +118,11 @@ export const tools: Tool[] = [
     shortName: 'Cond',
     icon: Minimize2,
     category: 'enhance',
-    description: 'Tighten prose and remove unnecessary words',
+    description: 'Tighten and condense selected text',
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
-      { id: 'light', name: 'Light Trim (10-20%)' },
+      { id: 'light', name: 'Light (10-20%)' },
       { id: 'moderate', name: 'Moderate (30-40%)' },
       { id: 'aggressive', name: 'Aggressive (50%+)' },
     ],
@@ -129,28 +130,27 @@ export const tools: Tool[] = [
   {
     id: 'rewrite',
     name: 'Rewrite',
-    shortName: 'Rwrt',
-    icon: PenTool,
+    shortName: 'Rew',
+    icon: RefreshCw,
     category: 'enhance',
-    description: 'Rewrite selected text in a different way',
+    description: 'Rewrite selected text in a different style',
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
-      { id: 'dramatic', name: 'More Dramatic', icon: DramaIcon },
-      { id: 'subtle', name: 'More Subtle', icon: WhisperIcon },
-      { id: 'pov', name: 'Different POV', icon: SwitchCamera },
-      { id: 'faster', name: 'Faster Pace', icon: FastForward },
-      { id: 'slower', name: 'Slower Pace', icon: Gauge },
-      { id: 'custom', name: 'Custom...', icon: FileText },
+      { id: 'dramatic', name: 'More Dramatic' },
+      { id: 'subtle', name: 'More Subtle' },
+      { id: 'faster', name: 'Faster Pace' },
+      { id: 'slower', name: 'Slower Pace' },
+      { id: 'custom', name: 'Custom Direction...' },
     ],
   },
   {
     id: 'polish',
     name: 'Polish',
-    shortName: 'Plsh',
+    shortName: 'Pol',
     icon: Sparkles,
     category: 'enhance',
-    description: 'Improve overall writing quality',
+    description: 'Polish prose for better flow and word choice',
     requiresSelection: true,
   },
   {
@@ -168,7 +168,7 @@ export const tools: Tool[] = [
     shortName: 'Vary',
     icon: Waves,
     category: 'enhance',
-    description: 'Improve sentence rhythm and variety',
+    description: 'Improve sentence variety and rhythm',
     requiresSelection: true,
   },
   {
@@ -177,34 +177,32 @@ export const tools: Tool[] = [
     shortName: 'Tags',
     icon: MessageCircle,
     category: 'enhance',
-    description: 'Improve dialogue attribution',
+    description: 'Improve dialogue attribution and beats',
     requiresSelection: true,
   },
   {
     id: 'show-dont-tell',
-    name: 'Show Don\'t Tell',
+    name: "Show Don't Tell",
     shortName: 'Show',
     icon: Eye,
     category: 'enhance',
-    description: 'Convert telling to showing',
+    description: 'Convert telling into showing',
     requiresSelection: true,
   },
 
-  // ============================================================================
   // ANALYZE TOOLS (10)
-  // ============================================================================
   {
     id: 'pacing',
     name: 'Pacing Analysis',
     shortName: 'Pace',
     icon: BarChart3,
     category: 'analyze',
-    description: 'Analyze story pacing and rhythm',
+    description: 'Analyze chapter pacing and tension flow',
   },
   {
     id: 'voice-check',
     name: 'Voice Check',
-    shortName: 'Voic',
+    shortName: 'Voice',
     icon: Mic,
     category: 'analyze',
     description: 'Check narrative voice consistency',
@@ -215,15 +213,15 @@ export const tools: Tool[] = [
     shortName: 'Tens',
     icon: TrendingUp,
     category: 'analyze',
-    description: 'Map dramatic tension throughout',
+    description: 'Map tension levels throughout the chapter',
   },
   {
     id: 'character-voice',
     name: 'Character Voice',
-    shortName: 'ChVc',
+    shortName: 'ChrV',
     icon: Users,
     category: 'analyze',
-    description: 'Analyze specific character\'s voice',
+    description: 'Analyze character voice distinctiveness',
     isDynamic: true,
     dynamicSource: 'characters',
     hasSubMenu: true,
@@ -231,7 +229,7 @@ export const tools: Tool[] = [
   {
     id: 'repetition',
     name: 'Repetition Finder',
-    shortName: 'Rept',
+    shortName: 'Rep',
     icon: RefreshCw,
     category: 'analyze',
     description: 'Find repeated words and phrases',
@@ -239,7 +237,7 @@ export const tools: Tool[] = [
   {
     id: 'adverb-hunter',
     name: 'Adverb Hunter',
-    shortName: 'Advb',
+    shortName: 'Adv',
     icon: Search,
     category: 'analyze',
     description: 'Identify overused adverbs',
@@ -247,8 +245,8 @@ export const tools: Tool[] = [
   {
     id: 'passive-voice',
     name: 'Passive Voice',
-    shortName: 'Pasv',
-    icon: BookOpen,
+    shortName: 'Pass',
+    icon: Volume2,
     category: 'analyze',
     description: 'Find passive voice constructions',
   },
@@ -258,28 +256,26 @@ export const tools: Tool[] = [
     shortName: 'Read',
     icon: Gauge,
     category: 'analyze',
-    description: 'Analyze reading level and clarity',
+    description: 'Assess reading level and clarity',
   },
   {
     id: 'emotional-arc',
     name: 'Emotional Arc',
-    shortName: 'Emot',
+    shortName: 'Emo',
     icon: Heart,
     category: 'analyze',
-    description: 'Track emotional journey',
+    description: 'Track emotional journey through the chapter',
   },
   {
     id: 'chapter-summary',
     name: 'Chapter Summary',
-    shortName: 'Summ',
+    shortName: 'Sum',
     icon: FileText,
     category: 'analyze',
-    description: 'Generate chapter summary',
+    description: 'Generate a concise chapter summary',
   },
 
-  // ============================================================================
   // BRAINSTORM TOOLS (8)
-  // ============================================================================
   {
     id: 'plot-ideas',
     name: 'Plot Ideas',
@@ -289,19 +285,19 @@ export const tools: Tool[] = [
     description: 'Generate plot ideas and directions',
     hasSubMenu: true,
     subOptions: [
-      { id: 'next', name: 'What Happens Next?' },
-      { id: 'conflict', name: 'Add Conflict' },
-      { id: 'complication', name: 'Complication' },
-      { id: 'resolution', name: 'Resolution Ideas' },
+      { id: 'next', name: 'What happens next?' },
+      { id: 'conflict', name: 'Add conflict' },
+      { id: 'complication', name: 'Add complications' },
+      { id: 'resolution', name: 'Resolution ideas' },
     ],
   },
   {
     id: 'character-moments',
     name: 'Character Moments',
-    shortName: 'ChMo',
+    shortName: 'Char',
     icon: UserPlus,
     category: 'brainstorm',
-    description: 'Generate character development moments',
+    description: 'Generate meaningful character moments',
     isDynamic: true,
     dynamicSource: 'characters',
     hasSubMenu: true,
@@ -312,78 +308,73 @@ export const tools: Tool[] = [
     shortName: 'DiaO',
     icon: MessagesSquare,
     category: 'brainstorm',
-    description: 'Brainstorm dialogue variations',
-    isDynamic: true,
-    dynamicSource: 'characters',
-    hasSubMenu: true,
+    description: 'Generate dialogue alternatives',
+    requiresSelection: true,
   },
   {
     id: 'scene-transitions',
     name: 'Scene Transitions',
-    shortName: 'Trns',
+    shortName: 'Trans',
     icon: ArrowRightLeft,
     category: 'brainstorm',
-    description: 'Ideas for transitioning between scenes',
+    description: 'Suggest scene transition approaches',
   },
   {
     id: 'conflict-escalation',
     name: 'Conflict Escalation',
-    shortName: 'Escl',
+    shortName: 'Conf',
     icon: Flame,
     category: 'brainstorm',
-    description: 'Ways to escalate conflict',
+    description: 'Ways to escalate conflict and tension',
   },
   {
     id: 'twist-generator',
     name: 'Twist Generator',
-    shortName: 'Twst',
+    shortName: 'Twist',
     icon: Shuffle,
     category: 'brainstorm',
-    description: 'Generate plot twists',
+    description: 'Generate surprising plot twists',
     hasSubMenu: true,
     subOptions: [
-      { id: 'betrayal', name: 'Betrayal' },
-      { id: 'revelation', name: 'Hidden Truth' },
-      { id: 'reversal', name: 'Reversal' },
-      { id: 'unexpected', name: 'Unexpected Ally/Enemy' },
-      { id: 'surprise', name: 'Surprise Me' },
+      { id: 'betrayal', name: 'Betrayal twist' },
+      { id: 'revelation', name: 'Hidden truth revealed' },
+      { id: 'reversal', name: 'Situation reversal' },
+      { id: 'unexpected', name: 'Unexpected ally/enemy' },
     ],
   },
   {
     id: 'what-if',
     name: 'What If...',
-    shortName: 'WtIf',
+    shortName: 'What',
     icon: HelpCircle,
     category: 'brainstorm',
-    description: 'Explore alternative scenarios',
+    description: 'Explore "what if" scenarios',
   },
   {
     id: 'stuck-help',
-    name: 'I\'m Stuck',
-    shortName: 'Help',
-    icon: Compass,
+    name: "I'm Stuck",
+    shortName: 'Stuck',
+    icon: HelpCircle,
     category: 'brainstorm',
-    description: 'Get unstuck with suggestions',
+    description: 'Get help when you are stuck',
   },
 
-  // ============================================================================
   // WORLD TOOLS (6)
-  // ============================================================================
   {
     id: 'characters',
     name: 'Characters',
     shortName: 'Char',
     icon: Users,
     category: 'world',
-    description: 'Manage characters',
+    description: 'Manage your story characters',
   },
   {
     id: 'locations',
     name: 'Locations',
-    shortName: 'Locs',
+    shortName: 'Loc',
     icon: Globe,
     category: 'world',
-    description: 'Manage locations and settings',
+    description: 'Manage story locations',
   },
   {
     id: 'plot-threads',
@@ -391,7 +382,7 @@ export const tools: Tool[] = [
     shortName: 'Thrd',
     icon: GitBranch,
     category: 'world',
-    description: 'Track plot threads and arcs',
+    description: 'Track plot threads and subplots',
   },
   {
     id: 'timeline',
@@ -404,40 +395,27 @@ export const tools: Tool[] = [
   {
     id: 'scene-contexts',
     name: 'Scene Contexts',
-    shortName: 'Scns',
+    shortName: 'Scene',
     icon: Layers,
     category: 'world',
-    description: 'Manage scene environments',
+    description: 'Create sensory palettes for scenes',
   },
   {
     id: 'story-bible',
     name: 'Story Bible',
-    shortName: 'Bibl',
+    shortName: 'Bible',
     icon: BookMarked,
     category: 'world',
-    description: 'Full story bible reference',
+    description: 'Your complete story reference',
   },
 ];
 
-// Group tools by category
-export const toolsByCategory: Record<ToolCategory, Tool[]> = {
-  generate: tools.filter(t => t.category === 'generate'),
-  enhance: tools.filter(t => t.category === 'enhance'),
-  analyze: tools.filter(t => t.category === 'analyze'),
-  brainstorm: tools.filter(t => t.category === 'brainstorm'),
-  world: tools.filter(t => t.category === 'world'),
+// Helper to get tools by category
+export const getToolsByCategory = (category: ToolCategory): Tool[] => {
+  return tools.filter(t => t.category === category);
 };
 
-// Category metadata
-export const categoryMeta: Record<ToolCategory, { name: string; color: string }> = {
-  generate: { name: 'Generate', color: 'emerald' },
-  enhance: { name: 'Enhance', color: 'blue' },
-  analyze: { name: 'Analyze', color: 'amber' },
-  brainstorm: { name: 'Brainstorm', color: 'purple' },
-  world: { name: 'World', color: 'rose' },
-};
-
-// Get tool by ID
+// Helper to get a tool by ID
 export const getToolById = (id: string): Tool | undefined => {
   return tools.find(t => t.id === id);
 };
