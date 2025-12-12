@@ -289,7 +289,7 @@ export function ToolPanel({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-stone-400">Result</span>
-                <WordCountDelta count={wordCount} show={showSuccess} />
+                <WordCountDelta delta={wordCount} />
               </div>
               <div className="flex items-center gap-1">
                 <button
