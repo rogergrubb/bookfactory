@@ -8,8 +8,16 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
 ]);
 
+// Define API routes - these should return 401 instead of redirecting
+const isApiRoute = createRouteMatcher(['/api(.*)']);
+
 export default clerkMiddleware(async (auth, request) => {
-  // Protect all routes except public ones
+  // For API routes, don't redirect - let the route handler deal with auth
+  if (isApiRoute(request)) {
+    return;
+  }
+  
+  // Protect all non-public routes (will redirect to sign-in)
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
