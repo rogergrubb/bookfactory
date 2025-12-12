@@ -3,35 +3,31 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Sparkles, Copy, Check, ArrowRight, Replace, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Tool, SubOption, SceneContext, Selection } from './types';
+import { Tool, SubOption, Selection } from './types';
 import { categoryMeta } from './tool-definitions';
 
 interface ToolPanelProps {
   tool: Tool;
   subOption?: SubOption | null;
   selection?: Selection | null;
-  sceneContext?: SceneContext | null;
-  chapterContent: string;
-  cursorPosition: number;
   onClose: () => void;
   onGenerate: (instruction?: string) => Promise<string>;
   onInsertAfter: (text: string) => void;
   onReplace: (text: string) => void;
   onInsertAtCursor: (text: string) => void;
+  isGenerating?: boolean;
 }
 
 export function ToolPanel({
   tool,
   subOption,
   selection,
-  sceneContext,
-  chapterContent,
-  cursorPosition,
   onClose,
   onGenerate,
   onInsertAfter,
   onReplace,
   onInsertAtCursor,
+  isGenerating: externalIsGenerating,
 }: ToolPanelProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState('');
@@ -43,6 +39,18 @@ export function ToolPanel({
   const meta = categoryMeta[tool.category];
   const isCustomMode = selectedSubOption?.id === 'custom';
   const hasResult = result.length > 0;
+  const loading = isGenerating || externalIsGenerating;
+
+  // Color mapping for Tailwind
+  const colorStyles: Record<string, { button: string; border: string; bg: string }> = {
+    emerald: { button: 'bg-emerald-500 hover:bg-emerald-600', border: 'border-emerald-500/30', bg: 'bg-emerald-500/5' },
+    blue: { button: 'bg-blue-500 hover:bg-blue-600', border: 'border-blue-500/30', bg: 'bg-blue-500/5' },
+    amber: { button: 'bg-amber-500 hover:bg-amber-600', border: 'border-amber-500/30', bg: 'bg-amber-500/5' },
+    purple: { button: 'bg-purple-500 hover:bg-purple-600', border: 'border-purple-500/30', bg: 'bg-purple-500/5' },
+    rose: { button: 'bg-rose-500 hover:bg-rose-600', border: 'border-rose-500/30', bg: 'bg-rose-500/5' },
+  };
+
+  const colors = colorStyles[meta.color] || colorStyles.emerald;
 
   // Reset when tool changes
   useEffect(() => {
@@ -74,7 +82,7 @@ export function ToolPanel({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleInsertAfter = () => {
+  const handleInsert = () => {
     if (selection) {
       onInsertAfter(result);
     } else {
@@ -94,11 +102,8 @@ export function ToolPanel({
   return (
     <div className="w-[380px] h-full flex flex-col bg-stone-900 border-l border-stone-800">
       {/* Header */}
-      <div className={cn(
-        'flex items-center gap-3 px-4 py-3 border-b',
-        `border-${meta.color}-500/30 bg-${meta.color}-500/5`
-      )}>
-        <tool.icon className={cn('w-5 h-5', `text-${meta.color}-400`)} />
+      <div className={cn('flex items-center gap-3 px-4 py-3 border-b', colors.border, colors.bg)}>
+        <tool.icon className="w-5 h-5 text-stone-300" />
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-stone-100">{tool.name}</h3>
           {selectedSubOption && (
@@ -124,31 +129,12 @@ export function ToolPanel({
                 <button
                   key={opt.id}
                   onClick={() => setSelectedSubOption(opt)}
-                  className={cn(
-                    'w-full px-3 py-2 rounded text-left text-sm transition-all',
-                    'flex items-center gap-2',
-                    'hover:bg-stone-800 text-stone-300 hover:text-stone-100'
-                  )}
+                  className="w-full px-3 py-2 rounded text-left text-sm transition-all flex items-center gap-2 hover:bg-stone-800 text-stone-300 hover:text-stone-100"
                 >
-                  {opt.icon && <opt.icon className="w-4 h-4 text-stone-500" />}
                   <span>{opt.name}</span>
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Scene Context Info */}
-        {sceneContext && (
-          <div className="px-4 py-3 border-b border-stone-800 bg-stone-800/30">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-lg">{sceneContext.icon}</span>
-              <span className="text-stone-400">Scene:</span>
-              <span className="text-stone-200">{sceneContext.name}</span>
-            </div>
-            <p className="text-xs text-stone-500 mt-1">
-              {sceneContext.mood.primary} • {sceneContext.mood.secondary}
-            </p>
           </div>
         )}
 
@@ -157,9 +143,9 @@ export function ToolPanel({
           <div className="px-4 py-3 border-b border-stone-800">
             <p className="text-xs text-stone-500 mb-1">Selected text:</p>
             <div className="bg-stone-800 rounded p-2 text-sm text-stone-300 max-h-[100px] overflow-y-auto">
-              "{selection.text.length > 200 
+              &ldquo;{selection.text.length > 200 
                 ? selection.text.slice(0, 200) + '...' 
-                : selection.text}"
+                : selection.text}&rdquo;
             </div>
           </div>
         )}
@@ -177,7 +163,7 @@ export function ToolPanel({
               onChange={(e) => setCustomInstruction(e.target.value)}
               placeholder={
                 tool.id === 'what-if' ? 'the villain was actually trying to help?' :
-                tool.id === 'stuck-help' ? 'I don\'t know how to get my character out of this situation...' :
+                tool.id === 'stuck-help' ? "I don't know how to get my character out of this situation..." :
                 'Describe how you want this rewritten...'
               }
               className="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-100 placeholder-stone-500 resize-none focus:outline-none focus:border-teal-500"
@@ -206,14 +192,14 @@ export function ToolPanel({
           <div className="px-4 py-3">
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || (tool.requiresSelection && !selection) || (isCustomMode && !customInstruction.trim())}
+              disabled={loading || (tool.requiresSelection && !selection) || (isCustomMode && !customInstruction.trim())}
               className={cn(
-                'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all',
+                'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all text-white',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
-                `bg-${meta.color}-500 hover:bg-${meta.color}-600 text-white`
+                colors.button
               )}
             >
-              {isGenerating ? (
+              {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Generating...
@@ -263,10 +249,10 @@ export function ToolPanel({
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium"
                   >
                     <Replace className="w-4 h-4" />
-                    Replace Selection
+                    Replace
                   </button>
                   <button
-                    onClick={handleInsertAfter}
+                    onClick={handleInsert}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 text-sm font-medium"
                   >
                     <ArrowRight className="w-4 h-4" />
@@ -275,7 +261,7 @@ export function ToolPanel({
                 </>
               ) : (
                 <button
-                  onClick={handleInsertAfter}
+                  onClick={handleInsert}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium"
                 >
                   <Plus className="w-4 h-4" />
@@ -287,10 +273,10 @@ export function ToolPanel({
             {/* Generate More */}
             <button
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={loading}
               className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-stone-700 hover:bg-stone-800 text-stone-400 text-sm"
             >
-              {isGenerating ? (
+              {loading ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
                 <Sparkles className="w-3 h-3" />
@@ -301,7 +287,7 @@ export function ToolPanel({
         )}
       </div>
 
-      {/* Footer with keyboard shortcuts */}
+      {/* Footer */}
       <div className="px-4 py-2 border-t border-stone-800 bg-stone-900/50">
         <div className="flex items-center justify-between text-xs text-stone-600">
           <span>
