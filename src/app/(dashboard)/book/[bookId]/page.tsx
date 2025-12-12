@@ -124,7 +124,9 @@ export default function BookTheaterPage() {
           const sorted = [...bookData.chapters].sort((a: Chapter, b: Chapter) => a.order - b.order);
           bookData.chapters = sorted;
           setContent(sorted[0].content || '');
-          setLastSaved(new Date(sorted[0].updatedAt));
+          if (sorted[0].updatedAt) {
+            setLastSaved(new Date(sorted[0].updatedAt));
+          }
         }
 
         setError(null);
@@ -238,7 +240,9 @@ export default function BookTheaterPage() {
 
     if (book?.chapters[index]) {
       setContent(book.chapters[index].content || '');
-      setLastSaved(new Date(book.chapters[index].updatedAt));
+      if (book.chapters[index].updatedAt) {
+        setLastSaved(new Date(book.chapters[index].updatedAt));
+      }
     }
 
     setHasUnsavedChanges(false);
