@@ -1,12 +1,8 @@
-// ============================================================================
-// BOOK OPERATING THEATER - TYPE DEFINITIONS
-// ============================================================================
-
 import { LucideIcon } from 'lucide-react';
 
-// ----------------------------------------------------------------------------
-// CORE ENTITIES
-// ----------------------------------------------------------------------------
+// ============================================================================
+// CORE TYPES
+// ============================================================================
 
 export interface Book {
   id: string;
@@ -15,61 +11,39 @@ export interface Book {
   description?: string;
   genre: string;
   status: string;
+  wordCount: number;
   targetWordCount: number;
-  targetChapters: number;
+  coverUrl?: string;
+  metadata?: Record<string, any>;
   chapters: Chapter[];
   characters?: Character[];
-  metadata?: BookMetadata;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface BookMetadata {
-  sceneContexts?: SceneContext[];
-  [key: string]: unknown;
+export interface Chapter {
+  id: string;
+  bookId: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  order: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Character {
   id: string;
   name: string;
-  role?: string;
+  role: string;
   description?: string;
+  traits?: string[];
 }
 
-export interface Chapter {
-  id: string;
-  title: string;
-  content: string;
-  wordCount: number;
-  order: number;
-  status: 'DRAFT' | 'REVISION' | 'COMPLETE';
-  sceneContextId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface SceneContext {
-  id: string;
-  name: string;
-  icon: string;
-  sensory: {
-    sight: string;
-    sound: string;
-    smell: string;
-    touch: string;
-    taste: string;
-  };
-  mood: {
-    primary: string;
-    secondary: string;
-  };
-  props: string[];
-  aiNotes: string;
-}
-
-// ----------------------------------------------------------------------------
-// TOOL SYSTEM
-// ----------------------------------------------------------------------------
+// ============================================================================
+// TOOL TYPES
+// ============================================================================
 
 export type ToolCategory = 'generate' | 'enhance' | 'analyze' | 'brainstorm' | 'world';
 
@@ -90,23 +64,25 @@ export interface Tool {
   requiresSelection?: boolean;
   hasSubMenu?: boolean;
   subOptions?: SubOption[];
-  isDynamic?: boolean; // Sub-options come from book data (characters, etc.)
-  dynamicSource?: 'characters' | 'locations' | 'plotThreads';
+  isDynamic?: boolean;
+  dynamicSource?: 'characters' | 'locations';
 }
 
-export interface ToolExecution {
-  toolId: string;
-  subOptionId?: string;
-  selectedText?: string;
-  cursorPosition?: number;
-  chapterId: string;
-  sceneContextId?: string;
-  customInstruction?: string;
+export interface CategoryMeta {
+  name: string;
+  color: string;
+  description: string;
 }
 
-// ----------------------------------------------------------------------------
-// UNDO SYSTEM
-// ----------------------------------------------------------------------------
+// ============================================================================
+// EDITOR TYPES
+// ============================================================================
+
+export interface Selection {
+  start: number;
+  end: number;
+  text: string;
+}
 
 export interface UndoItem {
   id: string;
@@ -118,28 +94,43 @@ export interface UndoItem {
   wordCount: number;
 }
 
-// ----------------------------------------------------------------------------
-// UI STATE
-// ----------------------------------------------------------------------------
+// ============================================================================
+// SCENE CONTEXT TYPES
+// ============================================================================
 
-export interface Selection {
-  start: number;
-  end: number;
-  text: string;
+export interface SensoryPalette {
+  sight?: string;
+  sound?: string;
+  smell?: string;
+  touch?: string;
+  taste?: string;
 }
 
-export interface ToolPanelState {
-  isOpen: boolean;
-  tool: Tool | null;
-  subOption: SubOption | null;
-  isGenerating: boolean;
-  result: string;
-  error: string | null;
+export interface Mood {
+  primary: string;
+  secondary?: string;
 }
 
-export interface ChapterNavState {
-  canScrollLeft: boolean;
-  canScrollRight: boolean;
-  isAddingChapter: boolean;
-  insertPosition: number | null; // null = append, number = insert after this index
+export interface SceneContext {
+  id: string;
+  name: string;
+  icon: string;
+  sensory: SensoryPalette;
+  mood: Mood;
+  props: string[];
+  aiNotes?: string;
+}
+
+// ============================================================================
+// TOOL RUN TYPES
+// ============================================================================
+
+export interface ToolRunRecord {
+  id: string;
+  toolId: string;
+  toolName: string;
+  input: string;
+  output: string;
+  createdAt: string;
+  status: string;
 }
