@@ -8,13 +8,14 @@ import {
   BarChart3, Mic, TrendingUp, Users, RefreshCw, Search, BookOpen, Gauge, Heart,
   Lightbulb, UserPlus, MessagesSquare, ArrowRightLeft, Flame, Shuffle, HelpCircle,
   Globe, GitBranch, Clock, Layers, BookMarked,
-  Drama, Whisper, SwitchCamera, FastForward, FileText,
+  Theater, Volume2, SwitchCamera, FastForward, FileText,
   Scale, Crosshair, Compass
 } from 'lucide-react';
 import { Tool, ToolCategory } from './types';
 
-// We need to use a custom Whisper icon since it doesn't exist in lucide
-const WhisperIcon = Mic; // Fallback
+// We need to use alternative icons since Drama/Whisper don't exist in lucide
+const DramaIcon = Theater;
+const WhisperIcon = Volume2;
 
 export const tools: Tool[] = [
   // ============================================================================
@@ -135,7 +136,7 @@ export const tools: Tool[] = [
     requiresSelection: true,
     hasSubMenu: true,
     subOptions: [
-      { id: 'dramatic', name: 'More Dramatic', icon: Drama },
+      { id: 'dramatic', name: 'More Dramatic', icon: DramaIcon },
       { id: 'subtle', name: 'More Subtle', icon: WhisperIcon },
       { id: 'pov', name: 'Different POV', icon: SwitchCamera },
       { id: 'faster', name: 'Faster Pace', icon: FastForward },
