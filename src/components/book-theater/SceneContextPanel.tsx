@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, Sparkles, Loader2, Eye, Ear, Wind, Hand, Utensils, Palette, Save, Trash2 } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Check, Eye, EyeOff, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SceneContext } from './types';
+import { SceneContext, SensoryPalette, Mood } from './types';
 
 interface SceneContextPanelProps {
   contexts: SceneContext[];
@@ -15,7 +15,13 @@ interface SceneContextPanelProps {
   onClose: () => void;
 }
 
-const ICONS = ['🏚️', '🚀', '🌊', '🔥', '🌲', '🏰', '🌆', '⛰️', '🏜️', '❄️', '🌙', '☀️', '⚡', '🎭', '💀', '🎪'];
+const MOOD_OPTIONS = [
+  'Tense', 'Romantic', 'Mysterious', 'Cheerful', 'Melancholic', 
+  'Suspenseful', 'Peaceful', 'Chaotic', 'Eerie', 'Hopeful',
+  'Dreadful', 'Nostalgic', 'Triumphant', 'Desperate', 'Whimsical'
+];
+
+const ICON_OPTIONS = ['🏠', '🏰', '🌲', '🏖️', '🌃', '⛰️', '🚗', '✈️', '🏚️', '🏛️', '🌅', '🌙', '⛈️', '🔥', '❄️'];
 
 export function SceneContextPanel({
   contexts,
@@ -26,385 +32,312 @@ export function SceneContextPanel({
   onDelete,
   onClose,
 }: SceneContextPanelProps) {
-  const [mode, setMode] = useState<'list' | 'create' | 'edit'>('list');
-  const [editingContext, setEditingContext] = useState<SceneContext | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
-  // Form state
-  const [form, setForm] = useState<Omit<SceneContext, 'id'>>({
+  const [formData, setFormData] = useState<Omit<SceneContext, 'id'>>({
     name: '',
-    icon: '🏚️',
+    icon: '🏠',
     sensory: { sight: '', sound: '', smell: '', touch: '', taste: '' },
-    mood: { primary: '', secondary: '' },
+    mood: { primary: 'Tense', secondary: '' },
     props: [],
     aiNotes: '',
   });
-  const [newProp, setNewProp] = useState('');
+
+  const [propsInput, setPropsInput] = useState('');
 
   const resetForm = () => {
-    setForm({
+    setFormData({
       name: '',
-      icon: '🏚️',
+      icon: '🏠',
       sensory: { sight: '', sound: '', smell: '', touch: '', taste: '' },
-      mood: { primary: '', secondary: '' },
+      mood: { primary: 'Tense', secondary: '' },
       props: [],
       aiNotes: '',
     });
-    setNewProp('');
+    setPropsInput('');
   };
 
-  const startCreate = () => {
+  const handleStartCreate = () => {
     resetForm();
-    setMode('create');
+    setIsCreating(true);
+    setEditingId(null);
   };
 
-  const startEdit = (context: SceneContext) => {
-    setEditingContext(context);
-    setForm({
+  const handleStartEdit = (context: SceneContext) => {
+    setFormData({
       name: context.name,
       icon: context.icon,
       sensory: { ...context.sensory },
       mood: { ...context.mood },
       props: [...context.props],
-      aiNotes: context.aiNotes,
+      aiNotes: context.aiNotes || '',
     });
-    setMode('edit');
+    setPropsInput(context.props.join(', '));
+    setEditingId(context.id);
+    setIsCreating(false);
   };
 
   const handleSave = () => {
-    if (!form.name.trim()) return;
+    const props = propsInput.split(',').map(p => p.trim()).filter(Boolean);
+    const contextData = { ...formData, props };
 
-    if (mode === 'create') {
-      onCreate(form);
-    } else if (mode === 'edit' && editingContext) {
-      onUpdate({ ...editingContext, ...form });
+    if (isCreating) {
+      onCreate(contextData);
+    } else if (editingId) {
+      onUpdate({ ...contextData, id: editingId });
     }
 
-    setMode('list');
+    setIsCreating(false);
+    setEditingId(null);
     resetForm();
-    setEditingContext(null);
   };
 
-  const handleDelete = () => {
-    if (editingContext && confirm(`Delete "${editingContext.name}"?`)) {
-      onDelete(editingContext.id);
-      setMode('list');
-      setEditingContext(null);
-    }
+  const handleCancel = () => {
+    setIsCreating(false);
+    setEditingId(null);
+    resetForm();
   };
 
-  const addProp = () => {
-    if (newProp.trim()) {
-      setForm(prev => ({ ...prev, props: [...prev.props, newProp.trim()] }));
-      setNewProp('');
-    }
-  };
+  const isEditing = isCreating || editingId;
 
-  const removeProp = (index: number) => {
-    setForm(prev => ({ ...prev, props: prev.props.filter((_, i) => i !== index) }));
-  };
-
-  const generateFromDescription = async () => {
-    if (!form.name.trim()) return;
-    
-    setIsGenerating(true);
-    try {
-      const response = await fetch('/api/ai/generate-scene-context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: form.name }),
-      });
-      
-      if (!response.ok) throw new Error('Generation failed');
-      
-      const data = await response.json();
-      setForm(prev => ({
-        ...prev,
-        sensory: data.sensory || prev.sensory,
-        mood: data.mood || prev.mood,
-        props: data.props || prev.props,
-        aiNotes: data.aiNotes || prev.aiNotes,
-      }));
-    } catch (err) {
-      console.error('Failed to generate:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // ============================================================================
-  // RENDER: LIST VIEW
-  // ============================================================================
-  if (mode === 'list') {
-    return (
-      <div className="w-[380px] h-full flex flex-col bg-stone-900 border-l border-stone-800">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-800">
-          <h3 className="font-medium text-stone-100">Scene Contexts</h3>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded hover:bg-stone-800 text-stone-400"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {/* No context option */}
-          <button
-            onClick={() => onSelect(null)}
-            className={cn(
-              'w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-stone-800',
-              !activeContext && 'bg-stone-800/50'
-            )}
-          >
-            <span className="text-2xl">📝</span>
-            <div>
-              <div className="font-medium text-stone-200">No Scene Context</div>
-              <div className="text-sm text-stone-500">Write without environment presets</div>
-            </div>
-          </button>
-
-          <div className="border-t border-stone-800" />
-
-          {/* Context list */}
-          {contexts.map(ctx => (
-            <div
-              key={ctx.id}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 hover:bg-stone-800 group',
-                activeContext?.id === ctx.id && 'bg-teal-500/10'
-              )}
-            >
-              <button
-                onClick={() => onSelect(ctx)}
-                className="flex-1 flex items-center gap-3 text-left"
-              >
-                <span className="text-2xl">{ctx.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-stone-200">{ctx.name}</div>
-                  <div className="text-sm text-stone-500 truncate">
-                    {ctx.mood.primary} • {ctx.mood.secondary}
-                  </div>
-                </div>
-                {activeContext?.id === ctx.id && (
-                  <span className="text-teal-400">●</span>
-                )}
-              </button>
-              <button
-                onClick={() => startEdit(ctx)}
-                className="p-1.5 rounded hover:bg-stone-700 text-stone-500 opacity-0 group-hover:opacity-100"
-              >
-                <Palette className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-
-          {contexts.length === 0 && (
-            <div className="px-4 py-8 text-center text-stone-500">
-              <p className="mb-2">No scene contexts yet</p>
-              <p className="text-sm">Create one to add atmosphere to your AI-generated content</p>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 border-t border-stone-800">
-          <button
-            onClick={startCreate}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Create Scene Context
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================================
-  // RENDER: CREATE/EDIT VIEW
-  // ============================================================================
   return (
-    <div className="w-[380px] h-full flex flex-col bg-stone-900 border-l border-stone-800">
+    <div className="w-[400px] h-full flex flex-col bg-stone-900 border-l border-stone-800">
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-800">
-        <h3 className="font-medium text-stone-100">
-          {mode === 'create' ? 'New Scene Context' : 'Edit Scene Context'}
-        </h3>
+        <div className="flex items-center gap-2">
+          <Palette className="w-5 h-5 text-rose-400" />
+          <h3 className="font-medium text-stone-100">Scene Contexts</h3>
+        </div>
         <button
-          onClick={() => setMode('list')}
-          className="p-1.5 rounded hover:bg-stone-800 text-stone-400"
+          onClick={onClose}
+          className="p-1.5 rounded hover:bg-stone-800 text-stone-400 hover:text-stone-200"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Icon & Name */}
-        <div className="flex gap-3">
-          <div className="relative">
-            <button className="w-12 h-12 text-2xl bg-stone-800 rounded-lg hover:bg-stone-700 flex items-center justify-center">
-              {form.icon}
-            </button>
-            <div className="absolute top-full left-0 mt-1 p-2 bg-stone-800 rounded-lg border border-stone-700 hidden group-focus-within:grid grid-cols-8 gap-1 z-10">
-              {ICONS.map(icon => (
-                <button
-                  key={icon}
-                  onClick={() => setForm(prev => ({ ...prev, icon }))}
-                  className="w-8 h-8 text-lg hover:bg-stone-700 rounded"
-                >
-                  {icon}
-                </button>
-              ))}
-            </div>
-          </div>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="Scene name (e.g., Haunted House)"
-            className="flex-1 bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-teal-500"
-          />
-        </div>
-
-        {/* AI Generate Button */}
-        <button
-          onClick={generateFromDescription}
-          disabled={!form.name.trim() || isGenerating}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm disabled:opacity-50"
-        >
-          {isGenerating ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4" />
-          )}
-          Generate from name
-        </button>
-
-        {/* Sensory Palette */}
-        <div>
-          <h4 className="text-sm font-medium text-stone-300 mb-2">Sensory Palette</h4>
-          <div className="space-y-2">
-            {[
-              { key: 'sight', icon: Eye, label: 'Sight', placeholder: 'Blue emergency lights, murky depths...' },
-              { key: 'sound', icon: Ear, label: 'Sound', placeholder: 'Sonar pings, hydraulic hiss...' },
-              { key: 'smell', icon: Wind, label: 'Smell', placeholder: 'Recycled air, oil, sweat...' },
-              { key: 'touch', icon: Hand, label: 'Touch', placeholder: 'Vibrating deck, cold metal...' },
-              { key: 'taste', icon: Utensils, label: 'Taste', placeholder: 'Metallic fear, stale oxygen...' },
-            ].map(({ key, icon: Icon, label, placeholder }) => (
-              <div key={key} className="flex items-start gap-2">
-                <Icon className="w-4 h-4 text-stone-500 mt-2.5" />
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {isEditing ? (
+          /* Edit/Create Form */
+          <div className="space-y-4">
+            {/* Name & Icon */}
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-xs text-stone-500 block mb-1">Name</label>
                 <input
                   type="text"
-                  value={form.sensory[key as keyof typeof form.sensory]}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    sensory: { ...prev.sensory, [key]: e.target.value }
-                  }))}
-                  placeholder={placeholder}
-                  className="flex-1 bg-stone-800 border border-stone-700 rounded px-2 py-1.5 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-stone-600"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Haunted Manor"
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-teal-500"
                 />
               </div>
-            ))}
-          </div>
-        </div>
+              <div>
+                <label className="text-xs text-stone-500 block mb-1">Icon</label>
+                <div className="flex flex-wrap gap-1 p-2 bg-stone-800 rounded-lg max-w-[120px]">
+                  {ICON_OPTIONS.map((icon) => (
+                    <button
+                      key={icon}
+                      onClick={() => setFormData({ ...formData, icon })}
+                      className={cn(
+                        'w-6 h-6 rounded text-sm',
+                        formData.icon === icon ? 'bg-teal-500/30' : 'hover:bg-stone-700'
+                      )}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-        {/* Mood */}
-        <div>
-          <h4 className="text-sm font-medium text-stone-300 mb-2">Mood</h4>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={form.mood.primary}
-              onChange={(e) => setForm(prev => ({
-                ...prev,
-                mood: { ...prev.mood, primary: e.target.value }
-              }))}
-              placeholder="Primary mood..."
-              className="bg-stone-800 border border-stone-700 rounded px-2 py-1.5 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-stone-600"
-            />
-            <input
-              type="text"
-              value={form.mood.secondary}
-              onChange={(e) => setForm(prev => ({
-                ...prev,
-                mood: { ...prev.mood, secondary: e.target.value }
-              }))}
-              placeholder="Secondary mood..."
-              className="bg-stone-800 border border-stone-700 rounded px-2 py-1.5 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-stone-600"
-            />
-          </div>
-        </div>
+            {/* Mood */}
+            <div>
+              <label className="text-xs text-stone-500 block mb-1">Mood</label>
+              <div className="flex gap-2">
+                <select
+                  value={formData.mood.primary}
+                  onChange={(e) => setFormData({ ...formData, mood: { ...formData.mood, primary: e.target.value } })}
+                  className="flex-1 bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-100 focus:outline-none focus:border-teal-500"
+                >
+                  {MOOD_OPTIONS.map((mood) => (
+                    <option key={mood} value={mood}>{mood}</option>
+                  ))}
+                </select>
+                <select
+                  value={formData.mood.secondary || ''}
+                  onChange={(e) => setFormData({ ...formData, mood: { ...formData.mood, secondary: e.target.value } })}
+                  className="flex-1 bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-100 focus:outline-none focus:border-teal-500"
+                >
+                  <option value="">Secondary (optional)</option>
+                  {MOOD_OPTIONS.map((mood) => (
+                    <option key={mood} value={mood}>{mood}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-        {/* Props */}
-        <div>
-          <h4 className="text-sm font-medium text-stone-300 mb-2">Common Props</h4>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {form.props.map((prop, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-stone-800 rounded text-sm text-stone-300"
+            {/* Sensory Details */}
+            <div>
+              <label className="text-xs text-stone-500 block mb-2">Sensory Palette</label>
+              <div className="space-y-2">
+                {(['sight', 'sound', 'smell', 'touch', 'taste'] as const).map((sense) => (
+                  <div key={sense} className="flex gap-2 items-center">
+                    <span className="w-12 text-xs text-stone-500 capitalize">{sense}</span>
+                    <input
+                      type="text"
+                      value={formData.sensory[sense] || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        sensory: { ...formData.sensory, [sense]: e.target.value }
+                      })}
+                      placeholder={
+                        sense === 'sight' ? 'Dim candlelight, shadows...' :
+                        sense === 'sound' ? 'Creaking floorboards...' :
+                        sense === 'smell' ? 'Musty, old books...' :
+                        sense === 'touch' ? 'Cold stone walls...' :
+                        'Dust on the tongue...'
+                      }
+                      className="flex-1 bg-stone-800 border border-stone-700 rounded px-2 py-1 text-sm text-stone-100 placeholder-stone-600 focus:outline-none focus:border-teal-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Props */}
+            <div>
+              <label className="text-xs text-stone-500 block mb-1">Props (comma-separated)</label>
+              <input
+                type="text"
+                value={propsInput}
+                onChange={(e) => setPropsInput(e.target.value)}
+                placeholder="Dusty chandelier, creaky stairs, locked door..."
+                className="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-teal-500"
+              />
+            </div>
+
+            {/* AI Notes */}
+            <div>
+              <label className="text-xs text-stone-500 block mb-1">AI Notes</label>
+              <textarea
+                value={formData.aiNotes}
+                onChange={(e) => setFormData({ ...formData, aiNotes: e.target.value })}
+                placeholder="Instructions for AI when using this context..."
+                rows={3}
+                className="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-100 placeholder-stone-500 resize-none focus:outline-none focus:border-teal-500"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleCancel}
+                className="flex-1 px-4 py-2 rounded-lg border border-stone-700 text-stone-400 hover:bg-stone-800"
               >
-                {prop}
-                <button onClick={() => removeProp(i)} className="text-stone-500 hover:text-stone-300">
-                  <X className="w-3 h-3" />
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!formData.name.trim()}
+                className="flex-1 px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white disabled:opacity-50"
+              >
+                {isCreating ? 'Create' : 'Update'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Context List */
+          <div className="space-y-3">
+            {contexts.length === 0 ? (
+              <div className="text-center py-8">
+                <Palette className="w-12 h-12 text-stone-700 mx-auto mb-3" />
+                <p className="text-stone-500 text-sm mb-4">
+                  No scene contexts yet. Create one to help AI understand your scenes.
+                </p>
+                <button
+                  onClick={handleStartCreate}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Scene Context
                 </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newProp}
-              onChange={(e) => setNewProp(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addProp()}
-              placeholder="Add prop..."
-              className="flex-1 bg-stone-800 border border-stone-700 rounded px-2 py-1.5 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-stone-600"
-            />
-            <button
-              onClick={addProp}
-              className="px-2 py-1.5 bg-stone-700 hover:bg-stone-600 rounded text-sm text-stone-300"
-            >
-              Add
-            </button>
-          </div>
-        </div>
+              </div>
+            ) : (
+              <>
+                {contexts.map((context) => {
+                  const isActive = activeContext?.id === context.id;
 
-        {/* AI Notes */}
-        <div>
-          <h4 className="text-sm font-medium text-stone-300 mb-2">AI Writing Notes</h4>
-          <textarea
-            value={form.aiNotes}
-            onChange={(e) => setForm(prev => ({ ...prev, aiNotes: e.target.value }))}
-            placeholder="Notes for AI (e.g., 'Characters speak in clipped, urgent sentences')"
-            rows={3}
-            className="w-full bg-stone-800 border border-stone-700 rounded px-2 py-1.5 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-stone-600 resize-none"
-          />
-        </div>
-      </div>
+                  return (
+                    <div
+                      key={context.id}
+                      className={cn(
+                        'p-3 rounded-lg border transition-all cursor-pointer',
+                        isActive
+                          ? 'border-teal-500/50 bg-teal-500/10'
+                          : 'border-stone-800 hover:border-stone-700 bg-stone-800/50'
+                      )}
+                      onClick={() => onSelect(isActive ? null : context)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{context.icon}</span>
+                          <div>
+                            <h4 className="font-medium text-stone-200">{context.name}</h4>
+                            <p className="text-xs text-stone-500">
+                              {context.mood.primary}
+                              {context.mood.secondary && ` • ${context.mood.secondary}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {isActive && (
+                            <span className="text-xs text-teal-400 mr-2">Active</span>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(context);
+                            }}
+                            className="p-1 rounded hover:bg-stone-700 text-stone-500 hover:text-stone-300"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(context.id);
+                            }}
+                            className="p-1 rounded hover:bg-stone-700 text-stone-500 hover:text-red-400"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-stone-800 flex gap-2">
-        {mode === 'edit' && (
-          <button
-            onClick={handleDelete}
-            className="px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+                      {/* Preview */}
+                      {context.sensory.sight && (
+                        <p className="mt-2 text-xs text-stone-500 line-clamp-1">
+                          👁️ {context.sensory.sight}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <button
+                  onClick={handleStartCreate}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-stone-700 rounded-lg text-stone-500 hover:text-stone-300 hover:border-stone-600 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Scene Context
+                </button>
+              </>
+            )}
+          </div>
         )}
-        <button
-          onClick={() => setMode('list')}
-          className="flex-1 px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={!form.name.trim()}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          Save
-        </button>
       </div>
     </div>
   );
