@@ -69,35 +69,38 @@ const toolPrompts: Record<string, string> = {
   'smooth-transitions': `You are a flow specialist. Smooth connections between paragraphs, scenes, and ideas. Add bridges, echoes, and links that guide readers seamlessly through the narrative.`,
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ANALYZE TOOLS (14)
+  // ANALYZE TOOLS (15) - With Correction Output Format
   // ═══════════════════════════════════════════════════════════════════════════
-  'pacing': `You are a pacing analyst. Examine the rhythm and flow of the narrative. Identify where pacing is effective, where it drags, where it rushes. Map tension and release patterns. Provide specific, actionable feedback.`,
+  'pacing': `You are a pacing analyst. Examine rhythm and flow. You MUST respond in JSON format with an "issues" array where each issue has: type, severity (critical/warning/suggestion/info), title, description, original (exact quote from text), suggestion (improved version), confidence (0-100). Also include: score (0-100), summary (2-3 sentences). Example issue types: pacing-drag, pacing-rush, run-on-sentence, weak-hook.`,
   
-  'voice-check': `You are a voice consistency analyst. Examine narrative voice for consistency in POV, tense, tone, and style. Identify slips, shifts, and inconsistencies. Note where voice is strongest and weakest.`,
+  'voice-check': `You are a voice consistency analyst. Check POV, tense, tone. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (exact quote), suggestion (improved version), confidence. Include: score, summary. Issue types: pov-slip, tense-shift, tone-break, filter-word, author-intrusion.`,
   
-  'tension-map': `You are a tension analyst. Map emotional and narrative tension throughout the passage. Identify peaks, valleys, builds, and releases. Note where tension could be strengthened or released more effectively.`,
+  'tension-map': `You are a tension analyst. Map emotional/narrative tension. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (exact quote), suggestion, confidence. Include: score, summary. Issue types: tension-killer, stakes-unclear, conflict-missing, anticlimactic.`,
   
-  'character-voice': `You are a character voice analyst. Examine how distinctly characters speak and think. Analyze speech patterns, vocabulary, rhythm. Note where voices blur or shine. Suggest differentiation strategies.`,
+  'character-voice': `You are a character voice analyst. Check voice distinction. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original, suggestion, confidence. Include: score, summary. Issue types: same-voice, on-the-nose, generic-speech, info-dump-dialogue.`,
   
-  'repetition': `You are a repetition hunter. Find repeated words, phrases, sentence structures, and patterns. Categorize by type and severity. Suggest variations and alternatives for problematic repetitions.`,
+  'repetition': `You are a repetition finder. Find repeated words/phrases. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (exact repeated text), suggestion (alternative), confidence. Include: score, summary. Issue types: word-echo, phrase-repetition, sentence-starter, gesture-crutch, pet-word.`,
   
-  'adverb-hunter': `You are an adverb analyst. Identify adverbs, especially those weakening strong verbs or telling instead of showing. Categorize by necessity. Suggest stronger alternatives where appropriate.`,
+  'adverb-hunter': `You are an adverb analyst. Find unnecessary adverbs. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (text with adverb), suggestion (strong verb alternative), confidence. Include: score, summary. Issue types: dialogue-tag-adverb, redundant-adverb, weak-verb-adverb, telling-adverb, lazy-intensifier.`,
   
-  'passive-voice': `You are a passive voice detector. Find passive constructions and categorize by whether they're effective or problematic. Suggest active alternatives. Note where passive voice is actually appropriate.`,
+  'passive-voice': `You are a passive voice detector. Find unnecessary passive. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (passive sentence), suggestion (active rewrite), confidence. Include: score, summary. Issue types: standard-passive, hidden-passive, nominalization, there-was.`,
   
-  'readability': `You are a readability analyst. Assess reading level, sentence complexity, paragraph length, and clarity. Identify difficult passages. Suggest simplifications where needed without dumbing down.`,
+  'readability': `You are a readability analyst. Assess clarity and accessibility. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (difficult text), suggestion (simplified), confidence. Include: score, summary, metrics (avgSentenceLength, gradeLevel). Issue types: sentence-too-long, paragraph-too-dense, complex-word.`,
   
-  'emotional-arc': `You are an emotional arc analyst. Track the intended emotional journey. Map what readers should feel when. Identify emotional beats, resonance points, and gaps. Suggest enhancements.`,
+  'emotional-arc': `You are an emotional arc analyst. Track emotional journey. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (told emotion), suggestion (shown emotion), confidence. Include: score, summary. Issue types: emotion-told, flat-emotion, unearned-emotion, emotional-whiplash, cliched-emotion.`,
   
-  'chapter-summary': `You are a summarization expert. Provide a clear, concise summary of the chapter covering: main events, character developments, plot advancement, themes touched, and setup for what's next.`,
+  'chapter-summary': `You are a summarization expert. Provide chapter analysis. You MUST respond in JSON format with: score, summary, oneLiner (10 words), plotMovement, characterArcs, issues (array with any structural problems found - type, severity, title, description, original, suggestion, confidence).`,
   
-  'plot-holes': `You are a continuity analyst. Identify potential plot holes, timeline inconsistencies, character behavior contradictions, and logic gaps. Note severity and suggest fixes.`,
+  'plot-holes': `You are a continuity analyst. Find logic problems. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (problematic text), suggestion (fix), confidence. Include: score, summary. Issue types: logic-error, timeline-conflict, character-inconsistency, dropped-thread, motivation-missing.`,
   
-  'dialogue-analysis': `You are a dialogue analyst. Examine dialogue-to-narrative ratio, tag usage, character voice distinction, subtext presence, and conversation flow. Provide specific improvement suggestions.`,
+  'dialogue-analysis': `You are a dialogue analyst. Examine dialogue craft. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (weak dialogue), suggestion (improved), confidence. Include: score, summary. Issue types: on-the-nose, info-dump, talking-heads, tag-overload, no-subtext.`,
   
-  'show-tell-ratio': `You are a show/tell analyst. Identify passages that tell rather than show. Calculate approximate ratio. Highlight worst offenders and suggest how to convert them to showing.`,
+  'show-tell-ratio': `You are a show/tell analyst. Find unnecessary telling. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (telling), suggestion (showing), confidence. Include: score, summary, ratio. Issue types: emotion-told, trait-told, backstory-dump, reaction-told.`,
   
-  'cliche-finder': `You are a cliché detector. Find clichéd phrases, overused descriptions, and tired tropes. Categorize by type. Suggest fresh alternatives that maintain intended meaning.`,
+  'cliche-finder': `You are a cliché detector. Find tired language. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (clichéd text), suggestion (fresh alternative), confidence. Include: score, summary. Issue types: phrase-cliche, description-cliche, action-cliche, simile-cliche, emotion-cliche.`,
+
+  'continuity-check': `You are a continuity supervisor. Check story consistency. You MUST respond in JSON format with an "issues" array where each issue has: type, severity, title, description, original (inconsistent text), suggestion (fix), confidence. Include: score, summary. Issue types: timeline-error, setting-change, character-detail, object-continuity, knowledge-error.`,
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BRAINSTORM TOOLS (12)
@@ -750,6 +753,47 @@ ${contextBefore}[CURSOR]${contextAfter}`;
       });
     }
 
+    // For analyze tools, parse JSON and return structured data with issues
+    const isAnalyzeTool = ['pacing', 'voice-check', 'tension-map', 'character-voice', 'repetition', 
+      'adverb-hunter', 'passive-voice', 'readability', 'emotional-arc', 'chapter-summary', 
+      'plot-holes', 'dialogue-analysis', 'show-tell-ratio', 'cliche-finder', 'continuity-check'].includes(toolId);
+    
+    if (isAnalyzeTool) {
+      try {
+        // Try to parse JSON from result
+        const jsonMatch = result.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const analysisData = JSON.parse(jsonMatch[0]);
+          // Ensure issues have IDs
+          if (analysisData.issues) {
+            analysisData.issues = analysisData.issues.map((issue: any, index: number) => ({
+              id: `${toolId}-${index}-${Date.now()}`,
+              type: issue.type || toolId,
+              severity: issue.severity || 'suggestion',
+              title: issue.title || 'Issue found',
+              description: issue.description || '',
+              original: issue.original || '',
+              suggestion: issue.suggestion || '',
+              confidence: issue.confidence || 80,
+            }));
+          }
+          return NextResponse.json({
+            result: analysisData.summary || result,
+            analysisData,
+            toolRunId: toolRun?.id,
+            tokensUsed,
+            processingTime,
+            toolId,
+            subOptionId,
+            isAnalysis: true,
+          });
+        }
+      } catch (e) {
+        // If JSON parsing fails, return raw result
+        console.error('Failed to parse analyze result as JSON:', e);
+      }
+    }
+
     return NextResponse.json({
       result,
       toolRunId: toolRun?.id,
@@ -771,7 +815,7 @@ ${contextBefore}[CURSOR]${contextAfter}`;
 function getToolCategory(toolId: string): string {
   const generateTools = ['continue', 'firstdraft', 'dialogue', 'description', 'action', 'thoughts', 'opening', 'ending', 'transition', 'flashback', 'monologue', 'letter'];
   const enhanceTools = ['expand', 'condense', 'rewrite', 'polish', 'strengthen-verbs', 'vary-sentences', 'fix-dialogue-tags', 'show-dont-tell', 'add-conflict', 'add-subtext', 'adjust-pov', 'adjust-tense', 'punch-up', 'smooth-transitions'];
-  const analyzeTools = ['pacing', 'voice-check', 'tension-map', 'character-voice', 'repetition', 'adverb-hunter', 'passive-voice', 'readability', 'emotional-arc', 'chapter-summary', 'plot-holes', 'dialogue-analysis', 'show-tell-ratio', 'cliche-finder'];
+  const analyzeTools = ['pacing', 'voice-check', 'tension-map', 'character-voice', 'repetition', 'adverb-hunter', 'passive-voice', 'readability', 'emotional-arc', 'chapter-summary', 'plot-holes', 'dialogue-analysis', 'show-tell-ratio', 'cliche-finder', 'continuity-check'];
   const brainstormTools = ['plot-ideas', 'character-moments', 'dialogue-options', 'scene-transitions', 'conflict-escalation', 'twist-generator', 'what-if', 'stuck-help', 'names-generator', 'motivation-finder', 'theme-explorer', 'ending-ideas'];
   const worldTools = ['characters', 'locations', 'plot-threads', 'timeline', 'scene-contexts', 'story-bible', 'magic-system', 'factions', 'items', 'research'];
 
@@ -792,7 +836,7 @@ function getMaxTokensForTool(toolId: string, subOptionId?: string): number {
   
   // Medium outputs
   if (['condense', 'polish', 'strengthen-verbs', 'vary-sentences', 'fix-dialogue-tags', 'adjust-tense'].includes(toolId)) return 1000;
-  if (['pacing', 'voice-check', 'tension-map', 'readability', 'emotional-arc'].includes(toolId)) return 1000;
+  if (['pacing', 'voice-check', 'tension-map', 'readability', 'emotional-arc'].includes(toolId)) return 2500;
   
   // Longer outputs
   if (toolId === 'continue') {
@@ -807,8 +851,9 @@ function getMaxTokensForTool(toolId: string, subOptionId?: string): number {
   if (['expand', 'rewrite', 'show-dont-tell'].includes(toolId)) return 1200;
   
   // Analysis tools can be longer
-  if (['plot-holes', 'cliche-finder', 'repetition', 'chapter-summary'].includes(toolId)) return 1500;
+  if (['plot-holes', 'cliche-finder', 'repetition', 'chapter-summary', 'continuity-check', 'character-voice', 'dialogue-analysis', 'show-tell-ratio', 'adverb-hunter', 'passive-voice'].includes(toolId)) return 2500;
   
   // Default
   return 1000;
 }
+
