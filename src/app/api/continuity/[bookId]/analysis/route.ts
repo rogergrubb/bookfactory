@@ -19,7 +19,7 @@ export async function GET(
     // Get counts
     const [factCount, eventCount, issueCount, openIssues, criticalIssues] = await Promise.all([
       prisma.storyFact.count({ where: { bookId } }),
-      prisma.timelineEvent.count({ where: { bookId } }),
+      prisma.bookTimelineEvent.count({ where: { bookId } }),
       prisma.consistencyIssue.count({ where: { bookId } }),
       prisma.consistencyIssue.count({ where: { bookId, status: 'open' } }),
       prisma.consistencyIssue.count({ where: { bookId, status: 'open', severity: 'critical' } }),
