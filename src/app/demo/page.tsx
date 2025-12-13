@@ -11,6 +11,7 @@ import { ToolTray } from '@/components/book-theater/ToolTray';
 import { ChapterTimeline } from '@/components/book-theater/ChapterTimeline';
 import { WritingCanvas } from '@/components/book-theater/WritingCanvas';
 import { ToolPanel } from '@/components/book-theater/ToolPanel';
+import { UndoEntry, createUndoEntry } from '@/components/book-theater/UndoHistoryDropdown';
 import { UndoStack } from '@/components/book-theater/UndoStack';
 import { CommandPalette } from '@/components/book-theater/CommandPalette';
 
@@ -293,6 +294,78 @@ export default function DemoTheaterPage() {
   }, [chapterContent, activeTool]);
 
   // Undo/Redo
+  // Convert UndoItem to UndoEntry for the dropdown
+  const undoEntries: UndoEntry[] = undoStack.map((item, idx) => ({
+    id: item.id,
+    timestamp: item.timestamp,
+    type: item.type || 'edit',
+    label: item.label,
+    description: item.description || `${item.toolName} - ${item.wordCount} words changed`,
+    toolName: item.toolName,
+    wordCountBefore: item.wordCountBefore || item.wordCount,
+    wordCountAfter: wordCount,
+    chapterId: item.chapterId,
+    chapterName: chapters[activeChapterIndex]?.title,
+    previewBefore: item.previewBefore || item.content.slice(0, 150),
+    previewAfter: item.previewAfter || chapterContent.slice(0, 150),
+    contentSnapshot: item.content,
+  }));
+
+  // Handle undo from dropdown
+  const handleUndoEntry = useCallback((entry: UndoEntry) => {
+    // Save current state to redo stack
+    setRedoStack(prev => [...prev, {
+      id: Date.now().toString(),
+      content: chapterContent,
+      label: 'Redo point',
+      toolName: 'Undo',
+      timestamp: new Date(),
+      chapterId: 'demo-chapter',
+      wordCount: wordCount,
+    }]);
+    
+    // Restore content from entry
+    setChapterContent(entry.contentSnapshot);
+    
+    // Remove this and earlier entries from undo stack
+    const entryIndex = undoStack.findIndex(item => item.id === entry.id);
+    if (entryIndex >= 0) {
+      setUndoStack(prev => prev.slice(entryIndex + 1));
+    }
+    
+    setHasUnsavedChanges(true);
+  }, [chapterContent, undoStack, wordCount]);
+
+  const handleUndoToPoint = useCallback((entryId: string) => {
+    const entryIndex = undoStack.findIndex(item => item.id === entryId);
+    if (entryIndex < 0) return;
+    
+    const entry = undoStack[entryIndex];
+    
+    // Save current state
+    setRedoStack(prev => [...prev, {
+      id: Date.now().toString(),
+      content: chapterContent,
+      label: 'Redo point',
+      toolName: 'Undo to point',
+      timestamp: new Date(),
+      chapterId: 'demo-chapter',
+      wordCount: wordCount,
+    }]);
+    
+    // Restore content
+    setChapterContent(entry.content);
+    
+    // Remove restored entries
+    setUndoStack(prev => prev.slice(entryIndex + 1));
+    setHasUnsavedChanges(true);
+  }, [chapterContent, undoStack, wordCount]);
+
+  const handleClearHistory = useCallback(() => {
+    setUndoStack([]);
+    setRedoStack([]);
+  }, []);
+
   const undo = useCallback((index?: number) => {
     const itemIndex = index ?? undoStack.length - 1;
     if (itemIndex < 0 || itemIndex >= undoStack.length) return;
@@ -410,6 +483,10 @@ export default function DemoTheaterPage() {
             hasNextChapter={activeChapterIndex < chapters.length - 1}
             onCreateNextChapter={() => {}}
             onGoToNextChapter={() => handleChapterChange(activeChapterIndex + 1)}
+            undoEntries={undoEntries}
+            onUndo={handleUndoEntry}
+            onUndoToPoint={handleUndoToPoint}
+            onClearHistory={handleClearHistory}
           />
         </div>
 
