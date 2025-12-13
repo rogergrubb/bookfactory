@@ -322,8 +322,8 @@ export function ToolPanel({
     handleGenerate();
   };
 
-  const handleRestoreFromHistory = (record: GenerationRecord) => {
-    setResult(record.output);
+  const handleRestoreFromHistory = (output: string) => {
+    setResult(output);
   };
 
   // Correction handlers
