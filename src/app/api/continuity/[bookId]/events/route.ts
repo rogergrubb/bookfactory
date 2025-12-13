@@ -16,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const events = await prisma.timelineEvent.findMany({
+    const events = await prisma.bookTimelineEvent.findMany({
       where: { bookId },
       orderBy: { position: 'asc' },
     });
