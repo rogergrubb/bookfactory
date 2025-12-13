@@ -41,11 +41,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Adjust intensity
-    const intensityGuide = {
+    const intensityGuides: Record<string, string> = {
       subtle: 'Make light adjustments to match the voice. Preserve most of the original phrasing while adding subtle stylistic touches.',
       balanced: 'Rewrite to match the voice style while preserving the meaning and key details. Balance between original content and voice characteristics.',
       strong: 'Fully transform the text to match this voice. Prioritize voice authenticity over preserving original phrasing.',
-    }[intensity] || intensityGuide.balanced;
+    };
+    const intensityGuide = intensityGuides[intensity] || intensityGuides.balanced;
     
     // Build the prompt
     const systemPrompt = `You are an expert editor specializing in voice and style transformation. Your task is to rewrite content to match a specific author's voice.
