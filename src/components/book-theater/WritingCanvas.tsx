@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Plus, ChevronRight, Save, Loader2, Check, Clock } from 'lucide-react';
+import { Plus, ChevronRight, Save, Loader2, Check, Clock, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Chapter, Selection, SceneContext } from './types';
+import { ContinuityIndicator } from './ContinuityIndicator';
 
 interface WritingCanvasProps {
   chapter: Chapter | null;
@@ -20,6 +21,7 @@ interface WritingCanvasProps {
   onSave: () => void;
   wordCount: number;
   isFirstChapter: boolean;
+  bookId?: string; // Added for continuity checking
 }
 
 export function WritingCanvas({
@@ -37,11 +39,13 @@ export function WritingCanvas({
   onSave,
   wordCount,
   isFirstChapter,
+  bookId,
 }: WritingCanvasProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [title, setTitle] = useState(chapter?.title || '');
   const [isAtEnd, setIsAtEnd] = useState(false);
+  const [continuityEnabled, setContinuityEnabled] = useState(true);
 
   useEffect(() => {
     setTitle(chapter?.title || '');
@@ -160,6 +164,16 @@ export function WritingCanvas({
           <span className="text-sm text-stone-500">
             {wordCount.toLocaleString()} words
           </span>
+          
+          {/* Continuity Indicator */}
+          {bookId && (
+            <ContinuityIndicator
+              bookId={bookId}
+              content={content}
+              isEnabled={continuityEnabled}
+              onToggle={setContinuityEnabled}
+            />
+          )}
           
           {/* Auto-save Status */}
           <div className="flex items-center gap-2 text-sm">
