@@ -84,6 +84,8 @@ export interface Selection {
   text: string;
 }
 
+export type UndoType = 'edit' | 'insert' | 'delete' | 'replace' | 'ai-generate' | 'ai-fix' | 'format' | 'paste';
+
 export interface UndoItem {
   id: string;
   content: string;
@@ -92,6 +94,12 @@ export interface UndoItem {
   timestamp: Date;
   chapterId: string;
   wordCount: number;
+  // Extended fields for rich undo UI
+  type?: UndoType;
+  description?: string;
+  wordCountBefore?: number;
+  previewBefore?: string;
+  previewAfter?: string;
 }
 
 // ============================================================================
@@ -134,3 +142,4 @@ export interface ToolRunRecord {
   createdAt: string;
   status: string;
 }
+
