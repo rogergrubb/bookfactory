@@ -280,6 +280,12 @@ export const tools: Tool[] = [
     { id: 'plot', name: 'Plot Clichés', description: 'Trope patterns' },
     { id: 'all', name: 'Full Scan', description: 'All clichés' },
   ]},
+  { id: 'continuity-check', name: 'Continuity Check', shortName: 'Cont', icon: Shield, category: 'analyze', description: 'Check for story consistency issues', isSpecial: true, hasSubMenu: true, subOptions: [
+    { id: 'selection', name: 'Check Selection', description: 'Check selected text' },
+    { id: 'recent', name: 'Check Recent Text', description: 'Last ~2000 characters' },
+    { id: 'chapter', name: 'Check Full Chapter', description: 'Entire chapter' },
+    { id: 'dashboard', name: 'Open Dashboard', description: 'Full continuity view' },
+  ]},
   // BRAINSTORM (12)
   { id: 'plot-ideas', name: 'Plot Ideas', shortName: 'Plot', icon: Lightbulb, category: 'brainstorm', description: 'Generate plot ideas', hasSubMenu: true, subOptions: [
     { id: 'next', name: 'What Happens Next?', description: 'Continue from here' },
@@ -440,3 +446,4 @@ export const getToolCountByCategory = (): Record<ToolCategory, number> => ({
   brainstorm: getToolsByCategory('brainstorm').length,
   world: getToolsByCategory('world').length,
 });
+
