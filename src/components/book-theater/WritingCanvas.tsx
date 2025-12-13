@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Plus, ChevronRight, Save, Loader2, Check, Clock } from 'lucide-react';
 import { UndoHistoryDropdown, UndoEntry } from './UndoHistoryDropdown';
+import { UndoHistoryDropdown, UndoEntry } from './UndoHistoryDropdown';
 import { cn } from '@/lib/utils';
 import { Chapter, Selection, SceneContext } from './types';
 import { ContinuityIndicator } from '@/components/continuity-guardian';
@@ -26,6 +27,11 @@ interface WritingCanvasProps {
   bookId?: string;
   onOpenTool?: (toolId: string, subOption?: string) => void;
   onCheckContinuity?: (text: string) => void;
+  // Undo history
+  undoEntries?: UndoEntry[];
+  onUndo?: (entry: UndoEntry) => void;
+  onUndoToPoint?: (entryId: string) => void;
+  onClearHistory?: () => void;
 }
 
 export function WritingCanvas({
@@ -275,6 +281,17 @@ export function WritingCanvas({
             />
           )}
           
+          {/* Undo History */}
+          {onUndo && (
+            <UndoHistoryDropdown
+              entries={undoEntries}
+              currentWordCount={wordCount}
+              onUndo={onUndo}
+              onUndoToPoint={onUndoToPoint || (() => {})}
+              onClearHistory={onClearHistory || (() => {})}
+            />
+          )}
+          
           <button
             onClick={onSave}
             disabled={!hasUnsavedChanges || isSaving}
@@ -382,4 +399,5 @@ export function WritingCanvas({
     </div>
   );
 }
+
 
