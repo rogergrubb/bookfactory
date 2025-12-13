@@ -29,7 +29,8 @@ export function ToolTray({
   const [expandedCategories, setExpandedCategories] = useState<Set<ToolCategory>>(
     new Set(['generate', 'enhance', 'analyze', 'brainstorm', 'world'])
   );
-  const [hoveredTool, setHoveredTool] = useState<string | null>(null);
+  // Track which tool's submenu is expanded (for click-based expansion)
+  const [expandedToolId, setExpandedToolId] = useState<string | null>(null);
 
   const toggleCategory = (category: ToolCategory) => {
     const newExpanded = new Set(expandedCategories);
@@ -105,21 +106,29 @@ export function ToolTray({
                 <div className="py-0.5">
                   {categoryTools.map((tool) => {
                     const isActive = activeTool?.id === tool.id;
-                    const isHovered = hoveredTool === tool.id;
                     const subOptions = getSubOptionsForTool(tool);
                     const hasSubmenu = subOptions.length > 0;
+                    const isToolExpanded = expandedToolId === tool.id;
 
                     return (
-                      <div
-                        key={tool.id}
-                        className="relative"
-                        onMouseEnter={() => setHoveredTool(tool.id)}
-                        onMouseLeave={() => setHoveredTool(null)}
-                      >
+                      <div key={tool.id} className="relative">
                         <button
                           onClick={() => {
+                            if (tool.requiresSelection && !hasSelection) {
+                              return; // disabled
+                            }
+                            
                             if (!hasSubmenu) {
+                              // No submenu - directly open the tool
                               onSelectTool(tool);
+                              setExpandedToolId(null);
+                            } else {
+                              // Has submenu - toggle inline expansion
+                              if (isToolExpanded) {
+                                setExpandedToolId(null);
+                              } else {
+                                setExpandedToolId(tool.id);
+                              }
                             }
                           }}
                           disabled={tool.requiresSelection && !hasSelection}
@@ -127,32 +136,36 @@ export function ToolTray({
                             'w-full flex items-center gap-2 px-3 py-1 text-sm transition-all',
                             'text-stone-400 hover:text-stone-200 hover:bg-stone-800/50',
                             isActive && `${colors.bg} ${colors.text}`,
+                            isToolExpanded && 'bg-stone-800/50 text-stone-200',
                             tool.requiresSelection && !hasSelection && 'opacity-40 cursor-not-allowed'
                           )}
                         >
                           <tool.icon className="w-3.5 h-3.5 shrink-0" />
                           <span className="flex-1 text-left truncate text-xs">{tool.name}</span>
                           {hasSubmenu && (
-                            <ChevronRight className="w-3 h-3 text-stone-600" />
+                            isToolExpanded ? (
+                              <ChevronDown className="w-3 h-3 text-stone-500" />
+                            ) : (
+                              <ChevronRight className="w-3 h-3 text-stone-600" />
+                            )
                           )}
                         </button>
 
-                        {/* Submenu Flyout */}
-                        {hasSubmenu && isHovered && (
-                          <div className="absolute left-full top-0 ml-1 w-52 bg-stone-800 border border-stone-700 rounded-lg shadow-xl z-50 py-1 max-h-80 overflow-y-auto">
-                            <div className="px-3 py-1.5 border-b border-stone-700">
-                              <p className="text-xs font-medium text-stone-300">{tool.name}</p>
-                              <p className="text-[10px] text-stone-500">{tool.description}</p>
-                            </div>
+                        {/* Inline Submenu (expanded on click) */}
+                        {hasSubmenu && isToolExpanded && (
+                          <div className="bg-stone-800/30 border-l-2 border-stone-700 ml-4 py-1">
                             {subOptions.map((sub) => (
                               <button
                                 key={sub.id}
-                                onClick={() => onSelectTool(tool, sub)}
-                                className="w-full px-3 py-1.5 text-left hover:bg-stone-700 transition-colors group"
+                                onClick={() => {
+                                  onSelectTool(tool, sub);
+                                  setExpandedToolId(null);
+                                }}
+                                className="w-full px-3 py-1.5 text-left hover:bg-stone-700/50 transition-colors group"
                               >
-                                <p className="text-xs text-stone-300 group-hover:text-stone-100">{sub.name}</p>
+                                <p className="text-xs text-stone-400 group-hover:text-stone-200">{sub.name}</p>
                                 {sub.description && (
-                                  <p className="text-[10px] text-stone-500 group-hover:text-stone-400">{sub.description}</p>
+                                  <p className="text-[10px] text-stone-600 group-hover:text-stone-500">{sub.description}</p>
                                 )}
                               </button>
                             ))}
