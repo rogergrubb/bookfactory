@@ -162,8 +162,8 @@ export default function DemoTheaterPage() {
     });
   }, []);
 
-  // REAL AI generation via API
-  const handleGenerate = useCallback(async (customInstruction?: string): Promise<string> => {
+  // REAL AI generation via API - returns string or analysis object
+  const handleGenerate = useCallback(async (customInstruction?: string): Promise<string | { result: string; analysisData?: any; isAnalysis?: boolean }> => {
     if (!activeTool) throw new Error('No tool selected');
     
     setIsGenerating(true);
@@ -193,6 +193,16 @@ export default function DemoTheaterPage() {
       }
 
       const data = await response.json();
+      
+      // Return analysis data if available
+      if (data.isAnalysis && data.analysisData) {
+        return {
+          result: data.result,
+          analysisData: data.analysisData,
+          isAnalysis: true,
+        };
+      }
+      
       return data.result;
     } finally {
       setIsGenerating(false);
@@ -260,6 +270,27 @@ export default function DemoTheaterPage() {
     setActiveSubOption(null);
     setHasUnsavedChanges(true);
   }, [chapterContent, cursorPosition, activeTool]);
+
+  // Apply correction - find and replace text in chapter
+  const handleApplyCorrection = useCallback((original: string, replacement: string) => {
+    const index = chapterContent.indexOf(original);
+    if (index === -1) return; // Text not found
+    
+    const newContent = chapterContent.slice(0, index) + replacement + chapterContent.slice(index + original.length);
+    
+    setUndoStack(prev => [...prev, {
+      id: Date.now().toString(),
+      content: chapterContent,
+      label: 'Correction applied',
+      toolName: activeTool?.name || 'Fix',
+      timestamp: new Date(),
+      chapterId: 'demo-chapter',
+      wordCount: replacement.split(/\s+/).length,
+    }]);
+    
+    setChapterContent(newContent);
+    setHasUnsavedChanges(true);
+  }, [chapterContent, activeTool]);
 
   // Undo/Redo
   const undo = useCallback((index?: number) => {
@@ -399,6 +430,7 @@ export default function DemoTheaterPage() {
             onInsertAfter={handleInsertAfter}
             onReplace={handleReplace}
             onInsertAtCursor={handleInsertAtCursor}
+            onApplyCorrection={handleApplyCorrection}
           />
         )}
       </div>
@@ -427,3 +459,4 @@ export default function DemoTheaterPage() {
     </div>
   );
 }
+
