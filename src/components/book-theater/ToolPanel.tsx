@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2, Sparkles, Copy, Check, ArrowRight, Replace, Plus, Wand2, History, TrendingUp, Clock } from 'lucide-react';
+import { X, Loader2, Sparkles, Copy, Check, ArrowRight, Replace, Plus, Wand2, History, TrendingUp, Clock, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tool, SubOption, Selection, SceneContext } from './types';
 import { categoryMeta } from './tool-definitions';
@@ -11,6 +11,14 @@ import { ConfettiOverlay, WordCountDelta, PulseRing, SuccessCheck } from './Inse
 import { TokenEstimator, SessionUsageBadge } from './TokenEstimator';
 import { GenerationHistoryInline, GenerationRecord } from './GenerationHistory';
 
+// Voice types
+interface VoiceOption {
+  id: string;
+  name: string;
+  confidence: number;
+  timesUsed: number;
+}
+
 interface ToolPanelProps {
   tool: Tool;
   subOption?: SubOption | null;
@@ -18,8 +26,10 @@ interface ToolPanelProps {
   sceneContext?: SceneContext | null;
   chapterContent: string;
   cursorPosition: number;
+  bookId?: string;
+  chapterId?: string;
   onClose: () => void;
-  onGenerate: (instruction?: string) => Promise<string>;
+  onGenerate: (instruction?: string, voiceId?: string) => Promise<string>;
   onInsertAfter: (text: string) => void;
   onReplace: (text: string) => void;
   onInsertAtCursor: (text: string) => void;
@@ -32,6 +42,8 @@ export function ToolPanel({
   sceneContext,
   chapterContent,
   cursorPosition,
+  bookId,
+  chapterId,
   onClose,
   onGenerate,
   onInsertAfter,
@@ -49,6 +61,12 @@ export function ToolPanel({
   const [generationTime, setGenerationTime] = useState<number>(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Voice state
+  const [voices, setVoices] = useState<VoiceOption[]>([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
+  const [showVoiceDropdown, setShowVoiceDropdown] = useState(false);
+  const [loadingVoices, setLoadingVoices] = useState(true);
+
   // Micro-interaction hooks
   const { progress, startGeneration, completeGeneration, errorGeneration, isGenerating } = useGenerationProgress();
   const { confetti, showSuccess, celebrate } = useSuccessCelebration();
@@ -61,6 +79,24 @@ export function ToolPanel({
 
   // Calculate input length for estimation
   const inputLength = (selection?.text?.length || 0) + (chapterContent.length > 2000 ? 2000 : chapterContent.length);
+
+  // Fetch user's voice profiles
+  useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        const response = await fetch('/api/voice');
+        if (response.ok) {
+          const data = await response.json();
+          setVoices(data.voices || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch voices:', err);
+      } finally {
+        setLoadingVoices(false);
+      }
+    };
+    fetchVoices();
+  }, []);
 
   // Color mapping for Tailwind
   const colorStyles: Record<string, { button: string; border: string; bg: string; text: string; glow: string }> = {
@@ -88,6 +124,20 @@ export function ToolPanel({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [hasResult, isGenerating, onClose]);
 
+  // Close voice dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-voice-dropdown]')) {
+        setShowVoiceDropdown(false);
+      }
+    };
+    if (showVoiceDropdown) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showVoiceDropdown]);
+
   const handleGenerate = async () => {
     setError(null);
     setResult('');
@@ -96,7 +146,8 @@ export function ToolPanel({
 
     try {
       const instruction = isCustomMode ? customInstruction : undefined;
-      const generated = await onGenerate(instruction);
+      // Pass voice ID to generation
+      const generated = await onGenerate(instruction, selectedVoiceId || undefined);
       setResult(generated);
       
       const generatedWordCount = generated.split(/\s+/).filter(w => w.length > 0).length;
@@ -110,6 +161,11 @@ export function ToolPanel({
         generations: prev.generations + 1,
         words: prev.words + generatedWordCount
       }));
+
+      // Track voice usage if voice was selected
+      if (selectedVoiceId) {
+        trackVoiceUsage(selectedVoiceId, generatedWordCount);
+      }
 
       // Add to local generation history
       const newRecord: GenerationRecord = {
@@ -127,6 +183,59 @@ export function ToolPanel({
       setGenerationHistory(prev => [newRecord, ...prev].slice(0, 10));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
+      setError(message);
+      errorGeneration(message);
+    }
+  };
+
+  // Track voice usage
+  const trackVoiceUsage = async (voiceId: string, outputWordCount: number) => {
+    try {
+      await fetch(`/api/voice/${voiceId}/use`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolId: tool.id,
+          chapterId,
+          bookId,
+          inputWordCount: selection?.text?.length || 0,
+          outputWordCount,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to track voice usage:', err);
+    }
+  };
+
+  // Apply My Voice - rewrite result in selected voice
+  const handleApplyMyVoice = async () => {
+    if (!selectedVoiceId || !result) return;
+    
+    setError(null);
+    startGeneration();
+    
+    try {
+      const response = await fetch('/api/ai/apply-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: result,
+          voiceId: selectedVoiceId,
+          bookId,
+          chapterId,
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to apply voice');
+      
+      const data = await response.json();
+      setResult(data.result);
+      
+      const newWordCount = data.result.split(/\s+/).filter((w: string) => w.length > 0).length;
+      completeGeneration(newWordCount);
+      trackVoiceUsage(selectedVoiceId, newWordCount);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to apply voice';
       setError(message);
       errorGeneration(message);
     }
@@ -171,6 +280,8 @@ export function ToolPanel({
     handleGenerate();
   };
 
+  const selectedVoice = voices.find(v => v.id === selectedVoiceId);
+
   return (
     <div 
       ref={panelRef}
@@ -204,6 +315,66 @@ export function ToolPanel({
           </button>
         </div>
 
+        {/* Voice Selector - Integrated in header */}
+        {!loadingVoices && voices.length > 0 && (
+          <div className="relative mt-2" data-voice-dropdown>
+            <button
+              onClick={() => setShowVoiceDropdown(!showVoiceDropdown)}
+              className={cn(
+                'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+                selectedVoice
+                  ? 'bg-violet-500/20 border border-violet-500/30 text-violet-300'
+                  : 'bg-stone-800/50 border border-stone-700 text-stone-400 hover:border-stone-600'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Mic className="w-3.5 h-3.5" />
+                <span>{selectedVoice ? selectedVoice.name : 'No Voice'}</span>
+              </div>
+              <svg className={cn('w-4 h-4 transition-transform', showVoiceDropdown && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showVoiceDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-stone-900 border border-stone-800 rounded-lg shadow-xl z-50 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setSelectedVoiceId(null);
+                    setShowVoiceDropdown(false);
+                  }}
+                  className={cn(
+                    'w-full px-3 py-2 text-left text-sm hover:bg-stone-800/50 flex items-center justify-between',
+                    !selectedVoiceId && 'bg-stone-800/30'
+                  )}
+                >
+                  <span className="text-stone-400">No Voice (Default AI)</span>
+                  {!selectedVoiceId && <Check className="w-4 h-4 text-violet-400" />}
+                </button>
+                {voices.map((voice) => (
+                  <button
+                    key={voice.id}
+                    onClick={() => {
+                      setSelectedVoiceId(voice.id);
+                      setShowVoiceDropdown(false);
+                    }}
+                    className={cn(
+                      'w-full px-3 py-2 text-left text-sm hover:bg-stone-800/50 flex items-center justify-between',
+                      selectedVoiceId === voice.id && 'bg-violet-500/10'
+                    )}
+                  >
+                    <div>
+                      <span className="text-stone-200">{voice.name}</span>
+                      <span className="text-xs text-stone-500 ml-2">{voice.confidence}% match</span>
+                    </div>
+                    {selectedVoiceId === voice.id && <Check className="w-4 h-4 text-violet-400" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Estimator - Show before generation */}
         {!hasResult && !isGenerating && (
           <TokenEstimator
@@ -227,6 +398,15 @@ export function ToolPanel({
                 <div className="flex items-center gap-1 text-stone-400">
                   <Clock className="w-3 h-3" />
                   <span>{generationTime}s</span>
+                </div>
+              </>
+            )}
+            {selectedVoice && (
+              <>
+                <span className="text-stone-600">•</span>
+                <div className="flex items-center gap-1 text-violet-400">
+                  <Mic className="w-3 h-3" />
+                  <span>{selectedVoice.name}</span>
                 </div>
               </>
             )}
@@ -382,6 +562,7 @@ export function ToolPanel({
               <>
                 <Sparkles className="w-4 h-4" />
                 Generate
+                {selectedVoice && <span className="text-xs opacity-70 ml-1">with {selectedVoice.name}</span>}
                 <span className="text-xs opacity-70 ml-1">⌘↵</span>
               </>
             )}
@@ -410,6 +591,19 @@ export function ToolPanel({
                 </button>
               )}
             </div>
+            
+            {/* Apply My Voice button - only show if voice is selected and result exists */}
+            {selectedVoice && (
+              <button
+                onClick={handleApplyMyVoice}
+                disabled={isGenerating}
+                className="w-full py-2 px-3 rounded-lg font-medium bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border border-violet-500/30 transition-colors flex items-center justify-center gap-2"
+              >
+                <Mic className="w-4 h-4" />
+                Apply {selectedVoice.name} Style
+              </button>
+            )}
+            
             <button
               onClick={handleRegenerate}
               className="w-full py-2 px-3 rounded-lg font-medium bg-stone-800 hover:bg-stone-700 text-stone-300 transition-colors flex items-center justify-center gap-2"
