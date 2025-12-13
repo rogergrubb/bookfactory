@@ -486,7 +486,8 @@ export const AI_TOOLS: AITool[] = [
   },
   
   // =========================================================================
-  // ANALYZE TOOLS (8)
+  // =========================================================================
+  // ANALYZE TOOLS (15)
   // =========================================================================
   {
     id: 'pacing-analysis',
@@ -494,7 +495,7 @@ export const AI_TOOLS: AITool[] = [
     scope: 'chapter',
     name: 'Pacing Analysis',
     description: 'Evaluate narrative flow and rhythm',
-    longDescription: 'Analyzes the pacing of your chapter or scene, identifying where it drags, rushes, or flows well. Provides specific recommendations.',
+    longDescription: 'Analyzes pacing rhythm, tension curves, and dialogue-to-narrative ratios. Identifies where your story drags or rushes.',
     icon: TrendingUp,
     color: 'blue',
     gradient: 'from-blue-500 to-cyan-600',
@@ -511,25 +512,195 @@ export const AI_TOOLS: AITool[] = [
   },
   
   {
-    id: 'character-voice-check',
+    id: 'voice-consistency',
     category: 'analyze',
     scope: 'chapter',
-    name: 'Character Voice Check',
-    description: 'Verify voice consistency',
-    longDescription: 'Compares dialogue and POV against your Story Bible character profiles. Flags inconsistencies in speech patterns, vocabulary, and personality.',
-    icon: Users,
+    name: 'Voice Consistency',
+    description: 'Check narrative voice stability',
+    longDescription: 'Analyzes POV discipline, tense consistency, tone shifts, and authorial intrusion. Ensures your narrative voice stays unified.',
+    icon: Volume2,
     color: 'violet',
     gradient: 'from-violet-500 to-purple-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'analysis',
+    placeholders: {
+      input: 'Chapter content...',
+      output: 'Checking voice consistency...'
+    },
+    canChainTo: ['improve-prose'],
+    estimatedTokens: 600,
+  },
+  
+  {
+    id: 'tension-map',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Tension Map',
+    description: 'Visualize tension levels',
+    longDescription: 'Maps tension peaks and valleys throughout your scene. Identifies flat spots and suggests where to inject more conflict.',
+    icon: TrendingUp,
+    color: 'red',
+    gradient: 'from-red-500 to-orange-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'data',
+    placeholders: {
+      input: 'Scene or chapter...',
+      output: 'Mapping tension...'
+    },
+    canChainTo: ['add-tension', 'conflict-generator'],
+    estimatedTokens: 600,
+  },
+  
+  {
+    id: 'character-voice-analysis',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Character Voice Analysis',
+    description: 'Analyze dialogue distinctiveness',
+    longDescription: 'Examines how distinct each character\'s voice is. Identifies interchangeable dialogue and suggests ways to differentiate speakers.',
+    icon: Users,
+    color: 'amber',
+    gradient: 'from-amber-500 to-yellow-600',
     requiresSelection: false,
     requiresStoryBible: true,
     inputType: 'context',
     outputType: 'analysis',
     placeholders: {
       input: 'Chapter content...',
-      output: 'Checking character voices...'
+      output: 'Analyzing character voices...'
     },
     canChainTo: ['write-dialogue', 'improve-prose'],
     estimatedTokens: 800,
+  },
+  
+  {
+    id: 'repetition-finder',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Repetition Finder',
+    description: 'Find overused words and phrases',
+    longDescription: 'Identifies echoing words, repeated phrases, overused sentence starters, and crutch words. Helps vary your language.',
+    icon: FileText,
+    color: 'amber',
+    gradient: 'from-amber-500 to-orange-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'data',
+    placeholders: {
+      input: 'Text to analyze...',
+      output: 'Finding repetitions...'
+    },
+    canChainTo: ['improve-prose'],
+    estimatedTokens: 400,
+    inspiredBy: ['king'],
+  },
+  
+  {
+    id: 'adverb-hunter',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Adverb Hunter',
+    description: 'Find unnecessary adverbs',
+    longDescription: 'Following Stephen King\'s advice, identifies -ly adverbs that weaken prose. Suggests stronger verb alternatives.',
+    icon: Search,
+    color: 'orange',
+    gradient: 'from-orange-500 to-red-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'analysis',
+    placeholders: {
+      input: 'Text to analyze...',
+      output: 'Hunting adverbs...'
+    },
+    canChainTo: ['improve-prose'],
+    estimatedTokens: 400,
+    inspiredBy: ['king'],
+  },
+  
+  {
+    id: 'passive-voice-finder',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Passive Voice Finder',
+    description: 'Identify passive constructions',
+    longDescription: 'Finds passive voice and weak "to be" constructions. Provides active voice rewrites for stronger prose.',
+    icon: Edit3,
+    color: 'cyan',
+    gradient: 'from-cyan-500 to-blue-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'analysis',
+    placeholders: {
+      input: 'Text to analyze...',
+      output: 'Finding passive voice...'
+    },
+    canChainTo: ['improve-prose'],
+    estimatedTokens: 400,
+  },
+  
+  {
+    id: 'readability-score',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Readability Score',
+    description: 'Grade level and reading metrics',
+    longDescription: 'Calculates Flesch-Kincaid, Gunning Fog, and sentence variety metrics. Ensures your prose matches your target audience.',
+    icon: BarChart2,
+    color: 'teal',
+    gradient: 'from-teal-500 to-emerald-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'data',
+    placeholders: {
+      input: 'Text to analyze...',
+      output: 'Calculating metrics...'
+    },
+    canChainTo: ['improve-prose', 'vary-sentences'],
+    estimatedTokens: 300,
+  },
+  
+  {
+    id: 'emotional-arc',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Emotional Arc',
+    description: 'Map the emotional journey',
+    longDescription: 'Visualizes emotional trajectory including peaks, valleys, and cathartic moments. Identifies flat spots needing emotional depth.',
+    icon: Heart,
+    color: 'rose',
+    gradient: 'from-rose-500 to-pink-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'data',
+    placeholders: {
+      input: 'Chapter content...',
+      output: 'Mapping emotional arc...'
+    },
+    canChainTo: ['deepen-emotion', 'add-tension'],
+    estimatedTokens: 500,
+  },
+  
+  {
+    id: 'chapter-summary',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Chapter Summary',
+    description: 'Generate comprehensive summary',
+    longDescription: 'Creates detailed summary capturing key events, character development, conflicts, revelations, and foreshadowing.',
+    icon: FileText,
+    color: 'indigo',
+    gradient: 'from-indigo-500 to-violet-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'data',
+    placeholders: {
+      input: 'Chapter content...',
+      output: 'Generating summary...'
+    },
+    canChainTo: [],
+    estimatedTokens: 600,
   },
   
   {
@@ -538,8 +709,8 @@ export const AI_TOOLS: AITool[] = [
     scope: 'book',
     name: 'Plot Hole Finder',
     description: 'Identify logical inconsistencies',
-    longDescription: 'Scans your manuscript for plot holes, contradictions, and logical inconsistencies. Connects to your Story Bible for comprehensive checking.',
-    icon: Search,
+    longDescription: 'Scans for plot holes, timeline problems, character contradictions, and dropped threads. Connects to Story Bible for comprehensive checking.',
+    icon: AlertTriangle,
     color: 'red',
     gradient: 'from-red-500 to-rose-600',
     requiresSelection: false,
@@ -556,111 +727,89 @@ export const AI_TOOLS: AITool[] = [
   },
   
   {
-    id: 'readability-score',
+    id: 'dialogue-analysis',
     category: 'analyze',
     scope: 'chapter',
-    name: 'Readability Score',
-    description: 'Grade level and reading metrics',
-    longDescription: 'Calculates Flesch-Kincaid, Gunning Fog, and other readability metrics. Helps ensure your prose matches your target audience.',
-    icon: BarChart2,
-    color: 'teal',
-    gradient: 'from-teal-500 to-emerald-600',
+    name: 'Dialogue Analysis',
+    description: 'Evaluate dialogue quality',
+    longDescription: 'Analyzes dialogue naturalness, subtext usage, tag variety, and info-dumping. Identifies talking heads and suggests improvements.',
+    icon: MessageSquare,
+    color: 'violet',
+    gradient: 'from-violet-500 to-indigo-600',
     requiresSelection: false,
     inputType: 'context',
-    outputType: 'data',
-    placeholders: {
-      input: 'Text to analyze...',
-      output: 'Calculating metrics...'
-    },
-    canChainTo: ['improve-prose', 'vary-sentences'],
-    estimatedTokens: 300,
-  },
-  
-  {
-    id: 'word-frequency',
-    category: 'analyze',
-    scope: 'chapter',
-    name: 'Word Frequency',
-    description: 'Find overused words and phrases',
-    longDescription: 'Identifies words and phrases you\'re overusing. Helps eliminate verbal tics and repetitive language.',
-    icon: FileText,
-    color: 'amber',
-    gradient: 'from-amber-500 to-yellow-600',
-    requiresSelection: false,
-    inputType: 'context',
-    outputType: 'data',
-    placeholders: {
-      input: 'Text to analyze...',
-      output: 'Analyzing word frequency...'
-    },
-    canChainTo: ['improve-prose'],
-    estimatedTokens: 300,
-    inspiredBy: ['king'],
-  },
-  
-  {
-    id: 'emotional-arc',
-    category: 'analyze',
-    scope: 'chapter',
-    name: 'Emotional Arc',
-    description: 'Map the emotional journey',
-    longDescription: 'Visualizes the emotional trajectory of your chapter or scene. Identifies flat spots and emotional peaks.',
-    icon: Heart,
-    color: 'rose',
-    gradient: 'from-rose-500 to-pink-600',
-    requiresSelection: false,
-    inputType: 'context',
-    outputType: 'data',
+    outputType: 'analysis',
     placeholders: {
       input: 'Chapter content...',
-      output: 'Mapping emotional arc...'
+      output: 'Analyzing dialogue...'
     },
-    canChainTo: ['deepen-emotion', 'add-tension'],
+    canChainTo: ['write-dialogue', 'improve-prose'],
+    estimatedTokens: 600,
+  },
+  
+  {
+    id: 'show-tell-ratio',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Show/Tell Ratio',
+    description: 'Analyze showing vs telling',
+    longDescription: 'Identifies telling passages that should be shown. Provides rewritten examples demonstrating the difference.',
+    icon: Eye,
+    color: 'emerald',
+    gradient: 'from-emerald-500 to-teal-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'analysis',
+    placeholders: {
+      input: 'Chapter content...',
+      output: 'Analyzing show/tell ratio...'
+    },
+    canChainTo: ['show-dont-tell', 'improve-prose'],
+    estimatedTokens: 600,
+  },
+  
+  {
+    id: 'cliche-finder',
+    category: 'analyze',
+    scope: 'chapter',
+    name: 'Cliché Finder',
+    description: 'Find tired phrases and metaphors',
+    longDescription: 'Identifies clichéd phrases, dead metaphors, and overused descriptions. Suggests fresh, original alternatives.',
+    icon: Search,
+    color: 'purple',
+    gradient: 'from-purple-500 to-pink-600',
+    requiresSelection: false,
+    inputType: 'context',
+    outputType: 'analysis',
+    placeholders: {
+      input: 'Text to analyze...',
+      output: 'Finding clichés...'
+    },
+    canChainTo: ['improve-prose'],
     estimatedTokens: 500,
   },
   
   {
-    id: 'timeline-visualizer',
+    id: 'continuity-check',
     category: 'analyze',
     scope: 'book',
-    name: 'Timeline Visualizer',
-    description: 'Chronological event mapping',
-    longDescription: 'Extracts and visualizes the timeline of events in your story. Helps identify pacing issues and temporal inconsistencies.',
-    icon: Clock,
-    color: 'indigo',
-    gradient: 'from-indigo-500 to-violet-600',
+    name: 'Continuity Check',
+    description: 'Track story details consistency',
+    longDescription: 'Tracks character descriptions, timeline, object states, and knowledge. Flags internal inconsistencies and creates a continuity database.',
+    icon: CheckCircle,
+    color: 'blue',
+    gradient: 'from-blue-500 to-indigo-600',
     requiresSelection: false,
+    requiresStoryBible: true,
     inputType: 'context',
-    outputType: 'data',
+    outputType: 'analysis',
     placeholders: {
       input: 'Manuscript content...',
-      output: 'Building timeline...'
+      output: 'Checking continuity...'
     },
     canChainTo: [],
     estimatedTokens: 800,
     inspiredBy: ['rowling'],
-  },
-  
-  {
-    id: 'act-balance',
-    category: 'analyze',
-    scope: 'book',
-    name: 'Act Balance Checker',
-    description: 'Analyze story structure',
-    longDescription: 'Evaluates your manuscript against standard story structures (three-act, Save the Cat, etc.). Shows percentage breakdown by act.',
-    icon: Layout,
-    color: 'purple',
-    gradient: 'from-purple-500 to-violet-600',
-    requiresSelection: false,
-    inputType: 'context',
-    outputType: 'data',
-    placeholders: {
-      input: 'Manuscript content...',
-      output: 'Analyzing structure...'
-    },
-    canChainTo: ['story-structure'],
-    estimatedTokens: 600,
-    inspiredBy: ['collins', 'patterson'],
   },
   
   // =========================================================================
