@@ -1,42 +1,32 @@
 // AI Image Generation Service
-// Builds prompts and generates images via OpenAI DALL-E
+// Builds prompts for image generation
 
-import OpenAI from 'openai';
 import { 
   ImageGenerationRequest, 
   ImageType, 
   ImageStyle,
   CHARACTER_STYLE_PRESETS,
   SCENE_STYLE_PRESETS,
-  GENRE_STYLE_MAP
 } from './types';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // Build character portrait prompt
 function buildCharacterPrompt(request: ImageGenerationRequest): string {
   const parts: string[] = [];
   
-  // Base description
   if (request.characterDescription) {
     parts.push(request.characterDescription);
   }
   
-  // Traits
   if (request.characterTraits && request.characterTraits.length > 0) {
     parts.push(`Character traits: ${request.characterTraits.join(', ')}`);
   }
   
-  // Style modifiers
   const stylePreset = request.type === 'CHARACTER_FULL' 
     ? CHARACTER_STYLE_PRESETS.fullBody 
     : CHARACTER_STYLE_PRESETS.portrait;
   
   parts.push(...stylePreset.positiveModifiers);
   
-  // Style
   if (request.style) {
     parts.push(`${request.style} style`);
   }
@@ -48,31 +38,25 @@ function buildCharacterPrompt(request: ImageGenerationRequest): string {
 function buildScenePrompt(request: ImageGenerationRequest): string {
   const parts: string[] = [];
   
-  // Scene description
   if (request.sceneDescription) {
     parts.push(request.sceneDescription);
   }
   
-  // Mood
   if (request.mood) {
     parts.push(`Mood: ${request.mood}`);
   }
   
-  // Time of day
   if (request.timeOfDay) {
     parts.push(`Time: ${request.timeOfDay}`);
   }
   
-  // Weather
   if (request.weather) {
     parts.push(`Weather: ${request.weather}`);
   }
   
-  // Style modifiers
   const stylePreset = SCENE_STYLE_PRESETS.cinematic;
   parts.push(...stylePreset.positiveModifiers);
   
-  // Style
   if (request.style) {
     parts.push(`${request.style} style`);
   }
@@ -103,7 +87,6 @@ function buildLocationPrompt(request: ImageGenerationRequest): string {
 
 // Build prompt based on type
 export function buildPrompt(request: ImageGenerationRequest): string {
-  // Custom prompt override
   if (request.customPrompt) {
     return request.customPrompt;
   }
@@ -134,7 +117,7 @@ export function buildPrompt(request: ImageGenerationRequest): string {
 }
 
 // Get dimensions based on aspect ratio
-function getDimensions(aspectRatio?: string): { width: number; height: number } {
+export function getDimensions(aspectRatio?: string): { width: number; height: number } {
   switch (aspectRatio) {
     case '1:1':
       return { width: 1024, height: 1024 };
@@ -151,62 +134,8 @@ function getDimensions(aspectRatio?: string): { width: number; height: number } 
   }
 }
 
-// Get DALL-E size string
-function getDalleSize(aspectRatio?: string): '1024x1024' | '1792x1024' | '1024x1792' {
-  switch (aspectRatio) {
-    case '16:9':
-    case '4:3':
-      return '1792x1024';
-    case '9:16':
-    case '3:4':
-      return '1024x1792';
-    default:
-      return '1024x1024';
-  }
-}
-
-// Main generation function
-export async function generateImage(request: ImageGenerationRequest): Promise<{
-  success: boolean;
-  imageUrl?: string;
-  prompt?: string;
-  error?: string;
-}> {
-  try {
-    const prompt = buildPrompt(request);
-    const size = getDalleSize(request.aspectRatio);
-    
-    const response = await openai.images.generate({
-      model: 'dall-e-3',
-      prompt: prompt,
-      n: 1,
-      size: size,
-      quality: request.quality === 'hd' ? 'hd' : 'standard',
-      style: request.style === 'realistic' ? 'natural' : 'vivid',
-    });
-    
-    const imageUrl = response.data[0]?.url;
-    
-    if (!imageUrl) {
-      return { success: false, error: 'No image URL returned' };
-    }
-    
-    return {
-      success: true,
-      imageUrl,
-      prompt,
-    };
-  } catch (error) {
-    console.error('Image generation failed:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
 // Generate character portrait from character data
-export async function generateCharacterPortrait(character: {
+export function buildCharacterPortraitPrompt(character: {
   name: string;
   description?: string;
   traits?: string[];
@@ -214,14 +143,7 @@ export async function generateCharacterPortrait(character: {
 }, options?: {
   style?: ImageStyle;
   type?: 'portrait' | 'full';
-  quality?: 'standard' | 'hd';
-}): Promise<{
-  success: boolean;
-  imageUrl?: string;
-  prompt?: string;
-  error?: string;
-}> {
-  // Build rich description
+}): string {
   const descriptionParts: string[] = [];
   
   descriptionParts.push(`Portrait of ${character.name}`);
@@ -239,30 +161,20 @@ export async function generateCharacterPortrait(character: {
     characterDescription: descriptionParts.join(', '),
     characterTraits: character.traits,
     style: options?.style || 'realistic',
-    quality: options?.quality || 'standard',
     aspectRatio: options?.type === 'full' ? '9:16' : '3:4',
   };
   
-  return generateImage(request);
+  return buildPrompt(request);
 }
 
-// Generate scene illustration from scene/chapter data
-export async function generateSceneIllustration(scene: {
+// Generate scene illustration prompt from scene/chapter data
+export function buildSceneIllustrationPrompt(scene: {
   content: string;
   location?: string;
-  characters?: string[];
   mood?: string;
 }, options?: {
   style?: ImageStyle;
-  quality?: 'standard' | 'hd';
-}): Promise<{
-  success: boolean;
-  imageUrl?: string;
-  prompt?: string;
-  error?: string;
-}> {
-  // Extract key visual elements from scene content
-  // This is a simplified version - in production, use AI to analyze
+}): string {
   const sceneDescription = scene.content.slice(0, 500);
   
   const request: ImageGenerationRequest = {
@@ -270,49 +182,8 @@ export async function generateSceneIllustration(scene: {
     sceneDescription: `Scene: ${sceneDescription}${scene.location ? `. Location: ${scene.location}` : ''}`,
     mood: scene.mood,
     style: options?.style || 'cinematic',
-    quality: options?.quality || 'standard',
     aspectRatio: '16:9',
   };
   
-  return generateImage(request);
-}
-
-// Use AI to analyze text and generate appropriate prompt
-export async function analyzeAndGeneratePrompt(
-  text: string,
-  type: ImageType,
-  genre?: string
-): Promise<string> {
-  // Use Claude to analyze the text and generate an image prompt
-  const Anthropic = (await import('@anthropic-ai/sdk')).default;
-  const anthropic = new Anthropic();
-  
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 500,
-    messages: [{
-      role: 'user',
-      content: `You are an expert at creating image generation prompts. Analyze the following text and create a detailed, vivid prompt for generating a ${type.toLowerCase().replace('_', ' ')} image.
-
-Text to analyze:
-${text.slice(0, 2000)}
-
-${genre ? `Genre: ${genre}` : ''}
-
-Create a prompt that:
-1. Captures the visual essence of the text
-2. Includes specific details about appearance, lighting, mood
-3. Is suitable for DALL-E 3
-4. Avoids any NSFW or violent content
-
-Respond with ONLY the prompt, no explanation.`
-    }]
-  });
-  
-  const content = response.content[0];
-  if (content.type === 'text') {
-    return content.text;
-  }
-  
-  return 'Detailed illustration';
+  return buildPrompt(request);
 }
