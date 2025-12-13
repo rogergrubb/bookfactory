@@ -104,7 +104,7 @@ async function processBookScan(
       // Save events
       for (const event of result.events) {
         try {
-          await prisma.timelineEvent.create({
+          await prisma.bookBookTimelineEvent.create({
             data: {
               bookId,
               description: event.description,
