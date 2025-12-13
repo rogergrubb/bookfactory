@@ -369,7 +369,7 @@ export function ToolPanel({
         confetti && 'overflow-hidden'
       )}
     >
-      {confetti && <ConfettiOverlay />}
+      {confetti && <ConfettiOverlay confetti={confetti} showSuccess={showSuccess} />}
 
       {/* Header */}
       <div className={cn('px-4 py-3 border-b border-stone-800', colors.bg)}>
