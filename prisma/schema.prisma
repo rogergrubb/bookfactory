@@ -581,3 +581,81 @@ model Workflow {
   @@index([bookId])
   @@map("workflows")
 }
+
+
+// ============================================
+// MY VOICE - Voice Profile Training System
+// ============================================
+
+// Voice Profile - stores trained voice models
+model VoiceProfile {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  description     String?
+  
+  // Training data
+  totalWordCount  Int
+  sampleCount     Int
+  trainingSamples TrainingSample[]
+  
+  // Analysis results (stored as JSON)
+  analysis        Json
+  
+  // Generated prompts
+  systemPrompt    String   @db.Text
+  styleGuide      String   @db.Text
+  
+  // Usage tracking
+  timesUsed       Int      @default(0)
+  lastUsedAt      DateTime?
+  
+  // Status
+  status          String   @default("ready") // training, ready, error
+  trainingProgress Int?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@map("voice_profiles")
+}
+
+// Training Samples - individual writing samples used for training
+model TrainingSample {
+  id              String   @id @default(cuid())
+  voiceProfileId  String
+  voiceProfile    VoiceProfile @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+  
+  source          String   // paste, upload, chapter
+  sourceId        String?  // chapterId if from a chapter
+  sourceName      String
+  text            String   @db.Text
+  wordCount       Int
+  
+  addedAt         DateTime @default(now())
+  
+  @@index([voiceProfileId])
+  @@map("training_samples")
+}
+
+// Voice Usage Log - tracks when voices are used in generation
+model VoiceUsageLog {
+  id              String   @id @default(cuid())
+  voiceProfileId  String
+  userId          String
+  
+  toolId          String
+  chapterId       String?
+  bookId          String?
+  
+  inputWordCount  Int
+  outputWordCount Int
+  satisfaction    Int?     // 1-5 rating if user provides feedback
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([voiceProfileId])
+  @@index([userId])
+  @@map("voice_usage_logs")
+}
