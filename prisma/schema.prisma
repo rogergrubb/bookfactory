@@ -797,3 +797,277 @@ model PlotThread {
   @@index([status])
   @@map("plot_threads")
 }
+
+// ============================================================================
+// SCHEMA ADDITIONS FOR HIGH-PRIORITY FEATURES
+// Add these to existing prisma/schema.prisma
+// ============================================================================
+
+// =============================================================================
+// 1. AI IMAGE GENERATION
+// =============================================================================
+
+model GeneratedImage {
+  id              String    @id @default(cuid())
+  userId          String
+  
+  // Source context
+  bookId          String?
+  characterId     String?
+  chapterId       String?
+  sceneId         String?
+  
+  // Image details
+  type            ImageType
+  prompt          String    @db.Text
+  negativePrompt  String?   @db.Text
+  
+  // Generated result
+  imageUrl        String
+  thumbnailUrl    String?
+  width           Int
+  height          Int
+  
+  // Generation settings
+  model           String    @default("dall-e-3")
+  style           String?   // vivid, natural, anime, realistic
+  quality         String    @default("standard") // standard, hd
+  
+  // Metadata
+  metadata        Json?     // Additional generation params
+  
+  // Status
+  status          ImageStatus @default(COMPLETED)
+  errorMessage    String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([bookId])
+  @@index([characterId])
+  @@map("generated_images")
+}
+
+enum ImageType {
+  CHARACTER_PORTRAIT
+  CHARACTER_FULL
+  SCENE_ILLUSTRATION
+  LOCATION
+  ITEM
+  COVER_CONCEPT
+  MOOD_BOARD
+}
+
+enum ImageStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+// =============================================================================
+// 2. ENHANCED SERIES SUPPORT
+// =============================================================================
+
+// Series-level Story Bible (shared across all books in series)
+model SeriesStoryBible {
+  id              String    @id @default(cuid())
+  seriesId        String    @unique
+  series          Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  
+  // Core story elements
+  premise         String?   @db.Text
+  themes          String[]
+  tone            String?
+  worldRules      Json?     // Magic systems, tech levels, etc.
+  
+  // Timeline
+  timelineStart   String?   // "Year 1 of the Empire"
+  timelineSpan    String?   // "Covers 50 years"
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@map("series_story_bibles")
+}
+
+// Character appearances tracking across series
+model CharacterAppearance {
+  id              String    @id @default(cuid())
+  
+  // Link to series character
+  seriesCharacterId String
+  
+  // Where they appear
+  bookId          String
+  chapterId       String?
+  
+  // State at this point
+  ageAtAppearance String?
+  statusAtPoint   String?   // alive, deceased, missing
+  notesAtPoint    String?   @db.Text
+  
+  // For timeline
+  timelinePosition Int?     // Relative position in series timeline
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([seriesCharacterId])
+  @@index([bookId])
+  @@map("character_appearances")
+}
+
+// Series-wide plot threads
+model SeriesPlotThread {
+  id              String    @id @default(cuid())
+  seriesId        String
+  
+  name            String
+  description     String?   @db.Text
+  type            String    // main, subplot, mystery, romance
+  
+  // Track across books
+  introducedInBook String?
+  resolvedInBook   String?
+  
+  // Status
+  status          PlotThreadStatus @default(ACTIVE)
+  
+  // Books involved
+  booksInvolved   String[]  // Array of bookIds
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([seriesId])
+  @@map("series_plot_threads")
+}
+
+enum PlotThreadStatus {
+  PLANNED
+  ACTIVE
+  RESOLVED
+  ABANDONED
+}
+
+// Series reading order and connections
+model SeriesBookConnection {
+  id              String    @id @default(cuid())
+  seriesId        String
+  
+  fromBookId      String
+  toBookId        String
+  
+  connectionType  String    // sequel, prequel, parallel, spinoff
+  description     String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([fromBookId, toBookId])
+  @@index([seriesId])
+  @@map("series_book_connections")
+}
+
+// =============================================================================
+// 3. AI FEEDBACK/CRITIQUE
+// =============================================================================
+
+model ManuscriptAnalysis {
+  id              String    @id @default(cuid())
+  userId          String
+  bookId          String
+  
+  // Scope of analysis
+  scope           AnalysisScope
+  chapterId       String?   // If chapter-level
+  
+  // Analysis results
+  overallScore    Int?      // 0-100
+  
+  // Detailed scores
+  scores          Json      // { pacing: 75, dialogue: 82, prose: 68, ... }
+  
+  // Feedback categories
+  strengths       Json      // [{ category, title, description, examples }]
+  weaknesses      Json      // [{ category, title, description, examples, suggestions }]
+  opportunities   Json      // [{ category, title, description, howTo }]
+  
+  // Specific issues found
+  issues          Json      // [{ type, severity, location, description, suggestion }]
+  
+  // Genre-specific feedback
+  genreFit        Json?     // { score, expectations, gaps }
+  
+  // Comparisons
+  similarWorks    Json?     // [{ title, author, similarity, sharedElements }]
+  
+  // Summary
+  executiveSummary String?  @db.Text
+  priorityActions  Json?    // Top 3-5 things to fix
+  
+  // Metadata
+  wordCountAnalyzed Int
+  analysisVersion   String  @default("1.0.0")
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([bookId])
+  @@map("manuscript_analyses")
+}
+
+enum AnalysisScope {
+  FULL_BOOK
+  CHAPTER
+  SELECTION
+}
+
+// Track feedback implementation
+model FeedbackAction {
+  id              String    @id @default(cuid())
+  analysisId      String
+  
+  // Which feedback item
+  feedbackType    String    // strength, weakness, opportunity, issue
+  feedbackIndex   Int
+  
+  // Action taken
+  status          FeedbackActionStatus @default(PENDING)
+  notes           String?   @db.Text
+  
+  // When addressed
+  addressedAt     DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([analysisId])
+  @@map("feedback_actions")
+}
+
+enum FeedbackActionStatus {
+  PENDING
+  IN_PROGRESS
+  ADDRESSED
+  DISMISSED
+  WONT_FIX
+}
+
+// Critique history for tracking improvement
+model CritiqueHistory {
+  id              String    @id @default(cuid())
+  bookId          String
+  
+  // Snapshot of scores over time
+  overallScore    Int
+  categoryScores  Json      // { pacing: 75, dialogue: 82, ... }
+  wordCount       Int
+  
+  // What changed since last
+  changesFromLast Json?     // { pacing: +5, dialogue: -2, ... }
+  
+  recordedAt      DateTime  @default(now())
+  
+  @@index([bookId])
+  @@map("critique_history")
+}
