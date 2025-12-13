@@ -697,8 +697,8 @@ model StoryFact {
   @@map("story_facts")
 }
 
-// Timeline Events - chronological events in the story
-model TimelineEvent {
+// Book Timeline Events - story-level timeline (different from series TimelineEvent)
+model BookTimelineEvent {
   id              String   @id @default(cuid())
   bookId          String
   
@@ -723,7 +723,7 @@ model TimelineEvent {
   
   @@index([bookId])
   @@index([chapterId])
-  @@map("timeline_events")
+  @@map("book_timeline_events")
 }
 
 // Consistency Issues - detected problems
