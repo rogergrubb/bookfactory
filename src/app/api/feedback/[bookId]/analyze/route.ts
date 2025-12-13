@@ -17,7 +17,7 @@ interface AnalyzeRequest {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { bookId: string } }
+  { params }: { params: Promise<{ bookId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -26,7 +26,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { bookId } = params;
+    const { bookId } = await params;
     const body: AnalyzeRequest = await request.json();
     
     // Fetch the book with chapters
@@ -126,7 +126,6 @@ Respond with JSON only:
       return NextResponse.json({ error: 'Failed to parse analysis' }, { status: 500 });
     }
     
-    // Return analysis (without saving to DB for now - model may not exist)
     return NextResponse.json({
       analysis: {
         id: `analysis-${Date.now()}`,
@@ -160,7 +159,7 @@ Respond with JSON only:
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { bookId: string } }
+  { params }: { params: Promise<{ bookId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -168,6 +167,8 @@ export async function GET(
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const { bookId } = await params;
     
     // Return null for now - analysis storage pending
     return NextResponse.json({ analysis: null });
