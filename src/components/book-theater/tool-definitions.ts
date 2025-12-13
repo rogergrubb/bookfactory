@@ -5,7 +5,7 @@ import {
   Lightbulb, UserPlus, MessagesSquare, ArrowRightLeft, Flame, Shuffle, HelpCircle,
   Globe, GitBranch, Clock, Layers, BookMarked, Volume2, FileText,
   Target, Glasses, Scale, Compass, Anchor, Wind, Star, AlertTriangle, 
-  History, Copy, Tag, Mail, Wand2, Gem, Shield
+  History, Copy, Tag, Mail, Wand2, Gem, Shield, Image
 } from 'lucide-react';
 import { Tool, ToolCategory, CategoryMeta } from './types';
 
@@ -286,6 +286,12 @@ export const tools: Tool[] = [
     { id: 'chapter', name: 'Check Full Chapter', description: 'Entire chapter' },
     { id: 'dashboard', name: 'Open Dashboard', description: 'Full continuity view' },
   ]},
+  { id: 'manuscript-critique', name: 'AI Critique', shortName: 'Crit', icon: BarChart3, category: 'analyze', description: 'Get comprehensive manuscript feedback', hasSubMenu: true, subOptions: [
+    { id: 'full-book', name: 'Full Book Analysis', description: 'Complete manuscript review' },
+    { id: 'chapter', name: 'Chapter Analysis', description: 'Analyze current chapter' },
+    { id: 'quick', name: 'Quick Check', description: 'Fast overview of issues' },
+    { id: 'compare', name: 'Track Progress', description: 'Compare to previous analysis' },
+  ]},
   // BRAINSTORM (12)
   { id: 'plot-ideas', name: 'Plot Ideas', shortName: 'Plot', icon: Lightbulb, category: 'brainstorm', description: 'Generate plot ideas', hasSubMenu: true, subOptions: [
     { id: 'next', name: 'What Happens Next?', description: 'Continue from here' },
@@ -370,6 +376,13 @@ export const tools: Tool[] = [
     { id: 'ambiguous', name: 'Ambiguous', description: 'Open to interpretation' },
     { id: 'twist', name: 'Twist Ending', description: 'Surprise finish' },
   ]},
+  { id: 'visualize', name: 'AI Visualize', shortName: 'Viz', icon: Image, category: 'brainstorm', description: 'Generate images for your story', hasSubMenu: true, subOptions: [
+    { id: 'character-portrait', name: 'Character Portrait', description: 'Face and shoulders' },
+    { id: 'character-full', name: 'Full Character', description: 'Full body shot' },
+    { id: 'scene', name: 'Scene Illustration', description: 'Visualize a scene' },
+    { id: 'location', name: 'Location', description: 'Settings and places' },
+    { id: 'cover-concept', name: 'Cover Concept', description: 'Book cover ideas' },
+  ]},
   // WORLD (10)
   { id: 'characters', name: 'Characters', shortName: 'Char', icon: Users, category: 'world', description: 'Manage story characters', hasSubMenu: true, subOptions: [
     { id: 'view-all', name: 'View All', description: 'Character list' },
@@ -429,6 +442,13 @@ export const tools: Tool[] = [
     { id: 'by-topic', name: 'By Topic', description: 'Organized notes' },
     { id: 'sources', name: 'Sources', description: 'Reference links' },
   ]},
+  { id: 'series-manager', name: 'Series Manager', shortName: 'Srs', icon: BookMarked, category: 'world', description: 'Manage series characters and world', hasSubMenu: true, subOptions: [
+    { id: 'overview', name: 'Series Overview', description: 'View full series' },
+    { id: 'characters', name: 'Series Characters', description: 'Characters across books' },
+    { id: 'world', name: 'Shared World', description: 'World elements' },
+    { id: 'timeline', name: 'Series Timeline', description: 'Events across books' },
+    { id: 'plot-threads', name: 'Plot Threads', description: 'Track storylines' },
+  ]},
 ];
 
 export const getToolsByCategory = (category: ToolCategory): Tool[] => {
@@ -446,4 +466,5 @@ export const getToolCountByCategory = (): Record<ToolCategory, number> => ({
   brainstorm: getToolsByCategory('brainstorm').length,
   world: getToolsByCategory('world').length,
 });
+
 
