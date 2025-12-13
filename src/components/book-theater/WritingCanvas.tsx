@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Plus, ChevronRight, Save, Loader2, Check, Clock, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Chapter, Selection, SceneContext } from './types';
-import { ContinuityIndicator } from './ContinuityIndicator';
+import { ContinuityIndicator } from '@/components/continuity-guardian';
 
 interface WritingCanvasProps {
   chapter: Chapter | null;
