@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Plus, ChevronRight, Save, Loader2, Check, Clock, Shield } from 'lucide-react';
+import { Plus, ChevronRight, Save, Loader2, Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Chapter, Selection, SceneContext } from './types';
 import { ContinuityIndicator } from '@/components/continuity-guardian';
+import { EditorContextMenu, useContextMenu } from './EditorContextMenu';
 
 interface WritingCanvasProps {
   chapter: Chapter | null;
@@ -21,7 +22,9 @@ interface WritingCanvasProps {
   onSave: () => void;
   wordCount: number;
   isFirstChapter: boolean;
-  bookId?: string; // Added for continuity checking
+  bookId?: string;
+  onOpenTool?: (toolId: string, subOption?: string) => void;
+  onCheckContinuity?: (text: string) => void;
 }
 
 export function WritingCanvas({
@@ -40,12 +43,18 @@ export function WritingCanvas({
   wordCount,
   isFirstChapter,
   bookId,
+  onOpenTool,
+  onCheckContinuity,
 }: WritingCanvasProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [title, setTitle] = useState(chapter?.title || '');
   const [isAtEnd, setIsAtEnd] = useState(false);
   const [continuityEnabled, setContinuityEnabled] = useState(true);
+  const [currentSelection, setCurrentSelection] = useState<Selection | null>(null);
+
+  // Context menu state
+  const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
 
   useEffect(() => {
     setTitle(chapter?.title || '');
@@ -65,12 +74,15 @@ export function WritingCanvas({
     const { selectionStart, selectionEnd, value } = textareaRef.current;
     
     if (selectionStart !== selectionEnd) {
-      onSelect({
+      const selection = {
         start: selectionStart,
         end: selectionEnd,
         text: value.substring(selectionStart, selectionEnd),
-      });
+      };
+      setCurrentSelection(selection);
+      onSelect(selection);
     } else {
+      setCurrentSelection(null);
       onSelect(null);
     }
     
@@ -78,17 +90,32 @@ export function WritingCanvas({
     checkIfAtEnd();
   }, [onSelect, onCursorChange, checkIfAtEnd]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + S to save
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         onSave();
+      }
+      
+      // Cmd/Ctrl + J to continue writing
+      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault();
+        onOpenTool?.('continue', 'auto');
+      }
+      
+      // Cmd/Ctrl + Shift + C to check continuity
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+        e.preventDefault();
+        const textToCheck = currentSelection?.text || content.slice(-2000);
+        onCheckContinuity?.(textToCheck);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onSave]);
+  }, [onSave, onOpenTool, onCheckContinuity, currentSelection, content]);
 
   useEffect(() => {
     if (textareaRef.current && content) {
@@ -97,6 +124,43 @@ export function WritingCanvas({
       textareaRef.current.selectionEnd = content.length;
     }
   }, [chapter?.id]);
+
+  // Context menu handlers
+  const handleCopy = useCallback(() => {
+    if (currentSelection?.text) {
+      navigator.clipboard.writeText(currentSelection.text);
+    }
+  }, [currentSelection]);
+
+  const handleCut = useCallback(() => {
+    if (currentSelection?.text && textareaRef.current) {
+      navigator.clipboard.writeText(currentSelection.text);
+      const newContent = content.slice(0, currentSelection.start) + content.slice(currentSelection.end);
+      onChange(newContent);
+    }
+  }, [currentSelection, content, onChange]);
+
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (textareaRef.current) {
+        const { selectionStart, selectionEnd } = textareaRef.current;
+        const newContent = content.slice(0, selectionStart) + text + content.slice(selectionEnd);
+        onChange(newContent);
+      }
+    } catch (err) {
+      console.error('Paste failed:', err);
+    }
+  }, [content, onChange]);
+
+  const handleContextMenuOpen = useCallback((e: React.MouseEvent) => {
+    handleContextMenu(e, currentSelection?.text || '');
+  }, [handleContextMenu, currentSelection]);
+
+  const handleCheckContinuityFromMenu = useCallback(() => {
+    const textToCheck = currentSelection?.text || content.slice(-2000);
+    onCheckContinuity?.(textToCheck);
+  }, [currentSelection, content, onCheckContinuity]);
 
   if (!chapter) {
     return (
@@ -228,6 +292,7 @@ export function WritingCanvas({
             onSelect={handleSelect}
             onClick={handleSelect}
             onKeyUp={handleSelect}
+            onContextMenu={handleContextMenuOpen}
             placeholder="Begin writing your chapter..."
             className={cn(
               'w-full min-h-[60vh] bg-transparent text-stone-200 text-lg leading-relaxed',
@@ -280,6 +345,23 @@ export function WritingCanvas({
             </p>
           </div>
         </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <EditorContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          selectedText={contextMenu.selectedText}
+          onClose={closeContextMenu}
+          onCheckContinuity={handleCheckContinuityFromMenu}
+          onCopy={handleCopy}
+          onCut={handleCut}
+          onPaste={handlePaste}
+          onEnhance={() => onOpenTool?.('expand', 'all')}
+          onGenerateMore={() => onOpenTool?.('continue', 'auto')}
+          onAnalyze={() => onOpenTool?.('pacing', 'chapter')}
+        />
       )}
     </div>
   );
