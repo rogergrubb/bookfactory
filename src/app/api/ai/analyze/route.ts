@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 
-// Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-// Request validation schema - expanded for all 15 analyze tools
+// Enhanced request schema with genre and author context
 const AnalyzeRequestSchema = z.object({
   type: z.enum([
     'pacing',
-    'voice-consistency',
+    'voice-consistency', 
     'tension-map',
     'character-voice-analysis',
     'repetition-finder',
@@ -33,787 +32,1008 @@ const AnalyzeRequestSchema = z.object({
     characterNames: z.array(z.string()).optional(),
     storyBible: z.any().optional(),
     fullManuscript: z.string().optional(),
+    genre: z.string().optional(),
+    targetAudience: z.string().optional(),
+    authorVoiceProfile: z.any().optional(),
+    previousAnalysis: z.any().optional(),
+    chapterNumber: z.number().optional(),
+    sceneGoal: z.string().optional(),
   }).optional()
 });
 
+// Genre-specific benchmarks for contextual analysis
+const GENRE_BENCHMARKS = {
+  thriller: { pacingSpeed: 'fast', tensionLevel: 'high', dialogueRatio: 40, adverbTolerance: 'low' },
+  romance: { pacingSpeed: 'moderate', tensionLevel: 'emotional', dialogueRatio: 50, adverbTolerance: 'medium' },
+  literary: { pacingSpeed: 'varied', tensionLevel: 'subtle', dialogueRatio: 30, adverbTolerance: 'medium' },
+  fantasy: { pacingSpeed: 'moderate', tensionLevel: 'building', dialogueRatio: 35, adverbTolerance: 'medium' },
+  mystery: { pacingSpeed: 'measured', tensionLevel: 'sustained', dialogueRatio: 45, adverbTolerance: 'low' },
+  scifi: { pacingSpeed: 'moderate', tensionLevel: 'building', dialogueRatio: 35, adverbTolerance: 'low' },
+  horror: { pacingSpeed: 'slow-to-fast', tensionLevel: 'escalating', dialogueRatio: 30, adverbTolerance: 'low' },
+  ya: { pacingSpeed: 'fast', tensionLevel: 'high', dialogueRatio: 50, adverbTolerance: 'medium' },
+};
+
 // ============================================================================
-// ANALYSIS PROMPTS - All 15 Analyze Tools
+// ENHANCED ANALYSIS PROMPTS - Deep, Actionable, Genre-Aware
 // ============================================================================
 
 const ANALYSIS_PROMPTS: Record<string, (content: string, scope: string, options?: any) => string> = {
-  
-  // 1. PACING ANALYSIS
-  'pacing': (content, scope) => `You are an expert fiction editor analyzing narrative pacing. Examine this ${scope} for rhythm, flow, and engagement.
 
-Evaluate:
-1. Overall pacing rhythm (action vs reflection balance)
-2. Scene/beat tension curve
-3. Sentence length variety (short punchy vs flowing)
-4. Paragraph density and white space
-5. Dialogue-to-narrative ratio
-6. Areas that drag (too slow) or rush (too fast)
-7. Cliffhangers and hooks
+  // =========================================================================
+  // 1. PACING ANALYSIS - The Rhythm of Story
+  // =========================================================================
+  'pacing': (content, scope, options) => `You are a master story editor specializing in narrative pacing. Your analysis helps authors create page-turners.
 
-Text to analyze:
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
+- Scene Goal: ${options?.sceneGoal || 'Not specified'}
+
+GENRE PACING BENCHMARKS:
+- Thriller: 60-70% high-tension, short paragraphs, frequent breaks
+- Romance: Emotional beats every 500-800 words, balanced pacing
+- Literary: Varied rhythm, reflective passages balanced with momentum
+- Fantasy/Sci-Fi: World-building interspersed with action
+- Mystery: Revelation pacing, clues every 1000-1500 words
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 overall pacing score>,
+  "score": <0-100>,
+  "grade": "<A-F>",
   "summary": "<2-3 sentence assessment>",
+  "pacingProfile": {
+    "overallRhythm": "breakneck|fast|moderate|leisurely|slow",
+    "genreAlignment": <0-100>,
+    "pagesTurnability": "high|medium|low"
+  },
   "pacingCurve": [
-    {"position": <0-100 percentage through text>, "intensity": <1-10>, "label": "<what's happening>"}
+    {"position": <0-100>, "intensity": <1-10>, "beat": "<action|dialogue|reflection|tension|release>", "label": "<description>"}
   ],
-  "issues": [
-    {
-      "type": "warning|error|info",
-      "location": "<quote or position description>",
-      "message": "<specific issue>",
-      "suggestion": "<how to fix>"
-    }
-  ],
-  "metrics": {
-    "avgSentenceLength": <words>,
-    "avgParagraphLength": <sentences>,
-    "dialogueRatio": <percentage>,
-    "actionScenes": <percentage>,
-    "reflectiveScenes": <percentage>
+  "sentenceRhythm": {
+    "shortPercent": <under 10 words>,
+    "mediumPercent": <10-20 words>,
+    "longPercent": <over 20 words>,
+    "varietyScore": <0-100>,
+    "punchyMoments": ["<effective short sentences>"],
+    "runOnIssues": ["<sentences too long>"]
   },
-  "highlights": [
-    {"type": "excellent|slow|rushed", "excerpt": "<15-20 word quote>", "note": "<why this works or doesn't>"}
+  "hooks": {
+    "openingHook": {"present": true|false, "strength": <0-100>, "improvement": "<suggestion>"},
+    "endingHook": {"present": true|false, "strength": <0-100>, "improvement": "<suggestion>"},
+    "microHooks": <count>
+  },
+  "dragPoints": [
+    {"location": "<quote>", "reason": "<over-description|info-dump|etc>", "fix": "<specific fix>", "rewrite": "<example>"}
   ],
-  "suggestions": ["<actionable improvement 1>", "<actionable improvement 2>", "<actionable improvement 3>"]
+  "rushPoints": [
+    {"location": "<quote>", "reason": "<skipped-emotion|etc>", "fix": "<specific fix>", "whatToAdd": "<missing beats>"}
+  ],
+  "dialogueToNarrative": {"ratio": "<percent>", "balance": "<assessment>", "genreAppropriate": true|false},
+  "actionableImprovements": [
+    {"priority": "high|medium|low", "issue": "<problem>", "location": "<where>", "currentText": "<text>", "suggestedFix": "<rewrite>"}
+  ],
+  "quickWins": ["<easy fix 1>", "<easy fix 2>", "<easy fix 3>"],
+  "nextToolSuggestion": {"tool": "<next tool>", "reason": "<why>"}
 }`,
 
-  // 2. VOICE CONSISTENCY
-  'voice-consistency': (content, scope, options) => `You are an expert editor analyzing narrative voice consistency. Check if the author's voice remains consistent throughout this ${scope}.
+  // =========================================================================
+  // 2. VOICE CONSISTENCY - The Author's Fingerprint
+  // =========================================================================
+  'voice-consistency': (content, scope, options) => `You are an expert developmental editor specializing in narrative voice consistency.
 
-Focus on:
-1. Narrative tone consistency (formal/casual, distant/intimate)
-2. POV discipline (no head-hopping, consistent perspective)
-3. Tense consistency
-4. Style consistency (sentence patterns, vocabulary level)
-5. Authorial intrusion or inconsistent filtering
-6. Consistent use of literary devices
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
+${options?.authorVoiceProfile ? `- Author Voice Profile: ${JSON.stringify(options.authorVoiceProfile)}` : ''}
 
-${options?.bookContext ? `Story context: ${options.bookContext}` : ''}
+VOICE ELEMENTS:
+1. POV Discipline - No head-hopping, consistent psychic distance
+2. Tense Consistency - Past/present maintained
+3. Tone Stability - Formal/casual, dark/light
+4. Vocabulary Level - Consistent complexity
+5. Sentence Patterns - The author's rhythmic fingerprint
+6. Filtering - Deep POV vs distant narration
 
-Text to analyze:
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 voice consistency score>,
-  "summary": "<assessment of voice consistency>",
-  "voiceProfile": {
-    "tone": "<identified tone>",
-    "pov": "<POV type detected>",
-    "tense": "<primary tense>",
-    "formality": "<formal/informal/mixed>",
-    "distance": "<intimate/medium/distant>"
-  },
-  "issues": [
-    {
-      "type": "error|warning|info",
-      "category": "tone|pov|tense|style",
-      "location": "<quote showing the issue>",
-      "message": "<what's inconsistent>",
-      "suggestion": "<how to fix>"
+  "score": <0-100>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "voiceFingerprint": {
+    "pov": {
+      "type": "first|second|third-limited|third-omniscient",
+      "psychicDistance": "intimate|close|medium|distant",
+      "consistency": <0-100>,
+      "violations": [{"location": "<quote>", "issue": "<problem>", "fix": "<solution>"}]
+    },
+    "tense": {
+      "primary": "past|present",
+      "consistency": <0-100>,
+      "shifts": [{"location": "<quote>", "from": "<tense>", "to": "<tense>", "fix": "<corrected>"}]
+    },
+    "tone": {
+      "primary": "<dominant tone>",
+      "consistency": <0-100>,
+      "shifts": [{"location": "<where>", "from": "<tone>", "to": "<tone>", "jarring": true|false}]
     }
+  },
+  "vocabularyAnalysis": {
+    "level": "simple|moderate|complex|literary",
+    "consistency": <0-100>,
+    "outOfCharacterWords": [{"word": "<word>", "context": "<sentence>", "alternatives": ["<alt1>", "<alt2>"]}],
+    "signatureWords": ["<distinctive words>"]
+  },
+  "filteringConsistency": {
+    "style": "deep-pov|moderate|omniscient",
+    "filterWordsFound": ["saw", "heard", "felt"],
+    "filterWordCount": <count>,
+    "removals": [{"original": "<with filter>", "deeperPOV": "<without filter>"}]
+  },
+  "authorIntrusion": [
+    {"location": "<where>", "intrusion": "<text>", "fix": "<character-authentic version>"}
   ],
-  "shifts": [
-    {"position": "<where in text>", "from": "<original voice aspect>", "to": "<shifted to>", "jarring": true|false}
-  ],
-  "suggestions": ["<improvement 1>", "<improvement 2>"]
+  "actionableImprovements": [
+    {"issue": "<problem>", "location": "<where>", "currentText": "<text>", "fixedText": "<corrected>"}
+  ]
 }`,
 
-  // 3. TENSION MAP
-  'tension-map': (content, scope) => `You are an expert at analyzing narrative tension. Map the tension levels throughout this ${scope}, identifying peaks, valleys, and opportunities.
+  // =========================================================================
+  // 3. TENSION MAP - The Engine of Engagement  
+  // =========================================================================
+  'tension-map': (content, scope, options) => `You are a story tension architect mapping engagement throughout the narrative.
 
-Analyze:
-1. Opening hook strength
-2. Tension escalation pattern
-3. Release and rebuild cycles
-4. Stakes clarity and escalation
-5. Micro-tension in dialogue/description
-6. Cliffhanger/hook effectiveness
-7. Flat spots needing tension injection
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
+- Scene Goal: ${options?.sceneGoal || 'Not specified'}
 
-Text to analyze:
+TENSION TYPES:
+1. Physical Danger - Life/safety threats
+2. Emotional Stakes - Relationship risks
+3. Mystery/Curiosity - Unanswered questions
+4. Time Pressure - Deadlines
+5. Internal Conflict - Character decisions
+6. Interpersonal Conflict - Character vs character
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 tension effectiveness>,
-  "summary": "<overall tension assessment>",
+  "score": <0-100>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "tensionProfile": {
+    "dominantType": "<primary tension>",
+    "averageLevel": <1-10>,
+    "peakLevel": <1-10>,
+    "valleyLevel": <1-10>,
+    "sustainedEngagement": <0-100>
+  },
   "tensionMap": [
-    {
-      "position": <0-100 percentage>,
-      "level": <1-10 tension level>,
-      "type": "suspense|conflict|mystery|danger|emotional|romantic",
-      "description": "<what's creating tension>",
-      "stakes": "<what's at risk>"
-    }
+    {"position": <0-100>, "level": <1-10>, "types": ["<tension types>"], "source": "<what creates tension>", "stakes": "<what's at risk>", "readerQuestion": "<question keeping reader engaged>"}
   ],
-  "peaks": [
-    {"position": "<where>", "level": <1-10>, "description": "<the peak moment>"}
+  "tensionPeaks": [
+    {"position": "<where>", "level": <1-10>, "effectiveness": <0-100>, "whatWorks": "<why it succeeds>", "enhancement": "<how to strengthen>"}
   ],
-  "valleys": [
-    {"position": "<where>", "level": <1-10>, "issue": "<why tension dropped>", "suggestion": "<how to raise it>"}
+  "tensionValleys": [
+    {"position": "<where>", "level": <1-10>, "purpose": "intentional-rest|problematic", "injection": {"technique": "<how to add>", "implementation": "<rewritten passage>"}}
   ],
-  "issues": [
-    {
-      "type": "warning|error",
-      "message": "<tension problem>",
-      "suggestion": "<fix>"
-    }
+  "stakesAnalysis": {
+    "clarity": <0-100>,
+    "escalation": <0-100>,
+    "issues": [{"problem": "<issue>", "fix": "<solution>"}]
+  },
+  "questionHooks": {
+    "openQuestions": [{"question": "<reader question>", "planted": "<where>", "compelling": <0-100>}],
+    "missingQuestions": ["<questions that should be raised>"]
+  },
+  "tensionKillers": [
+    {"location": "<where>", "killer": "<premature-resolution|stakes-deflation|etc>", "quote": "<text>", "fix": "<how to maintain>"}
   ],
-  "opportunities": ["<where tension could be added and how>"],
-  "suggestions": ["<actionable improvement>"]
+  "actionableImprovements": [
+    {"priority": "critical|high|medium", "type": "<add-tension|raise-stakes|etc>", "location": "<where>", "implementation": "<specific change>"}
+  ]
 }`,
 
+  // =========================================================================
   // 4. CHARACTER VOICE ANALYSIS
-  'character-voice-analysis': (content, scope, options) => `You are an expert at analyzing character voice in fiction. Examine how distinct and consistent each character's voice is in dialogue and POV.
+  // =========================================================================
+  'character-voice-analysis': (content, scope, options) => `You are a character voice specialist ensuring each character sounds distinct and memorable.
 
-${options?.characterNames ? `Characters to analyze: ${options.characterNames.join(', ')}` : 'Identify all speaking characters.'}
+CONTEXT:
+- Scope: ${scope}
+${options?.characterNames ? `- Characters: ${options.characterNames.join(', ')}` : '- Identify all speakers'}
+${options?.storyBible ? `- Story Bible available` : ''}
 
-Analyze:
-1. Distinctiveness - could you tell who's speaking without tags?
-2. Consistency - does each character maintain their voice?
-3. Speech patterns, vocabulary, rhythm unique to each
-4. Verbal tics, catchphrases, dialect
-5. Education/background reflected in speech
-6. Emotional state affecting speech
-7. Subtext and what's left unsaid
+CHARACTER VOICE ELEMENTS:
+1. Vocabulary - Education, background in word choice
+2. Syntax - Sentence structure patterns
+3. Verbal Tics - Catchphrases, speech habits
+4. Subtext - What they mean vs what they say
+5. Emotional Expression - How they show/hide feelings
 
-Text to analyze:
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 character voice score>,
-  "summary": "<overall assessment>",
+  "score": <0-100>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "voiceDistinctivenessTest": {
+    "couldIdentifyWithoutTags": <0-100>,
+    "mostDistinctive": "<character>",
+    "leastDistinctive": "<character>",
+    "interchangeablePairs": ["<similar sounding characters>"]
+  },
   "characters": [
     {
-      "name": "<character name or identifier>",
-      "distinctiveness": <0-100>,
-      "consistency": <0-100>,
-      "voiceTraits": ["<trait 1>", "<trait 2>", "<trait 3>"],
-      "vocabulary": "<vocabulary level/style>",
-      "speechPatterns": ["<pattern 1>", "<pattern 2>"],
-      "exampleQuote": "<representative dialogue>",
-      "issues": ["<any inconsistencies>"],
-      "suggestions": ["<how to strengthen this voice>"]
+      "name": "<character>",
+      "speakingLines": <count>,
+      "voiceProfile": {"distinctiveness": <0-100>, "consistency": <0-100>, "authenticity": <0-100>},
+      "vocabulary": {"level": "<simple|moderate|sophisticated>", "signatureWords": ["<unique words>"]},
+      "speechHabits": {"verbalTics": ["<habits>"], "catchphrases": ["<phrases>"]},
+      "exampleQuotes": {"strongest": "<best line>", "weakest": "<off-voice line>"},
+      "issues": [{"quote": "<problematic>", "problem": "<why>", "rewrite": "<in-character version>"}],
+      "enhancements": [{"aspect": "<what to strengthen>", "technique": "<how>"}]
     }
   ],
-  "dialogueQuality": {
-    "naturalness": <0-100>,
-    "subtextUsage": <0-100>,
-    "conflictInDialogue": <0-100>
-  },
-  "issues": [
-    {
-      "type": "warning|error",
-      "characters": ["<affected characters>"],
-      "message": "<the issue>",
-      "location": "<quote or description>",
-      "suggestion": "<fix>"
-    }
+  "genericDialogue": [
+    {"quote": "<could be anyone>", "speaker": "<who>", "characterizedVersion": "<with voice>"}
   ],
-  "interchangeableDialogue": ["<quotes that could be said by anyone>"],
-  "suggestions": ["<improvement 1>", "<improvement 2>"]
+  "onTheNoseDialogue": [
+    {"quote": "<too direct>", "subtextVersion": "<with subtext>"}
+  ],
+  "voiceToolkit": {
+    "forCharacter": "<name>",
+    "wordsToUse": ["<suggestions>"],
+    "wordsToAvoid": ["<words that break voice>"],
+    "sentencePatterns": ["<syntax templates>"]
+  }
 }`,
 
+  // =========================================================================
   // 5. REPETITION FINDER
-  'repetition-finder': (content, scope) => `You are an expert editor finding repetitive language. Identify overused words, repeated phrases, and echoing constructions in this ${scope}.
+  // =========================================================================
+  'repetition-finder': (content, scope, options) => `You are a prose polish specialist focusing on repetition that weakens writing.
 
-Find:
-1. Words used too frequently (excluding articles/prepositions)
-2. Repeated phrases or sentence constructions
-3. Echoing words in proximity (same word within 2-3 sentences)
-4. Repeated sentence starters
-5. Overused dialogue tags
-6. Repeated character gestures/actions ("nodded," "sighed")
-7. Crutch words specific to this author
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
 
-Text to analyze:
+REPETITION TYPES:
+1. Word Echo - Same word too close together
+2. Phrase Repetition - Repeated multi-word phrases
+3. Sentence Starter Monotony - Same beginnings
+4. Gesture Crutches - Characters always nodding, sighing
+5. Filter Word Overuse - Saw, heard, felt patterns
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 variety score, 100=excellent variety>,
-  "summary": "<assessment of repetition issues>",
-  "wordCount": <total words>,
-  "uniqueWords": <unique word count>,
-  "repetitionRatio": <percentage of repeated significant words>,
-  "overusedWords": [
+  "score": <0-100 variety score>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "statistics": {
+    "totalWords": <count>,
+    "uniqueWords": <count>,
+    "vocabularyRichness": <ratio>,
+    "repetitionDensity": "<issues per 1000 words>"
+  },
+  "wordEchoes": [
     {
-      "word": "<word>",
-      "count": <times used>,
-      "frequency": "<per 1000 words>",
-      "severity": "high|medium|low",
-      "alternatives": ["<alt 1>", "<alt 2>", "<alt 3>"]
+      "word": "<repeated>",
+      "occurrences": <count>,
+      "proximity": "adjacent|same-paragraph|nearby",
+      "severity": "critical|high|medium|low",
+      "contexts": [{"sentence": "<context>", "position": <paragraph>}],
+      "alternatives": ["<synonym1>", "<synonym2>"],
+      "suggestedFix": {"keepInstance": <which>, "rewrites": [{"original": "<sentence>", "revised": "<fixed>"}]}
     }
   ],
-  "repeatedPhrases": [
-    {
-      "phrase": "<repeated phrase>",
-      "count": <times>,
-      "locations": ["<position 1>", "<position 2>"],
-      "suggestion": "<how to vary>"
-    }
+  "sentenceStarters": {
+    "monotonyScore": <0-100>,
+    "overusedStarters": [
+      {"starter": "<He/She/The/I>", "count": <times>, "percentage": <percent>, "alternatives": [{"original": "<sentence>", "varied": "<new opening>"}]}
+    ]
+  },
+  "gestureCrutches": [
+    {"gesture": "<nodded/sighed>", "count": <times>, "alternatives": [{"instead_of": "<gesture>", "try": "<specific action>", "example": "<rewritten>"}]}
   ],
-  "echoingWords": [
-    {
-      "word": "<word>",
-      "instances": ["<quote 1 showing context>", "<quote 2>"],
-      "suggestion": "<fix>"
-    }
+  "filterWords": {
+    "total": <count>,
+    "density": "<per 1000>",
+    "removable": [{"original": "<with filter>", "direct": "<without filter>"}]
+  },
+  "prioritizedFixes": [
+    {"priority": 1, "issue": "<most impactful>", "fix": "<solution>"}
   ],
-  "sentenceStarters": [
-    {"starter": "<common starter>", "count": <times>, "percentage": <of total>}
-  ],
-  "issues": [
-    {
-      "type": "warning|error",
-      "message": "<issue description>",
-      "examples": ["<example>"],
-      "suggestion": "<fix>"
-    }
-  ],
-  "suggestions": ["<global improvement 1>", "<global improvement 2>"]
+  "searchAndReplace": [
+    {"find": "<overused>", "replaceWith": ["<option1>", "<option2>"]}
+  ]
 }`,
 
+  // =========================================================================
   // 6. ADVERB HUNTER
-  'adverb-hunter': (content, scope) => `You are an expert editor hunting unnecessary adverbs. Following Stephen King's advice ("The road to hell is paved with adverbs"), identify adverbs that weaken prose.
+  // =========================================================================
+  'adverb-hunter': (content, scope, options) => `You are a prose strengthening specialist following Stephen King's philosophy on adverbs.
 
-Find:
-1. -ly adverbs that tell instead of show
-2. Adverbs modifying dialogue tags ("said angrily")
-3. Redundant adverbs (already implied by verb)
-4. Weak verb + adverb that could be one strong verb
-5. Adverbs propping up lazy verbs
-6. Justified/effective adverbs (not all are bad)
+IMPORTANT: Not all adverbs are bad. Identify which to cut, revise, or keep.
 
-Text to analyze:
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
+
+ADVERB ISSUES:
+1. Dialogue Tag Adverbs - "said angrily" → show anger
+2. Redundant Adverbs - "shouted loudly"
+3. Weak Verb + Adverb - "walked quickly" → "strode"
+4. Telling Adverbs - "nervously" → show nervous behavior
+5. Lazy Intensifiers - "very", "really", "extremely"
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 prose strength, 100=minimal unnecessary adverbs>,
+  "score": <0-100 prose strength>,
+  "grade": "<A-F>",
   "summary": "<assessment>",
-  "adverbCount": <total adverbs found>,
-  "adverbDensity": "<per 1000 words>",
-  "problematicAdverbs": [
-    {
-      "adverb": "<the adverb>",
-      "context": "<sentence containing it>",
-      "issue": "telling|redundant|weak-verb|dialogue-tag",
-      "severity": "cut|revise|consider",
-      "suggestion": "<stronger alternative sentence>"
-    }
-  ],
-  "acceptableAdverbs": [
-    {"adverb": "<adverb>", "context": "<sentence>", "reason": "<why it works>"}
-  ],
+  "statistics": {
+    "totalAdverbs": <count>,
+    "adverbDensity": "<per 1000 words>",
+    "problematicAdverbs": <count>,
+    "acceptableAdverbs": <count>
+  },
   "dialogueTagAdverbs": [
-    {"tag": "<he said angrily>", "suggestion": "<show the anger instead>"}
+    {
+      "original": "<said angrily>",
+      "location": "<where>",
+      "fix": {
+        "option1_action": "<action beat showing emotion>",
+        "option2_dialogue": "<stronger dialogue>",
+        "recommended": "<best option>"
+      },
+      "rewrite": "<full rewritten passage>"
+    }
   ],
   "weakVerbCombos": [
-    {"original": "<walked quickly>", "stronger": "<strode/hurried/rushed>"}
-  ],
-  "issues": [
     {
-      "type": "warning|error",
-      "message": "<pattern identified>",
-      "count": <instances>,
-      "suggestion": "<how to improve>"
+      "original": "<walked quickly>",
+      "strongerVerbs": ["strode", "hurried", "rushed"],
+      "bestChoice": "<recommended>",
+      "example": {"before": "<sentence>", "after": "<with strong verb>"}
     }
   ],
-  "suggestions": ["<general advice>"]
+  "tellingAdverbs": [
+    {
+      "adverb": "<nervously>",
+      "emotion": "<what it tells>",
+      "showInstead": {
+        "physicalTell": "<body language>",
+        "action": "<behavior>",
+        "dialogue": "<speech showing it>"
+      },
+      "rewrite": "<full showing version>"
+    }
+  ],
+  "lazyIntensifiers": [
+    {"word": "<very>", "count": <times>, "instances": [{"original": "<sentence>", "strengthened": "<precise word>"}]}
+  ],
+  "acceptableAdverbs": [
+    {"adverb": "<word>", "context": "<sentence>", "whyItWorks": "<reason to keep>"}
+  ],
+  "strongVerbAlternatives": {
+    "walked_quickly": ["strode", "hurried", "rushed"],
+    "said_angrily": ["snapped", "snarled", "growled"],
+    "looked_carefully": ["examined", "scrutinized", "studied"]
+  },
+  "actionableRewrites": [
+    {"priority": "high|medium|low", "original": "<passage>", "rewritten": "<strengthened>", "technique": "<what changed>"}
+  ]
 }`,
 
+  // =========================================================================
   // 7. PASSIVE VOICE FINDER
-  'passive-voice-finder': (content, scope) => `You are an expert editor identifying passive voice constructions. Find instances where active voice would strengthen the prose.
+  // =========================================================================
+  'passive-voice-finder': (content, scope, options) => `You are a prose activation specialist finding passive constructions and transforming them to dynamic active voice.
 
-Identify:
-1. All passive voice constructions
-2. Hidden/disguised passive voice
-3. Passive voice hiding the actor
-4. Weak "to be" verb constructions
-5. Nominalization (verbs turned into nouns)
-6. Justified passive voice (sometimes appropriate)
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
 
-Text to analyze:
+PASSIVE TYPES:
+1. Standard Passive - "was killed" → "killed"
+2. Hidden Passive - "got destroyed", "became known"
+3. Nominalization - Verbs as nouns ("made a decision" → "decided")
+4. "There was/were" constructions
+5. Justified Passive - When passive works better
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
   "score": <0-100 active voice score>,
-  "summary": "<assessment of passive voice usage>",
-  "passiveCount": <total passive constructions>,
-  "passivePercentage": <of all sentences>,
-  "passiveInstances": [
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "statistics": {
+    "totalSentences": <count>,
+    "passiveConstructions": <count>,
+    "passivePercentage": <percent>,
+    "assessment": "too-passive|acceptable|well-balanced|very-active"
+  },
+  "standardPassive": [
     {
       "original": "<passive sentence>",
-      "type": "standard|hidden|nominalization",
-      "actor": "<who's doing the action, if identifiable>",
+      "hiddenActor": "<who's doing action>",
       "severity": "revise|consider|acceptable",
-      "activeVersion": "<rewritten in active voice>",
-      "improvement": "<why active is better here>"
+      "activeVersion": "<rewritten>",
+      "improvement": "<why active is stronger>"
     }
+  ],
+  "nominalizations": [
+    {
+      "original": "<sentence with noun-verb>",
+      "nominalization": "<the noun>",
+      "hiddenVerb": "<the verb>",
+      "activated": "<with verb instead of noun>"
+    }
+  ],
+  "thereWasConstructions": [
+    {"original": "<there was sentence>", "directVersion": "<without there was>"}
   ],
   "justifiedPassive": [
-    {"sentence": "<passive sentence>", "reason": "<why passive works here>"}
+    {"sentence": "<passive that works>", "reason": "unknown-actor|emphasis|mystery-effect", "keep": true}
   ],
-  "weakConstructions": [
-    {"original": "<there was/it was construction>", "stronger": "<direct version>"}
+  "transformationShowcase": [
+    {"before": "<passive paragraph>", "after": "<activated paragraph>", "changes": ["<change 1>", "<change 2>"]}
   ],
-  "issues": [
-    {
-      "type": "warning|info",
-      "message": "<pattern or problem>",
-      "suggestion": "<fix>"
-    }
-  ],
-  "beforeAfterExamples": [
-    {"before": "<passive>", "after": "<active>", "impact": "<why better>"}
-  ],
-  "suggestions": ["<improvement advice>"]
+  "actionableRewrites": [
+    {"priority": "high|medium|low", "original": "<passive>", "rewritten": "<active>", "explanation": "<why better>"}
+  ]
 }`,
 
+  // =========================================================================
   // 8. READABILITY SCORE
-  'readability': (content, scope) => `You are a readability analysis expert. Calculate comprehensive readability metrics for this ${scope}.
+  // =========================================================================
+  'readability': (content, scope, options) => `You are a readability analyst helping authors match prose complexity to their target audience.
 
-Calculate:
-1. Flesch Reading Ease (0-100, higher = easier)
-2. Flesch-Kincaid Grade Level
-3. Gunning Fog Index
-4. Average sentence length
-5. Average word length
-6. Vocabulary complexity
-7. Sentence variety
-8. Paragraph structure
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
+- Target Audience: ${options?.targetAudience || 'General adult readers'}
 
-Text to analyze:
+GENRE BENCHMARKS:
+- Literary Fiction: Grade 8-12, Flesch 50-70
+- Commercial Fiction: Grade 6-8, Flesch 60-80
+- YA: Grade 5-7, Flesch 70-85
+- Thriller: Grade 5-7, Flesch 65-80
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 overall readability>,
-  "summary": "<readability assessment and target audience>",
+  "score": <0-100 appropriateness for target>,
+  "grade": "<A-F>",
+  "summary": "<assessment with audience fit>",
   "metrics": {
-    "fleschReadingEase": <0-100>,
-    "fleschKincaidGrade": <grade level>,
+    "fleschReadingEase": {"score": <0-100>, "interpretation": "<easy|standard|difficult>"},
+    "fleschKincaidGrade": {"level": <grade>, "recommendation": "<raise|lower|maintain>"},
     "gunningFog": <index>,
     "avgSentenceLength": <words>,
-    "avgWordLength": <characters>,
-    "avgParagraphLength": <sentences>,
-    "complexWords": <percentage over 3 syllables>,
-    "vocabularyDiversity": <unique words / total words ratio>
+    "avgWordLength": <characters>
   },
   "sentenceAnalysis": {
-    "shortest": <words>,
-    "longest": <words>,
+    "distribution": {
+      "short": {"count": <under 10>, "percentage": <percent>},
+      "medium": {"count": <10-20>, "percentage": <percent>},
+      "long": {"count": <over 20>, "percentage": <percent>}
+    },
     "varietyScore": <0-100>,
-    "simplePercentage": <percentage>,
-    "compoundPercentage": <percentage>,
-    "complexPercentage": <percentage>
+    "problematicSentences": [{"sentence": "<too long>", "wordCount": <count>, "simplified": "<clearer version>"}]
   },
-  "targetAudience": "<recommended audience>",
-  "genreComparison": "<how this compares to typical genre prose>",
-  "issues": [
-    {
-      "type": "warning|info",
-      "message": "<readability issue>",
-      "example": "<problematic sentence>",
-      "suggestion": "<how to improve>"
-    }
+  "wordAnalysis": {
+    "complexWords": {"count": <3+ syllables>, "percentage": <percent>},
+    "simplifiable": [{"complex": "<word>", "simpler": "<alternative>", "context": "<sentence>"}]
+  },
+  "audienceFit": {
+    "targetAudience": "<audience>",
+    "currentFit": <0-100>,
+    "adjustments": [{"element": "<what to change>", "current": "<now>", "suggested": "<improvement>"}]
+  },
+  "actionableImprovements": [
+    {"priority": "high|medium|low", "area": "<sentence-length|word-complexity>", "current": "<example>", "improved": "<better>"}
   ],
-  "strengths": ["<what works well>"],
-  "suggestions": ["<improvement 1>", "<improvement 2>"]
+  "quickWins": ["<easy readability improvements>"]
 }`,
 
+  // =========================================================================
   // 9. EMOTIONAL ARC
-  'emotional-arc': (content, scope) => `You are an expert at emotional narrative analysis. Map the emotional journey through this ${scope}.
+  // =========================================================================
+  'emotional-arc': (content, scope, options) => `You are an emotional narrative architect mapping the reader's emotional journey.
 
-Analyze:
-1. Opening emotional state
-2. Key emotional beats and transitions
-3. Emotional peaks and valleys
-4. Reader emotional engagement points
-5. Character emotional arcs
-6. Cathartic moments
-7. Emotional pacing
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
+- Scene Goal: ${options?.sceneGoal || 'Not specified'}
 
-Text to analyze:
+EMOTIONAL ELEMENTS:
+1. Reader Emotions - What reader feels
+2. Character Emotions - What characters experience
+3. Cathartic Moments - Emotional release points
+4. Empathy Points - Where readers connect
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
   "score": <0-100 emotional effectiveness>,
-  "summary": "<emotional arc assessment>",
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "emotionalProfile": {
+    "dominantEmotions": ["<primary>", "<secondary>"],
+    "emotionalRange": <0-100>,
+    "intensity": {"average": <1-10>, "peak": <1-10>, "valley": <1-10>},
+    "readerEngagement": <0-100>
+  },
   "emotionalJourney": [
     {
-      "position": <0-100 percentage>,
-      "primaryEmotion": "<emotion>",
-      "intensity": <-1.0 to 1.0, negative=negative emotions>,
-      "trigger": "<what causes this emotion>",
-      "characterFeeling": "<what character feels>",
-      "readerFeeling": "<what reader likely feels>"
+      "position": <0-100>,
+      "readerFeeling": "<emotion>",
+      "characterFeeling": "<emotion>",
+      "intensity": <-1.0 to 1.0>,
+      "trigger": "<what causes it>",
+      "technique": "<how created>"
     }
   ],
   "emotionalPeaks": [
-    {"position": "<where>", "emotion": "<emotion>", "intensity": <level>, "moment": "<description>"}
+    {"position": "<where>", "emotion": "<emotion>", "effectiveness": <0-100>, "enhancement": "<how to strengthen>"}
   ],
   "emotionalValleys": [
-    {"position": "<where>", "emotion": "<emotion>", "purpose": "<why the lull>"}
+    {"position": "<where>", "purpose": "intentional-rest|problematic", "fix": "<how to inject emotion>"}
   ],
-  "dominantEmotions": ["<top emotion>", "<second>", "<third>"],
-  "emotionalRange": <0-100 variety of emotions>,
-  "issues": [
-    {
-      "type": "warning|info",
-      "message": "<emotional arc issue>",
-      "suggestion": "<how to improve>"
-    }
+  "empathyPoints": [
+    {"location": "<where>", "character": "<who>", "technique": "vulnerability|relatable-flaw|etc", "effectiveness": <0-100>}
   ],
-  "flatSpots": ["<positions where emotional engagement drops>"],
-  "catharticMoments": ["<powerful emotional release points>"],
-  "suggestions": ["<how to strengthen emotional impact>"]
+  "showingVsTelling": {
+    "emotionsTold": [{"telling": "<she felt sad>", "showing": "<rewritten to show>"}],
+    "emotionsShown": [{"passage": "<effective showing>", "technique": "<how>"}]
+  },
+  "flatSpots": [
+    {"location": "<where>", "currentText": "<flat>", "emotionallyCharged": "<with emotion>"}
+  ],
+  "actionableImprovements": [
+    {"priority": "high|medium|low", "emotionalGoal": "<target emotion>", "technique": "<how>", "implementation": "<specific change>"}
+  ]
 }`,
 
+  // =========================================================================
   // 10. CHAPTER SUMMARY
-  'chapter-summary': (content, scope) => `You are an expert story analyst. Create a comprehensive summary of this ${scope} capturing all essential story elements.
+  // =========================================================================
+  'chapter-summary': (content, scope, options) => `You are a story architect creating comprehensive chapter analysis for tracking across manuscripts.
 
-Summarize:
-1. Key events (plot points)
-2. Character appearances and development
-3. Setting/location details
-4. Revelations or new information
-5. Conflict introduced/resolved
-6. Themes touched upon
-7. Setup/foreshadowing for later
-8. Emotional beats
+CONTEXT:
+- Scope: ${scope}
+- Chapter: ${options?.chapterNumber || 'Unknown'}
+- Genre: ${options?.genre || 'General fiction'}
 
-Text to analyze:
+PURPOSE: Create reference for continuity, character arcs, plot threads.
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "summary": "<3-4 sentence plot summary>",
-  "detailedSummary": "<paragraph-length detailed summary>",
+  "chapterNumber": ${options?.chapterNumber || 'null'},
+  "wordCount": <count>,
+  "summaries": {
+    "oneLiner": "<single sentence>",
+    "shortSummary": "<3-4 sentences>",
+    "detailedSummary": "<full paragraph>"
+  },
+  "plotMovement": {
+    "mainPlot": {"advancement": "<how plot moved>", "status": "setup|rising|climax|resolution", "percentComplete": <0-100>},
+    "subplots": [{"subplot": "<name>", "advancement": "<movement>", "status": "<stage>"}]
+  },
   "keyEvents": [
-    {"event": "<what happened>", "significance": "<why it matters>"}
+    {"event": "<what happened>", "significance": "major|moderate|minor", "consequences": "<immediate>", "futureImplications": "<potential impact>"}
   ],
   "characters": [
     {
       "name": "<character>",
-      "role": "<protagonist/antagonist/supporting>",
-      "actions": ["<key action 1>", "<key action 2>"],
-      "development": "<how they changed or what we learned>"
+      "role": "POV|major|supporting",
+      "arc": {"startState": "<beginning>", "endState": "<end>", "change": "<what changed>"},
+      "keyActions": ["<actions>"],
+      "newInfo": ["<revelations about them>"]
     }
   ],
-  "settings": [
-    {"location": "<where>", "significance": "<why this setting matters>"}
-  ],
-  "conflicts": [
-    {"type": "internal|interpersonal|external", "description": "<the conflict>", "status": "introduced|escalated|resolved"}
-  ],
-  "revelations": ["<new information revealed>"],
-  "foreshadowing": ["<setup for later events>"],
-  "themes": ["<thematic elements>"],
-  "openQuestions": ["<unresolved questions for reader>"],
-  "chapterPurpose": "<what this chapter accomplishes in the larger story>"
+  "settings": [{"location": "<where>", "significance": "<why matters>", "newDetails": ["<established>"]}],
+  "timeline": {"duration": "<time passed>", "timeMarkers": ["<references>"]},
+  "revelations": [{"revelation": "<what>", "revealedTo": "reader|character|both", "significance": "major|minor"}],
+  "conflicts": [{"conflict": "<description>", "type": "internal|interpersonal|external", "status": "introduced|escalated|resolved"}],
+  "foreshadowing": [{"setup": "<element>", "potentialPayoff": "<what it might lead to>"}],
+  "openThreads": [{"thread": "<unresolved>", "status": "active|dormant"}],
+  "themes": [{"theme": "<thematic element>", "development": "<how explored>"}],
+  "chapterFunction": {"primaryPurpose": "<why chapter exists>", "structuralRole": "hook|setup|climax|bridge"},
+  "nextChapterSetup": {"hooks": ["<what pulls reader forward>"], "expectations": ["<reader expectations>"]}
 }`,
 
+  // =========================================================================
   // 11. PLOT HOLE FINDER
-  'plot-holes': (content, scope, options) => `You are an expert continuity editor. Analyze this ${scope} for plot holes, inconsistencies, and logical problems.
+  // =========================================================================
+  'plot-holes': (content, scope, options) => `You are a continuity and logic specialist finding plot holes and inconsistencies.
 
-${options?.fullManuscript ? 'You have access to the full manuscript for context.' : 'Analyzing this section in isolation - flag anything that MIGHT be inconsistent with a larger story.'}
+CONTEXT:
+- Scope: ${scope}
+- Story Context: ${options?.bookContext || 'Analyze in isolation'}
+${options?.storyBible ? '- Story Bible: Available' : ''}
 
-Find:
-1. Logical inconsistencies
-2. Timeline problems
-3. Character behavior contradictions
-4. Physics/world rule violations
-5. Forgotten or dropped threads
-6. Motivation gaps
-7. Impossible knowledge (characters knowing things they shouldn't)
-8. Continuity errors
+PLOT HOLE TYPES:
+1. Logic Failures - Impossible as described
+2. Timeline Problems - Temporal impossibilities
+3. Character Knowledge - Knowing things they shouldn't
+4. Character Behavior - Actions contradicting personality
+5. World Rule Violations - Breaking established rules
+6. Dropped Threads - Setup without payoff
 
-${options?.bookContext ? `Story context: ${options.bookContext}` : ''}
-
-Text to analyze:
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 consistency score>,
-  "summary": "<overall consistency assessment>",
-  "plotHoles": [
+  "score": <0-100 consistency>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "definiteProblems": [
     {
       "severity": "critical|major|minor",
-      "category": "logic|timeline|character|worldbuilding|continuity|motivation",
-      "description": "<the inconsistency>",
-      "evidence": "<quote or reference showing the problem>",
-      "impact": "<how this affects the story>",
-      "suggestion": "<how to fix>"
+      "category": "logic|timeline|character-knowledge|behavior|world-rules|dropped-thread",
+      "title": "<short description>",
+      "description": "<detailed explanation>",
+      "evidence": {"quote1": "<text showing one thing>", "quote2": "<contradicting text>"},
+      "impact": "<how affects story>",
+      "suggestedFixes": [{"approach": "<strategy>", "implementation": "<specific change>", "effort": "easy|moderate|significant"}],
+      "bestFix": "<recommended>"
     }
   ],
-  "timelineIssues": [
-    {"issue": "<temporal problem>", "details": "<specifics>", "fix": "<solution>"}
-  ],
-  "characterInconsistencies": [
-    {"character": "<name>", "issue": "<behavior contradiction>", "fix": "<solution>"}
-  ],
-  "droppedThreads": ["<setup that wasn't paid off>"],
   "potentialIssues": [
-    {"concern": "<might be a problem>", "needsContext": "<what would clarify>"}
+    {"concern": "<might be problem>", "evidence": "<quote>", "mightBeExplainedBy": "<possible explanation>", "needsVerification": "<what to check>"}
   ],
-  "suggestions": ["<how to improve consistency>"]
+  "timelineAnalysis": {
+    "clarity": <0-100>,
+    "events": [{"event": "<what>", "when": "<time>", "issues": "<problems>"}],
+    "conflicts": [{"issue": "<contradiction>", "fix": "<resolution>"}]
+  },
+  "characterConsistency": [
+    {
+      "character": "<name>",
+      "consistencyScore": <0-100>,
+      "knowledgeIssues": [{"knows": "<what>", "problem": "<how they couldn't know>", "fix": "<solution>"}],
+      "behaviorIssues": [{"action": "<what they do>", "established": "<their personality>", "conflict": "<contradiction>", "fix": "<resolution>"}]
+    }
+  ],
+  "threadTracking": [
+    {"thread": "<plot element>", "introduced": "<where>", "status": "resolved|ongoing|potentially-dropped", "resolution": "<when/how should resolve>"}
+  ],
+  "prioritizedFixes": [
+    {"priority": 1, "issue": "<most critical>", "fix": "<solution>", "effort": "<level>"}
+  ]
 }`,
 
+  // =========================================================================
   // 12. DIALOGUE ANALYSIS
-  'dialogue-analysis': (content, scope) => `You are an expert dialogue analyst. Evaluate the dialogue in this ${scope} for quality, effectiveness, and naturalness.
+  // =========================================================================
+  'dialogue-analysis': (content, scope, options) => `You are a dialogue specialist analyzing conversation for naturalness, purpose, and dramatic effectiveness.
 
-Analyze:
-1. Naturalness - does it sound like real speech?
-2. Character distinction - unique voices?
-3. Subtext - what's beneath the surface?
-4. Dialogue tags - variety and effectiveness
-5. Beats and action - pacing around dialogue
-6. Info-dumping - exposition disguised as dialogue
-7. Purpose - does each line advance plot/character?
-8. Conflict and tension in exchanges
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
 
-Text to analyze:
+DIALOGUE ELEMENTS:
+1. Naturalness - Sounds like real speech
+2. Purpose - Every line advances plot or character
+3. Character Voice - Speakers are distinct
+4. Subtext - Depth beneath surface
+5. Conflict/Tension - Friction in exchanges
+6. Tags and Beats - Attribution effectiveness
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
   "score": <0-100 dialogue quality>,
-  "summary": "<dialogue assessment>",
+  "grade": "<A-F>",
+  "summary": "<assessment>",
   "statistics": {
-    "dialoguePercentage": <of total text>,
-    "avgExchangeLength": <lines per conversation>,
-    "tagVariety": <0-100>,
-    "saidUsage": <percentage of tags that are 'said'>
+    "dialoguePercentage": <percent>,
+    "avgExchangeLength": <lines>,
+    "speakingCharacters": <count>
   },
   "qualityMetrics": {
-    "naturalness": <0-100>,
-    "characterDistinction": <0-100>,
-    "subtext": <0-100>,
-    "purposefulness": <0-100>,
-    "tensionInDialogue": <0-100>
+    "naturalness": {"score": <0-100>, "note": "<assessment>"},
+    "purposefulness": {"score": <0-100>, "note": "<assessment>"},
+    "characterDistinction": {"score": <0-100>, "note": "<assessment>"},
+    "subtext": {"score": <0-100>, "note": "<assessment>"},
+    "conflict": {"score": <0-100>, "note": "<assessment>"}
   },
+  "purposeAnalysis": [
+    {"exchange": "<dialogue>", "purposes": ["plot|character|tension|world-building"], "assessment": "multi-purpose|purposeless", "fix": "<how to add purpose>"}
+  ],
+  "naturalnessIssues": [
+    {"quote": "<unnatural>", "problem": "too-formal|monologuing|on-the-nose", "naturalVersion": "<how people talk>"}
+  ],
+  "subtextAnalysis": [
+    {"exchange": "<dialogue>", "surface": "<what's said>", "beneath": "<what's meant>", "effectiveness": <0-100>}
+  ],
+  "infoDumps": [
+    {"quote": "<expository dialogue>", "problem": "as-you-know-bob|lecture-mode", "betterDelivery": "<organic version>"}
+  ],
+  "talkingHeads": [
+    {"location": "<where>", "lineCount": <without action>, "beatsToAdd": [{"afterLine": "<which>", "beat": "<action>"}]}
+  ],
   "dialogueTags": {
-    "distribution": {"said": <count>, "asked": <count>, "other": <count>},
-    "overusedTags": ["<tag used too often>"],
-    "creativeTagsGood": ["<effective creative tags>"],
-    "creativeTagsBad": ["<distracting creative tags>"]
+    "distribution": {"said": <count>, "asked": <count>, "creative": <count>},
+    "overusedTags": [{"tag": "<overused>", "alternatives": ["<options>"]}],
+    "problematicTags": [{"tag": "<distracting>", "replacement": "<better>"}]
   },
-  "issues": [
-    {
-      "type": "error|warning|info",
-      "category": "talking-heads|info-dump|on-the-nose|tag-abuse|no-subtext",
-      "example": "<problematic dialogue>",
-      "message": "<what's wrong>",
-      "suggestion": "<how to fix>"
-    }
-  ],
-  "strongExamples": [
-    {"dialogue": "<effective exchange>", "why": "<what makes it work>"}
-  ],
-  "suggestions": ["<improvement 1>", "<improvement 2>"]
+  "bestDialogue": [{"exchange": "<excellent>", "whatWorks": ["<elements>"], "learn": "<replicate>"}],
+  "weakestDialogue": [{"exchange": "<problematic>", "issues": ["<problems>"], "rewritten": "<improved>"}],
+  "actionableImprovements": [
+    {"priority": "high|medium|low", "type": "<issue type>", "current": "<dialogue>", "improved": "<better>", "technique": "<what changed>"}
+  ]
 }`,
 
+  // =========================================================================
   // 13. SHOW/TELL RATIO
-  'show-tell-ratio': (content, scope) => `You are an expert at analyzing showing vs telling in fiction. Evaluate the balance and identify telling passages that could be shown.
+  // =========================================================================
+  'show-tell-ratio': (content, scope, options) => `You are a "show don't tell" specialist identifying telling passages and demonstrating how to transform them.
 
-Analyze:
-1. Showing passages (scene, action, sensory detail)
-2. Telling passages (summary, exposition, direct statement)
-3. Appropriate use of each
-4. Missed opportunities to show
-5. Effective summary (telling that works)
-6. Emotional telling vs showing
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
 
-Text to analyze:
+SHOW VS TELL:
+- TELLING: "She was angry"
+- SHOWING: "Her jaw tightened, knuckles whitening around the cup"
+
+WHEN TELLING IS OK: Transitions, unimportant info, pacing needs
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
   "score": <0-100 showing effectiveness>,
-  "summary": "<show/tell balance assessment>",
+  "grade": "<A-F>",
+  "summary": "<assessment>",
   "ratio": {
-    "showingPercentage": <percentage>,
-    "tellingPercentage": <percentage>,
-    "recommendation": "<ideal ratio for this type of scene>"
+    "showingPercentage": <percent>,
+    "tellingPercentage": <percent>,
+    "recommendation": "<ideal for this scene>"
   },
   "tellingInstances": [
     {
+      "type": "emotion|trait|backstory|motivation",
+      "severity": "needs-showing|consider|acceptable",
       "original": "<telling passage>",
-      "type": "emotion|trait|backstory|description|summary",
-      "severity": "needs-showing|consider-showing|acceptable",
-      "showingVersion": "<how to rewrite as showing>",
-      "impact": "<why showing would be better>"
+      "whatsTold": "<information>",
+      "showingVersion": "<transformed>",
+      "techniques": ["action", "dialogue", "sensory"],
+      "impact": "<how change improves prose>"
+    }
+  ],
+  "emotionalTelling": [
+    {
+      "original": "<she felt sad>",
+      "emotion": "<emotion>",
+      "showingOptions": {
+        "physicalTells": ["<body language>"],
+        "internalSensation": ["<physical feeling>"],
+        "actions": ["<behaviors>"],
+        "dialogue": ["<speech showing it>"]
+      },
+      "bestRewrite": "<full showing version>"
     }
   ],
   "effectiveTelling": [
-    {"passage": "<telling that works>", "reason": "<why it's appropriate here>"}
+    {"passage": "<telling that works>", "whyEffective": "pacing|transition|efficiency"}
   ],
   "excellentShowing": [
-    {"passage": "<great showing example>", "technique": "<what makes it effective>"}
+    {"passage": "<great example>", "whatItShows": "<demonstrated>", "techniques": ["<used>"], "whyItWorks": "<analysis>"}
   ],
-  "issues": [
-    {
-      "type": "warning|error",
-      "message": "<show/tell problem>",
-      "suggestion": "<fix>"
+  "sensoryAnalysis": {
+    "sensesUsed": {"sight": <0-100>, "sound": <0-100>, "touch": <0-100>, "smell": <0-100>, "taste": <0-100>},
+    "underusedSenses": ["<senses to add>"],
+    "suggestions": [{"location": "<where>", "sense": "<which>", "addition": "<specific detail>"}]
+  },
+  "transformationShowcase": [
+    {"before": "<telling passage>", "after": "<showing version>", "techniques": ["<applied>"], "impact": "<improvement>"}
+  ],
+  "showingToolkit": {
+    "forEmotions": {
+      "fear": ["racing heart", "cold sweat", "frozen muscles"],
+      "anger": ["clenched jaw", "flushed cheeks", "sharp movements"],
+      "sadness": ["heavy limbs", "blurred vision", "tight throat"]
     }
-  ],
-  "emotionalTelling": ["<emotions stated directly instead of shown>"],
-  "suggestions": ["<how to improve show/tell balance>"]
+  },
+  "actionableImprovements": [
+    {"priority": "high|medium|low", "original": "<telling>", "rewrite": "<showing>", "technique": "<how>"}
+  ]
 }`,
 
+  // =========================================================================
   // 14. CLICHE FINDER
-  'cliche-finder': (content, scope) => `You are an expert at identifying cliches in fiction. Find overused phrases, tired metaphors, and predictable elements in this ${scope}.
+  // =========================================================================
+  'cliche-finder': (content, scope, options) => `You are a language freshness specialist identifying clichés and suggesting original alternatives.
 
-Find:
-1. Phrase cliches ("crystal clear," "deafening silence")
-2. Simile/metaphor cliches ("eyes like pools")
-3. Description cliches ("chiseled jaw," "raven hair")
-4. Action cliches (holding breath, heart pounding)
-5. Plot/situation cliches (for this section)
-6. Character type cliches
-7. Opening/closing cliches
+CONTEXT:
+- Scope: ${scope}
+- Genre: ${options?.genre || 'General fiction'}
 
-Text to analyze:
+CLICHE TYPES:
+1. Phrase Clichés - "crystal clear", "deafening silence"
+2. Simile/Metaphor Clichés - "eyes like pools"
+3. Description Clichés - "chiseled jaw", "raven hair"
+4. Action Clichés - "heart pounded", "breath caught"
+5. Emotional Clichés - Stock ways of showing emotions
+
+NOTE: Genre conventions aren't always clichés.
+
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 originality score>,
-  "summary": "<cliche assessment>",
-  "clicheCount": <total found>,
-  "clicheDensity": "<per 1000 words>",
+  "score": <0-100 originality>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "statistics": {
+    "totalCliches": <count>,
+    "clicheDensity": "<per 1000 words>",
+    "severityBreakdown": {"mustFix": <count>, "shouldFix": <count>, "consider": <count>, "genreAcceptable": <count>}
+  },
   "phraseCliches": [
     {
-      "cliche": "<the cliche>",
-      "context": "<sentence containing it>",
-      "severity": "delete|revise|mild",
-      "alternatives": ["<fresh alternative 1>", "<fresh alternative 2>"]
+      "cliche": "<phrase>",
+      "context": "<sentence>",
+      "severity": "must-fix|should-fix|consider|genre-ok",
+      "whyCliche": "<why overused>",
+      "freshAlternatives": [{"alternative": "<original>", "tone": "<how shifts>", "why": "<why better>"}],
+      "rewrittenSentence": "<with fresh language>"
     }
   ],
   "descriptionCliches": [
-    {"cliche": "<tired description>", "fresh": "<original alternative>"}
+    {"cliche": "<tired description>", "describing": "<what>", "freshApproaches": [{"approach": "<original way>", "example": "<implementation>"}], "rewrite": "<fresh version>"}
   ],
   "actionCliches": [
-    {"cliche": "<heart hammered>", "context": "<where used>", "alternative": "<fresh version>"}
+    {"cliche": "<heart pounded>", "emotion": "<conveying>", "alternatives": {"unexpected": "<surprising reaction>", "specific": "<character-specific>", "sensory": "<unique detail>"}, "rewrite": "<fresh version>"}
   ],
-  "metaphorCliches": [
-    {"cliche": "<dead metaphor>", "original": "<fresh metaphor idea>"}
+  "emotionalCliches": [
+    {"cliche": "<stock expression>", "emotion": "<emotion>", "freshExpressions": [{"expression": "<original>", "technique": "unexpected-physical|character-specific"}], "rewrite": "<fresh beat>"}
   ],
-  "potentialCliches": [
-    {"phrase": "<might be cliche>", "verdict": "cliche|borderline|acceptable", "reason": "<why>"}
+  "genreAcceptable": [
+    {"phrase": "<convention>", "genre": "<genre>", "assessment": "<why acceptable>", "verdict": "keep|consider-freshening"}
   ],
-  "issues": [
-    {
-      "type": "warning|error",
-      "message": "<cliche problem>",
-      "suggestion": "<fix>"
-    }
+  "freshLanguage": [
+    {"passage": "<original language>", "whatWorks": "<why effective>", "replicate": "<how to do more>"}
   ],
-  "freshLanguage": ["<examples of original phrasing in the text>"],
-  "suggestions": ["<how to be more original>"]
+  "prioritizedFixes": [
+    {"priority": 1, "cliche": "<most important>", "impact": "<improvement>", "fix": "<solution>"}
+  ],
+  "fresheningToolkit": {
+    "techniques": [{"technique": "<method>", "example": {"cliche": "<tired>", "fresh": "<original>"}}]
+  }
 }`,
 
+  // =========================================================================
   // 15. CONTINUITY CHECK
-  'continuity-check': (content, scope, options) => `You are an expert continuity editor. Check this ${scope} for internal consistency and track details that need to remain consistent.
+  // =========================================================================
+  'continuity-check': (content, scope, options) => `You are a continuity tracking specialist extracting and verifying trackable details.
 
-${options?.storyBible ? 'Cross-reference with the provided Story Bible.' : 'Create a continuity tracking list from this text.'}
+CONTEXT:
+- Scope: ${scope}
+${options?.storyBible ? '- Story Bible: Available for cross-reference' : '- Building continuity data from this text'}
 
-Track and verify:
-1. Character physical descriptions
-2. Character names and nicknames
-3. Location descriptions
-4. Timeline/time of day
-5. Object locations and states
-6. Weather/season
-7. Character knowledge states
-8. Injuries/conditions and their progression
-9. Numbers and quantities
+CONTINUITY ELEMENTS:
+1. Character Physical Details - Eye color, height, scars
+2. Character Knowledge - What each knows/doesn't know
+3. Object Locations - Where items are
+4. Timeline - When things happen
+5. Setting Details - Place descriptions
+6. Injuries/Conditions - Physical states
 
-Text to analyze:
+TEXT TO ANALYZE:
 """
 ${content}
 """
 
-Respond in this JSON format:
+Respond in JSON format:
 {
-  "score": <0-100 continuity score>,
-  "summary": "<continuity assessment>",
-  "continuityTracker": {
+  "score": <0-100 consistency>,
+  "grade": "<A-F>",
+  "summary": "<assessment>",
+  "continuityDatabase": {
     "characters": [
       {
         "name": "<character>",
-        "physicalDetails": ["<detail mentioned>"],
-        "location": "<where they are>",
-        "state": "<physical/emotional state>",
-        "knowledge": ["<what they know>"]
+        "aliases": ["<nicknames>"],
+        "physicalDetails": {"definite": [{"detail": "<trait>", "source": "<quote>", "location": "<where>"}]},
+        "knowledge": [{"knows": "<what>", "learnedWhen": "<when>"}],
+        "currentState": {"physical": "<condition>", "emotional": "<state>", "location": "<where>"},
+        "relationships": [{"with": "<character>", "nature": "<type>", "status": "<current>"}]
       }
     ],
     "settings": [
-      {"location": "<place>", "details": ["<descriptive details>"], "timeOfDay": "<when>"}
+      {"name": "<location>", "details": [{"detail": "<element>", "source": "<quote>"}], "atmosphere": "<mood>"}
     ],
     "objects": [
-      {"item": "<object>", "location": "<where>", "state": "<condition>"}
+      {"object": "<item>", "description": "<how described>", "currentLocation": "<where>", "owner": "<who>"}
     ],
-    "timeline": [
-      {"event": "<what happened>", "when": "<time reference>"}
-    ]
+    "timeline": {
+      "explicitTimes": [{"event": "<what>", "time": "<specific>"}],
+      "relativeTimes": [{"event": "<what>", "relative": "<three days later>", "anchor": "<relative to>"}],
+      "sequence": [{"order": <number>, "event": "<what>"}]
+    }
   },
-  "inconsistencies": [
+  "internalInconsistencies": [
     {
-      "type": "character|setting|object|timeline|knowledge",
+      "type": "character-detail|object|timeline|knowledge",
+      "severity": "critical|major|minor",
       "issue": "<the inconsistency>",
-      "references": ["<conflicting statement 1>", "<conflicting statement 2>"],
-      "suggestion": "<how to resolve>"
+      "evidence": {"instance1": {"quote": "<text>", "location": "<where>"}, "instance2": {"quote": "<contradicting>", "location": "<where>"}},
+      "resolution": "<how to fix>"
     }
   ],
-  "potentialIssues": [
-    {"concern": "<might conflict with earlier/later text>", "detail": "<what to check>"}
+  "potentialCrossChapterIssues": [
+    {"element": "<detail>", "currentValue": "<what it is>", "concern": "<what to verify>", "trackingNote": "<for manuscript check>"}
   ],
-  "suggestions": ["<continuity improvement>"]
+  "characterKnowledgeMatrix": {
+    "<character>": {"knows": ["<what they know>"], "doesNotKnow": ["<significant unknowns>"]}
+  },
+  "trackingRecommendations": [
+    {"element": "<important detail>", "recommendation": "<how to keep consistent>", "storyBibleEntry": "<suggested entry>"}
+  ]
 }`
 };
 
@@ -824,7 +1044,6 @@ export async function POST(request: NextRequest) {
     
     const { type, content, scope, options } = validated;
 
-    // Get the analysis prompt
     const promptGenerator = ANALYSIS_PROMPTS[type];
     if (!promptGenerator) {
       return NextResponse.json(
@@ -835,44 +1054,27 @@ export async function POST(request: NextRequest) {
 
     const prompt = promptGenerator(content, scope, options);
 
-    // Call Anthropic API
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: prompt }]
     });
 
-    // Extract the response text
     const textContent = response.content.find(block => block.type === 'text');
     const responseText = textContent?.type === 'text' ? textContent.text : '';
 
-    // Try to parse as JSON
     let analysisResult;
     try {
-      // Extract JSON from response (handle potential markdown code blocks)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysisResult = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error('No JSON found in response');
+        throw new Error('No JSON found');
       }
-    } catch (parseError) {
-      // If parsing fails, return raw text analysis
-      analysisResult = {
-        score: 0,
-        summary: responseText,
-        issues: [],
-        suggestions: [],
-        raw: responseText
-      };
+    } catch {
+      analysisResult = { score: 0, summary: responseText, issues: [], suggestions: [], raw: responseText };
     }
 
-    // Calculate tokens used
     const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
 
     return NextResponse.json({
@@ -892,10 +1094,7 @@ export async function POST(request: NextRequest) {
     console.error('AI Analyze error:', error);
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request', details: error.issues }, { status: 400 });
     }
     
     return NextResponse.json(
