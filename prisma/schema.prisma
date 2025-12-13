@@ -659,3 +659,141 @@ model VoiceUsageLog {
   @@index([userId])
   @@map("voice_usage_logs")
 }
+
+
+// ============================================
+// CONTINUITY GUARDIAN - Fact & Consistency Tracking
+// ============================================
+
+// Story Facts - trackable facts extracted from chapters
+model StoryFact {
+  id              String   @id @default(cuid())
+  bookId          String
+  
+  // Fact details
+  category        String   // character_trait, timeline, location, etc.
+  subject         String   // Who/what the fact is about
+  attribute       String   // What aspect
+  value           String   // Original value
+  currentValue    String   // Current value (may have changed)
+  
+  // Where established
+  establishedIn   Json     // { chapterId, chapterTitle, excerpt, position }
+  
+  // Change history
+  history         Json[]   @default([])
+  
+  // Metadata
+  confidence      String   @default("explicit") // explicit, implied, inferred
+  importance      String   @default("significant") // critical, significant, minor
+  source          String   @default("extracted") // extracted, user, story_bible
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([bookId])
+  @@index([category])
+  @@index([subject])
+  @@map("story_facts")
+}
+
+// Timeline Events - chronological events in the story
+model TimelineEvent {
+  id              String   @id @default(cuid())
+  bookId          String
+  
+  // Event details
+  description     String
+  storyTime       Json     // { type, value, dayNumber? }
+  
+  // Location in manuscript
+  chapterId       String
+  chapterTitle    String
+  sceneId         String?
+  position        Int      @default(0)
+  
+  // Participants
+  characters      String[] @default([])
+  locations       String[] @default([])
+  
+  // Metadata
+  importance      String   @default("significant")
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([bookId])
+  @@index([chapterId])
+  @@map("timeline_events")
+}
+
+// Consistency Issues - detected problems
+model ConsistencyIssue {
+  id              String   @id @default(cuid())
+  bookId          String
+  
+  // Issue details
+  type            String   // contradiction, timeline_conflict, etc.
+  severity        String   @default("warning") // critical, warning, suggestion
+  title           String
+  description     String   @db.Text
+  
+  // Locations
+  locations       Json[]   // [{ chapterId, chapterTitle, excerpt, position }]
+  
+  // Conflicting facts
+  conflictingFacts Json[]  @default([])
+  
+  // AI suggestions
+  suggestions     Json[]   @default([])
+  
+  // Status
+  status          String   @default("open") // open, acknowledged, resolved, dismissed
+  resolution      Json?    // { method, notes, resolvedAt }
+  
+  // Metadata
+  detectedAt      DateTime @default(now())
+  detectedBy      String   @default("auto") // auto, user
+  
+  @@index([bookId])
+  @@index([status])
+  @@index([severity])
+  @@map("consistency_issues")
+}
+
+// Scan Status - track ongoing scans
+model ScanStatus {
+  bookId          String   @id
+  phase           String   @default("Not started")
+  progress        Int      @default(0)
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  
+  @@map("scan_status")
+}
+
+// Plot Threads - track ongoing storylines
+model PlotThread {
+  id              String   @id @default(cuid())
+  bookId          String
+  
+  // Thread details
+  name            String
+  description     String?
+  status          String   @default("active") // active, resolved, abandoned
+  
+  // Where introduced
+  introducedIn    String   // chapterId
+  
+  // Where last mentioned
+  lastMentionedIn String?
+  
+  // Related elements
+  characters      String[] @default([])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([bookId])
+  @@index([status])
+  @@map("plot_threads")
+}
