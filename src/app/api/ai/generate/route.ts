@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { auth } from '@clerk/nextjs/server';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-// Request validation schema
+// Request validation schema - Updated to include voiceId
 const GenerateRequestSchema = z.object({
   type: z.string(),
   content: z.string().min(1),
@@ -15,11 +17,13 @@ const GenerateRequestSchema = z.object({
   bookId: z.string().optional(),
   chapterId: z.string().optional(),
   characterIds: z.array(z.string()).optional(),
+  voiceId: z.string().optional(), // NEW: Voice profile ID
   options: z.object({
     length: z.enum(['short', 'medium', 'long']).optional().default('medium'),
     intensity: z.number().min(1).max(10).optional().default(5),
     customInstructions: z.string().optional(),
-    context: z.any().optional()
+    context: z.any().optional(),
+    voiceIntensity: z.enum(['subtle', 'balanced', 'strong']).optional().default('balanced'), // NEW
   }).optional()
 });
 
@@ -51,6 +55,13 @@ const LENGTH_GUIDANCE: Record<string, string> = {
   short: 'Write approximately 150-250 words. Be concise but complete.',
   medium: 'Write approximately 300-500 words. Provide good detail and development.',
   long: 'Write approximately 600-900 words. Be comprehensive with rich detail.'
+};
+
+// Voice intensity modifiers
+const VOICE_INTENSITY_GUIDANCE: Record<string, string> = {
+  subtle: 'Lightly incorporate the voice characteristics. Prioritize the specific task while adding subtle stylistic touches.',
+  balanced: 'Balance the task requirements with voice characteristics. Match the voice style while fully addressing the prompt.',
+  strong: 'Strongly emphasize the voice characteristics. The voice style should be clearly evident throughout.'
 };
 
 // Comprehensive tool prompts
@@ -154,14 +165,14 @@ ${content}
 
 Write the action sequence:`,
 
-  'inner-monologue': (content, genre, options) => `You are an expert at writing character interiority. Create deep internal monologue that reveals this character's thoughts, fears, desires, and contradictions. Make it feel authentic to their voice and situation—not generic introspection.
+  'thoughts': (content, genre, options) => `You are an expert at writing internal monologue. Create deep, authentic character interiority that reveals their inner world—their fears, desires, conflicts, and realizations.
 
-Include:
-- Stream of consciousness elements
-- Emotional and physical sensations
-- Memory fragments if relevant
-- Self-doubt or internal conflicts
-- Character-specific thought patterns
+Techniques to use:
+- Stream of consciousness where appropriate
+- Sensory triggers for memories/emotions
+- Self-deception vs. truth
+- Layered thoughts (surface and deeper)
+- Physical sensations tied to emotions
 
 ${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
 
@@ -169,7 +180,7 @@ ${LENGTH_GUIDANCE[options?.length || 'medium']}
 
 ${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
 
-Context:
+Context for internal thoughts:
 """
 ${content}
 """
@@ -180,16 +191,51 @@ Write the internal monologue:`,
   // ENHANCE TOOLS
   // ============================================
 
-  'improve': (content, genre, options) => `You are an expert prose editor. Improve this text while maintaining the author's voice. Strengthen word choices, vary sentence structures, enhance rhythm, and elevate the prose quality.
+  'expand': (content, genre, options) => `You are an expert editor. Expand this passage with richer details, deeper character moments, and more sensory engagement. Add what's missing to bring the scene fully to life.
 
-Focus on:
-- Replacing weak verbs with stronger ones
-- Eliminating unnecessary words
-- Improving sentence variety
-- Enhancing imagery and specificity
-- Maintaining the original meaning and tone
+Add:
+- Sensory details (sights, sounds, smells, textures)
+- Character interiority and reactions
+- Environmental atmosphere
+- Subtle beats between actions/dialogue
+
+Keep the same voice and maintain the original meaning.
 
 ${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
+
+${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
+
+Text to expand:
+"""
+${content}
+"""
+
+Write the expanded version:`,
+
+  'condense': (content, genre, options) => `You are an expert editor. Tighten this passage while preserving its impact. Remove redundancy, weak phrasing, and anything that doesn't earn its place. Every word should count.
+
+Remove:
+- Unnecessary adverbs and adjectives
+- Redundant phrases
+- Weak verbs (replace with stronger ones)
+- Filter words and distancing language
+
+Preserve: The core meaning, voice, and strongest images.
+
+${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
+
+Text to condense:
+"""
+${content}
+"""
+
+Write the tightened version:`,
+
+  'rewrite': (content, genre, options) => `You are an expert creative writer. Completely rewrite this passage with fresh language and approach while preserving the core meaning and story beats. Create something that feels new while staying true to the intent.
+
+${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
+
+${LENGTH_GUIDANCE[options?.length || 'medium']}
 
 ${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
 
@@ -198,258 +244,84 @@ Original text:
 ${content}
 """
 
-Provide the improved version only (no explanations):`,
+Write a fresh version:`,
 
-  'show-not-tell': (content, genre, options) => `You are an expert at "show, don't tell" transformation. Rewrite this passage to replace abstract statements with concrete, sensory details and actions that convey the same meaning more powerfully.
+  'polish': (content, genre, options) => `You are an expert prose stylist. Polish this passage to publication quality. Improve word choice, rhythm, and flow while preserving the author's voice. Fix any awkward phrasing.
 
-Transform:
-- Emotions into physical manifestations
-- Character traits into revealing actions
-- Atmospheres into specific sensory details
-- Statements into demonstrated scenes
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
+Focus on:
+- Stronger verb choices
+- More precise nouns
+- Better sentence rhythm
+- Smoother transitions
+- Eliminating clichés
 
 ${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
 
-Original (with "telling"):
+Text to polish:
 """
 ${content}
 """
 
-Rewritten to "show" (provide the transformed text only):`,
-
-  'deepen-emotion': (content, genre, options) => `You are an expert at emotional writing. Enhance this passage with deeper emotional resonance. Add physical sensations, internal reactions, and subtle behavioral details that convey emotion without stating it directly.
-
-Layer in:
-- Somatic responses (heart rate, breathing, tension)
-- Micro-expressions and body language
-- Sensory shifts in perception
-- Internal contradictions and conflicts
-- Emotional beats between actions
-
-Intensity level: ${options?.intensity || 5}/10
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Original:
-"""
-${content}
-"""
-
-Emotionally deepened version:`,
-
-  'add-tension': (content, genre, options) => `You are an expert at creating narrative tension. Increase the tension, conflict, and stakes in this passage without changing the fundamental events.
-
-Add:
-- Underlying threats or pressures
-- Subtext and unspoken conflicts
-- Time pressure or urgency
-- Obstacles or complications
-- Foreboding details
-- Character uncertainty or fear
-
-Intensity level: ${options?.intensity || 5}/10
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Original:
-"""
-${content}
-"""
-
-Version with heightened tension:`,
-
-  'vary-sentences': (content, genre, options) => `You are an expert prose stylist. Improve the rhythm and flow of this passage by varying sentence lengths and structures. Create a musical quality through the interplay of short, punchy sentences and longer, flowing ones.
-
-Techniques:
-- Fragment sentences for impact
-- Compound sentences for flow
-- Vary openings (don't start every sentence the same way)
-- Use periodic and loose sentences
-- Create rhythmic patterns
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Original:
-"""
-${content}
-"""
-
-With varied rhythm (provide the rewritten text only):`,
-
-  'sensory-details': (content, genre, options) => `You are an expert at sensory writing. Enrich this passage with vivid sensory details across all five senses. Go beyond just visual—include sounds, smells, textures, and tastes where appropriate.
-
-For each sense, use:
-- Specific, unexpected details
-- Sensory verbs
-- Comparative imagery
-- Character-filtered perception
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Original:
-"""
-${content}
-"""
-
-Sensorially enriched version:`,
-
-  // ============================================
-  // BRAINSTORM TOOLS  
-  // ============================================
-
-  'plot-twists': (content, genre, options) => `You are a master storyteller specializing in plot construction. Generate 4-5 unexpected but satisfying plot twists for this story situation. Each twist should:
-
-- Be surprising yet feel inevitable in hindsight
-- Create new story possibilities
-- Deepen character or thematic elements
-- Be achievable with proper setup
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Current story situation:
-"""
-${content}
-"""
-
-Generate plot twist ideas in this format:
-**Twist Title**
-Description of the twist and how it could work in the story.
----`,
-
-  'character-ideas': (content, genre, options) => `You are an expert character designer. Generate 3-4 compelling character concepts based on these requirements. Each character should be:
-
-- Unique and memorable
-- Psychologically complex
-- Suitable for the genre
-- Driven by clear wants and needs
-- Flawed in interesting ways
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Requirements:
-"""
-${content}
-"""
-
-Generate characters in this format:
-**Character Name**
-*Role/Archetype*
-Brief description, key traits, motivation, and what makes them interesting.
----`,
-
-  'world-building': (content, genre, options) => `You are an expert world-builder. Develop rich, detailed world-building elements based on these requirements. Create elements that:
-
-- Feel original and specific
-- Have internal consistency
-- Offer story possibilities
-- Engage the senses
-- Connect to themes
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Requirements:
-"""
-${content}
-"""
-
-Generate world-building elements in this format:
-**Element Name**
-*Category (e.g., Culture, Technology, Magic, Geography)*
-Detailed description and how it affects the world/story.
----`,
-
-  'conflict-generator': (content, genre, options) => `You are an expert at dramatic conflict. Generate 4-5 compelling conflicts or obstacles for this story situation. Each conflict should:
-
-- Create meaningful stakes
-- Challenge the protagonist meaningfully  
-- Offer no easy solutions
-- Reveal character through response
-- Drive the story forward
-
-Types to consider: Internal, Interpersonal, Societal, Environmental, Supernatural
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Context:
-"""
-${content}
-"""
-
-Generate conflicts in this format:
-**Conflict Title**
-*Type: Internal/External/etc.*
-Description of the conflict and its potential impact.
----`,
-
-  'subplot-ideas': (content, genre, options) => `You are an expert at story structure. Generate 3-4 subplot ideas that would enrich this main plot. Each subplot should:
-
-- Complement or contrast the main theme
-- Involve existing or new characters
-- Have its own arc (beginning, middle, end)
-- Intersect meaningfully with the main plot
-- Add depth without distraction
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Main plot:
-"""
-${content}
-"""
-
-Generate subplots in this format:
-**Subplot Title**
-*Theme/Purpose*
-Brief description of the subplot arc and how it connects to the main story.
----`,
-
-  'scene-ideas': (content, genre, options) => `You are an expert scene designer. Generate 4-5 scene ideas based on these requirements. Each scene should:
-
-- Serve a clear story purpose
-- Offer dramatic potential
-- Advance plot or character
-- Suggest vivid settings/moments
-- Create opportunities for conflict
-
-${GENRE_GUIDANCE[genre] || GENRE_GUIDANCE.literary}
-
-${options?.customInstructions ? `Additional instructions: ${options.customInstructions}\n` : ''}
-
-Requirements:
-"""
-${content}
-"""
-
-Generate scenes in this format:
-**Scene Title**
-*Purpose: Plot/Character/Theme*
-Setting, key moments, and what the scene accomplishes.
----`
+Write the polished version:`
 };
+
+// Helper function to get voice system prompt
+async function getVoiceSystemPrompt(voiceId: string, userId: string): Promise<string | null> {
+  try {
+    const voice = await prisma.voiceProfile.findFirst({
+      where: { id: voiceId, userId },
+      select: { systemPrompt: true },
+    });
+    return voice?.systemPrompt || null;
+  } catch (error) {
+    console.error('Failed to fetch voice profile:', error);
+    return null;
+  }
+}
+
+// Helper function to track voice usage
+async function trackVoiceUsage(
+  voiceId: string,
+  userId: string,
+  toolId: string,
+  bookId?: string,
+  chapterId?: string,
+  inputWordCount: number = 0,
+  outputWordCount: number = 0
+) {
+  try {
+    await Promise.all([
+      prisma.voiceProfile.update({
+        where: { id: voiceId },
+        data: {
+          timesUsed: { increment: 1 },
+          lastUsedAt: new Date(),
+        },
+      }),
+      prisma.voiceUsageLog.create({
+        data: {
+          voiceProfileId: voiceId,
+          userId,
+          toolId,
+          bookId,
+          chapterId,
+          inputWordCount,
+          outputWordCount,
+        },
+      }),
+    ]);
+  } catch (error) {
+    console.error('Failed to track voice usage:', error);
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
     const body = await request.json();
     const validated = GenerateRequestSchema.parse(body);
     
-    const { type, content, genre, options } = validated;
+    const { type, content, genre, voiceId, bookId, chapterId, options } = validated;
     const effectiveGenre = genre || 'literary';
 
     // Get the prompt generator for this tool
@@ -461,17 +333,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate the prompt
-    const prompt = promptGenerator(content, effectiveGenre, options);
+    // Generate the base prompt
+    const basePrompt = promptGenerator(content, effectiveGenre, options);
+
+    // Build system prompt with voice if provided
+    let systemPrompt: string | undefined;
+    
+    if (voiceId && userId) {
+      const voiceSystemPrompt = await getVoiceSystemPrompt(voiceId, userId);
+      
+      if (voiceSystemPrompt) {
+        const voiceIntensity = options?.voiceIntensity || 'balanced';
+        const intensityGuide = VOICE_INTENSITY_GUIDANCE[voiceIntensity];
+        
+        systemPrompt = `${voiceSystemPrompt}
+
+VOICE APPLICATION:
+${intensityGuide}
+
+You are completing a specific writing task. Apply the voice characteristics above while addressing the task requirements below.`;
+      }
+    }
 
     // Call Anthropic API
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
+      ...(systemPrompt && { system: systemPrompt }),
       messages: [
         {
           role: 'user',
-          content: prompt
+          content: basePrompt
         }
       ]
     });
@@ -482,6 +374,13 @@ export async function POST(request: NextRequest) {
 
     // Calculate tokens used
     const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+    
+    // Track voice usage if voice was used
+    if (voiceId && userId && generatedText) {
+      const inputWordCount = content.split(/\s+/).length;
+      const outputWordCount = generatedText.split(/\s+/).length;
+      trackVoiceUsage(voiceId, userId, type, bookId, chapterId, inputWordCount, outputWordCount);
+    }
 
     return NextResponse.json({
       success: true,
@@ -490,10 +389,12 @@ export async function POST(request: NextRequest) {
       tokensUsed,
       tool: type,
       genre: effectiveGenre,
+      voiceApplied: !!voiceId,
       metadata: {
         model: 'claude-sonnet-4-20250514',
         inputTokens: response.usage?.input_tokens,
-        outputTokens: response.usage?.output_tokens
+        outputTokens: response.usage?.output_tokens,
+        voiceId: voiceId || null
       }
     });
 
