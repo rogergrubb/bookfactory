@@ -175,6 +175,7 @@ model Series {
   characters  SeriesCharacter[]
   settings    SeriesSetting[]
   timeline    TimelineEvent[]
+  storyBible  SeriesStoryBible?
   
   @@index([userId])
   @@map("series")
@@ -1071,3 +1072,4 @@ model CritiqueHistory {
   @@index([bookId])
   @@map("critique_history")
 }
+
