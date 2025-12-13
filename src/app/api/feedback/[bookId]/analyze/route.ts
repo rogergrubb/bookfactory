@@ -113,7 +113,7 @@ Respond with JSON only:
       return NextResponse.json({ error: 'Unexpected response' }, { status: 500 });
     }
     
-    let analysisData: any;
+    let analysisData: Record<string, unknown>;
     try {
       const jsonMatch = responseText.text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -121,11 +121,12 @@ Respond with JSON only:
       } else {
         throw new Error('No JSON found');
       }
-    } catch (e) {
-      console.error('Failed to parse analysis:', e);
+    } catch {
+      console.error('Failed to parse analysis');
       return NextResponse.json({ error: 'Failed to parse analysis' }, { status: 500 });
     }
     
+    // Return analysis
     return NextResponse.json({
       analysis: {
         id: `analysis-${Date.now()}`,
@@ -137,7 +138,7 @@ Respond with JSON only:
         strengths: analysisData.strengths || [],
         weaknesses: analysisData.weaknesses || [],
         opportunities: [],
-        issues: (analysisData.issues || []).map((issue: any, i: number) => ({
+        issues: (Array.isArray(analysisData.issues) ? analysisData.issues : []).map((issue: Record<string, unknown>, i: number) => ({
           id: `issue-${i}`,
           ...issue,
         })),
@@ -168,7 +169,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { bookId } = await params;
+    await params; // Consume params
     
     // Return null for now - analysis storage pending
     return NextResponse.json({ analysis: null });
